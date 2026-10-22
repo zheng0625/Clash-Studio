@@ -1,0 +1,16 @@
+frontend/node_modules/
+frontend/dist/
+data/
+bin/*.exe
+bin/*.zip
+__pycache__/
+*.pyc
+.pytest_cache/
+artifacts/
+/ClashStudioAlpha.exe
+.toolchain/
+src-tauri/target/
+/ClashStudio.exe
+bin/*.dll
+bin/geodata/*.mmdb
+bin/geodata/*.dat

@@ -1,0 +1,42 @@
+[
+  {
+    "file": "Mihomo-GPL-3.0.txt",
+    "url": "https://raw.githubusercontent.com/MetaCubeX/mihomo/v1.19.33/LICENSE",
+    "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+  },
+  {
+    "file": "Tauri-MIT.txt",
+    "url": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/LICENSE-MIT",
+    "sha256": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d"
+  },
+  {
+    "file": "Meta-Rules-Dat-GPL-3.0.txt",
+    "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/master/LICENSE",
+    "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+  },
+  {
+    "file": "Meta-Rules-Dat-README.md",
+    "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/master/README.md",
+    "sha256": "f8331ea1270bab8df1be58c6bd36064eacb80b4c98d1a243266617d5b544dd4a"
+  },
+  {
+    "file": "Loyalsoldier-V2Ray-Rules-Dat-README.md",
+    "url": "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/master/README.md",
+    "sha256": "3430521ecd4a2993368cc4fc1108f4dc56e44f15fe502f4c4a65e225f707c59d"
+  },
+  {
+    "file": "MaxMind-CC-BY-SA-4.0.html",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode.en",
+    "sha256": "47c0a954c88d793bdefe92fb007ae3c038fb3807f1a27083433d01aa7542c0d8"
+  },
+  {
+    "file": "Wintun-LICENSE.txt",
+    "url": "https://www.wintun.net/builds/wintun-0.14.1.zip",
+    "sha256": "183adac21e7d96c508c8fd34d394b7b6708bc81564ad1bad61ab66143a008cd2"
+  },
+  {
+    "file": "../source/mihomo-v1.19.33-source.tar.gz",
+    "url": "https://codeload.github.com/MetaCubeX/mihomo/tar.gz/refs/tags/v1.19.33",
+    "sha256": "e7c596b37ff27ec487d19b1920f73e0c97a78067ea35766530ee9659ade72711"
+  }
+]

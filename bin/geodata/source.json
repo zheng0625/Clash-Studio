@@ -1,0 +1,30 @@
+{
+  "origin": "MetaCubeX/meta-rules-dat documented CDN; SHA-256 sidecars verified",
+  "updated_at": "2026-10-22T13:50:17.863819+00:00",
+  "files": [
+    {
+      "name": "Country.mmdb",
+      "sha256": "bc77daf79688d45b00af34b1db394b7b98d3947ff4d7d4e4d5da9f795238025a",
+      "bytes": 7645129,
+      "url": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb"
+    },
+    {
+      "name": "geoip.dat",
+      "sha256": "a21bacd4e378bfec3bfb5426c08fd995d78ed31f6a44180c9449a61be185f85f",
+      "bytes": 16569543,
+      "url": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat"
+    },
+    {
+      "name": "geosite.dat",
+      "sha256": "3260a11390c30172ec64213df26e9f9eed4eb9694ce52b899f5699edff369e47",
+      "bytes": 4304339,
+      "url": "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+    },
+    {
+      "name": "ASN.mmdb",
+      "sha256": "b9c1120510f02791c455fa667740a251e46e85d625fb977f8248d5ec1ebf6721",
+      "bytes": 8974108,
+      "url": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/GeoLite2-ASN.mmdb"
+    }
+  ]
+}

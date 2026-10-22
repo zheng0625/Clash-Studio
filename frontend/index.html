@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#f7f8fc"><title>Clash Studio</title>
+  <style>
+    html,body{margin:0;background:var(--boot-bg,#f7f8fc);color:var(--boot-text,#3d3550)}
+    .boot-screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--client-background,var(--boot-bg,#f7f8fc));color:var(--client-text,var(--boot-text,#3d3550));font-family:"Segoe UI","Microsoft YaHei",sans-serif}
+    .boot-screen>img{width:72px;height:72px}.boot-screen h1{font-size:23px;font-weight:600;margin:0}.boot-screen p{font-size:13px;margin:0}.boot-screen small{max-width:480px;text-align:center;font-size:12px;line-height:1.7;padding:0 24px}
+    .boot-progress{width:96px;height:3px;overflow:hidden;border-radius:9px;background:#7659d52b}.boot-progress:after{content:"";display:block;width:40px;height:100%;background:#7659d5;animation:boot-slide 1.2s ease-in-out infinite}
+    .boot-close{position:absolute;top:8px;right:8px;width:40px;height:32px;border:0;background:transparent;color:inherit;font-size:24px;border-radius:6px;cursor:pointer}.boot-close:hover{background:#bc2635;color:white}
+    @keyframes boot-slide{from{transform:translateX(-40px)}to{transform:translateX(96px)}}@media(prefers-reduced-motion:reduce){.boot-progress:after{animation:none;width:100%}}
+  </style>
+</head>
+<body><div id="app"><section class="boot-screen" data-tauri-drag-region><img src="/src/assets/brand.svg" alt=""/><h1>Clash Studio</h1><span class="boot-progress"></span><p id="boot-label">Loading…</p></section></div><script src="/startup.js"></script><script type="module" src="/src/main.ts"></script></body>
+</html>
