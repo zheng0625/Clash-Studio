@@ -1,6 +1,6 @@
 <p align="center"><img src="frontend/src/assets/brand.svg" width="84" alt="Clash Studio"></p>
 <h1 align="center">Clash Studio</h1>
-<p align="center">让订阅修改更可控，让流量分配更精确。</p>
+<p align="center">定义新时代Clash客户端，让订阅修改更可控，让流量分配更精确。</p>
 <p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases">下载便携版</a> · <a href="README.en.md">English</a> · <a href="LICENSE">GPL-3.0</a></p>
 
 **Clash Studio 是一款以订阅可视化修改、模块化管理和精确分流为核心的 Windows Mihomo 客户端。**
