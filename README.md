@@ -7,6 +7,8 @@
 
 基于 [Clash Subscription Studio](https://github.com/zheng0625/clash-subscription-studio) 的订阅编辑能力，将源订阅、个人修改、分流模块与本机运行配置衔接起来。通过可视化操作整理节点、策略组和规则，再把不同域名、应用进程或 IP 网段交给指定的策略组与出口。
 
+![Clash Studio 0.5.1 概览，公网信息已隐藏](docs/screenshots/overview.png)
+
 ## 核心特点
 
 ### 订阅修改：更新源配置，也保留自己的选择
@@ -15,6 +17,8 @@
 - 可视化修改节点名称与启用状态，调整策略组成员、类型和顺序，编辑分流规则。
 - 源订阅与修改记录分开保存；刷新订阅后重新应用修改，显示冲突和校验结果。
 - 草稿 → 预览 → 保存发布 → 应用内核，修改过程可检查；提供 YAML 导出和历史版本恢复。
+
+![配置工作台](docs/screenshots/configuration-workbench.png)
 
 ### 精确分流：将分流意图保存为可复用模块
 
@@ -25,6 +29,8 @@
 - 在连接页查看内核实际命中的规则、策略链与流量，核对分流效果。
 
 > “精确”指基于明确匹配条件与规则优先级控制已被内核接管的流量。实际覆盖受系统代理、TUN、进程识别及网络环境影响；严格审查不保证固定公网 IP，目前也不提供内核退出后的防火墙断网保护。
+
+![模块化精确分流](docs/screenshots/routing-modules.png)
 
 ### 桌面运行与日常体验
 
@@ -88,3 +94,4 @@ Clash Studio 项目代码使用 **GNU General Public License v3.0（SPDX: GPL-3.
 - [Vue](https://github.com/vuejs/core)、[Vite](https://github.com/vitejs/vite)、[Lucide](https://github.com/lucide-icons/lucide)：界面与开发工具。
 - [WireGuard / Wintun](https://www.wintun.net/)、[Python](https://www.python.org/)、[FastAPI](https://github.com/fastapi/fastapi)：系统网络与本地服务能力。
 - [MetaCubeX/meta-rules-dat](https://github.com/MetaCubeX/meta-rules-dat)、[Loyalsoldier](https://github.com/Loyalsoldier)、[v2fly/domain-list-community](https://github.com/v2fly/domain-list-community)、[MaxMind](https://www.maxmind.com/) 及其他上游数据贡献者：规则与地理数据库资源。
+
