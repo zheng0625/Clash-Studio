@@ -1,10 +1,11 @@
 export const isDesktop = '__TAURI_INTERNALS__' in window
 export async function desktopInfo():Promise<{backend_base:string;version:string;desktop:boolean}> {
   if(isDesktop){const {invoke}=await import('@tauri-apps/api/core');return invoke('desktop_info')}
-  return {backend_base:location.origin,version:'0.5.1',desktop:false}
+  return {backend_base:location.origin,version:'0.5.17',desktop:false}
 }
 export async function restartElevated(){const {invoke}=await import('@tauri-apps/api/core');return invoke('restart_elevated')}
 export async function quitDesktop(){const {invoke}=await import('@tauri-apps/api/core');return invoke('quit_app')}
+export async function closeDesktop(){const {invoke}=await import('@tauri-apps/api/core');return invoke<boolean>('close_desktop')}
 export async function api<T>(path:string,method='GET',body?:unknown):Promise<T>{
   let status:number,data:any
   if(isDesktop){

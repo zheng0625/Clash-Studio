@@ -1,0 +1,48 @@
+/* Shared palette layer. Layout and glass geometry remain in their own styles. */
+:root{--text-1:var(--client-text);--text-2:var(--client-secondary);--text-3:var(--client-secondary);--ink:var(--client-text);--muted:var(--client-secondary);--line:var(--client-border);--green:var(--client-success)}
+html,html body,#app{background:var(--client-background);color:var(--client-text)}
+:root .desk .desk-topbar{background:var(--client-sidebar);border-color:var(--client-border);color:var(--client-sidebar-text)}
+:root .desk .desk-topbar :is(strong,span,button){color:var(--client-sidebar-text)}
+:root .desk :is(.desk-card,.proxy-node-card,.native-editor,.desk-modal,.settings-dialog){background:var(--client-surface);border-color:var(--client-border);box-shadow:0 8px 28px #00000012}
+:root .desk :is(.desk-card,.desk-modal,.settings-dialog,.native-editor) :is(h1,h2,h3,strong,label,input,select,textarea){color:var(--client-text)}
+:root .desk :is(.desk-card,.desk-modal,.settings-dialog,.native-editor) :is(small,.small-explanation,.helper-status,.desk-eyebrow,.page-caption){color:var(--client-secondary)}
+:root .desk :is(input,textarea,select,.glass-select-trigger,.desk-btn,.proxy-address,.core-version-block,.native-segment,.modal-tabs){background:var(--client-surface);color:var(--client-text);border-color:var(--client-border)}
+:root .desk :is(.desk-btn:not(.primary):not(.danger),.desk-icon-btn,.mode-options>button,.ip-route-tabs>button):hover:not(:disabled){background:var(--client-selected);border-color:var(--client-border);color:var(--client-text)}
+:root .desk :is(.desk-btn.primary,.desk-switch.on){background:var(--client-accent);border-color:var(--client-accent);color:var(--client-accent-ink)}
+:root .desk .desk-btn.primary:hover:not(:disabled){filter:brightness(1.08)}
+:root .desk :is(.desk-btn.danger,.desk-icon-btn.danger){color:var(--client-error);background:transparent;border-color:var(--client-border)}
+:root .desk .desk-btn.danger:hover:not(:disabled){background:color-mix(in srgb,var(--client-error) 12%,var(--client-surface));border-color:var(--client-error)}
+:root .desk :is(button,input,select,textarea):disabled{opacity:.55}
+:root .desk :is(button,input,select,textarea,.glass-select-trigger):focus-visible{outline:2px solid var(--client-accent);outline-offset:2px;box-shadow:none}
+:root .desk :is(input,textarea,select):focus{border-color:var(--client-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--client-accent) 18%,transparent)}
+:root .desk :is(.mode-options>button.selected,.ip-route-tabs>button.selected,.settings-tabs>button[aria-selected=true],.native-segment>button.active,.modal-tabs>button.active){background:var(--client-selected);color:var(--client-text);border-color:var(--client-accent);outline:0}
+:root .desk .routing-segment button[aria-pressed=true]{background:var(--client-selected);color:var(--client-accent);border-color:var(--client-accent)}
+:root .desk .liquid-dock{border-color:var(--client-border);box-shadow:0 8px 30px #00000028,inset 0 1px 0 color-mix(in srgb,var(--client-text) 8%,transparent)}
+:root .desk .liquid-dock .dock-item.chosen{background:var(--client-selected);border-color:var(--client-border);box-shadow:none}
+:root .desk .liquid-dock .dock-item.chosen .dock-label{color:var(--client-accent)}
+:root .desk .liquid-dock .chosen .dock-indicator{background:var(--client-accent)}
+:root .desk .liquid-dock .dock-item:hover{background:var(--client-selected);box-shadow:none}
+:root .desk :is(.status-chip,.network-pill,.ip-status){color:var(--client-secondary);border-color:var(--client-border);background:transparent}
+:root .desk :is(.status-chip.is-live,.ip-status.success,.node-delay.fast,.geo-message:not(.failed)){color:var(--client-success);background:transparent}
+:root .desk .status-chip.is-live i{background:var(--client-success)}
+:root .desk .status-chip:not(.is-live){color:var(--client-error)}
+:root .desk .status-chip:not(.is-live) i{background:var(--client-error)}
+:root .desk .ip-status.success span{background:transparent;color:var(--client-success)}
+:root .desk .ip-status .ip-family{background:transparent;color:var(--client-secondary);border-color:var(--client-border)}
+:root .desk :is(.mode-warning,.inline-note,.log-level.warning,.node-delay.medium){color:var(--client-warning);background:transparent;border-color:var(--client-border)}
+:root .desk :is(.desk-alert.error,.ip-status.failure,.geo-message.failed,.log-level.error,.node-delay.unreachable,.node-delay.slow){color:var(--client-error);background:transparent;border-color:var(--client-error)}
+:root .desk .proxy-node-card.picked{background:var(--client-selected);border-color:var(--client-accent)}
+:root .desk .setting-row,:root .desk .geo-file-list article,:root .desk .editor-node-row{border-color:var(--client-border)}
+:root .desk .match-row,:root .desk .match-row:hover,:root .desk .match-row:focus-within{background:transparent}
+.glass-select-menu{background:var(--client-surface);color:var(--client-text);border-color:var(--client-border)}
+.glass-select-menu button.highlight,.glass-select-menu button:hover{background:var(--client-selected)}
+.boot-screen{background:var(--client-background);color:var(--client-text)}
+.boot-screen :is(p,small){color:var(--client-secondary)}
+:root[data-wallpaper] .desk :is(.desk-card,.native-editor){background:color-mix(in srgb,var(--client-surface) var(--client-glass-panel),transparent)}
+
+/* Center notifications horizontally, with clearance above the navigation Dock. */
+:root .desk .desk-toast{left:50%;top:auto;right:auto;bottom:var(--notice-dock-offset,100px);transform:translateX(-50%);width:max-content;max-width:min(700px,calc(100vw - 40px));max-height:calc(100vh - var(--notice-dock-offset,100px) - 24px);overflow:auto;z-index:1000;text-align:center}
+:root .desk .desk-toast>span{min-width:0;overflow-wrap:anywhere}
+
+/* The group already supplies glass; nested per-node blur makes selection expensive. */
+:root .desk .node-grid .proxy-node-card{border-width:2px;backdrop-filter:none;-webkit-backdrop-filter:none;transition:background-color .12s,border-color .12s;box-shadow:none}

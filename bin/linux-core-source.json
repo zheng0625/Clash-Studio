@@ -1,0 +1,7 @@
+{
+  "version": "v1.19.33",
+  "url": "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.33/mihomo-linux-amd64-compatible-v1.19.33.gz",
+  "download_sha256": "386508bfb1c72c43b6a0eda73708ecdce82546581b0ebcb16366c53757c622b6",
+  "binary_sha256": "817f50b3ac6a8b1c4360c5cf2961906057f3a883d970ebbcb0028a01632b620f",
+  "upstream_digest": "sha256:386508bfb1c72c43b6a0eda73708ecdce82546581b0ebcb16366c53757c622b6"
+}

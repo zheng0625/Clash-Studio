@@ -1,4 +1,5 @@
 {
+  "检查是否连接同一个网络、路由器是否开启访客隔离，并在系统防火墙中放行共享端口。电脑 IP 改变后需重新复制地址。": "Check that devices share a network, guest isolation is off, and the system firewall allows the sharing port. Copy the link again if this computer's IP changes.",
   "代理组": "Proxy group",
   "内置策略": "Built-in policy",
   "DIRECT · 直连": "DIRECT · Direct connection",

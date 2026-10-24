@@ -474,7 +474,7 @@ dependencies = [
 
 [[package]]
 name = "clash-studio"
-version = "0.5.1"
+version = "0.5.17"
 dependencies = [
  "reqwest 0.12.28",
  "serde",

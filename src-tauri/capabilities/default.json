@@ -2,7 +2,7 @@
   "identifier": "main-capability",
   "description": "Local main window; backend operations are exposed through constrained Rust commands.",
   "windows": [
-    "main"
+    "main", "tray-menu"
   ],
   "permissions": [
     "core:default",

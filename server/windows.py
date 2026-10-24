@@ -2,6 +2,8 @@
 import ctypes
 from ctypes import wintypes
 import os
+from pathlib import Path
+import sys
 
 
 def is_admin():
@@ -9,6 +11,8 @@ def is_admin():
 
 
 def other_cores(own_pid=None):
+    if sys.platform == 'linux':
+        return linux_other_cores(own_pid)
     if os.name != "nt":
         return []
 
@@ -39,4 +43,27 @@ def other_cores(own_pid=None):
             found = kernel.Process32NextW(handle, ctypes.byref(entry))
     finally:
         kernel.CloseHandle(handle)
+    return result
+
+
+def linux_other_cores(own_pid=None, proc=Path('/proc')):
+    result = []
+    try:
+        entries = list(proc.iterdir())
+    except OSError:
+        return result
+    for entry in entries:
+        if not entry.name.isdecimal() or int(entry.name) == own_pid:
+            continue
+        try:
+            stat = (entry/'stat').read_text()
+            name, tail = stat.split('(', 1)[1].rsplit(')', 1)
+            fields = tail.split()
+            # The Linux watchdog is Runtime.process; its direct child is ours.
+            if fields[0] == 'Z' or int(fields[1]) == own_pid:
+                continue
+            if name.lower().startswith(('mihomo', 'clash-meta', 'clash-core')):
+                result.append(f'{name} (PID {entry.name})')
+        except (OSError, ValueError, IndexError):
+            continue
     return result

@@ -1,43 +1,65 @@
-# Clash Studio
+<p align="center"><img src="frontend/src/assets/brand.svg" width="84" alt="Clash Studio"></p>
+<h1 align="center">Clash Studio</h1>
+<p align="center">Precise routing. Thoughtful desktop design.</p>
+<p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/v0.5.17">Download for Windows / Linux</a> · <a href="README.md">简体中文</a> · <a href="LICENSE">GPL-3.0</a></p>
 
-**Visual subscription editing, reusable routing modules, and precise traffic routing for Windows.**
+**Clash Studio is a Windows / Linux Mihomo desktop client focused on visual subscription editing, reusable routing modules and precise routing, with a customizable desktop interface.**
 
-[简体中文](README.md) · [Download](https://github.com/zheng0625/Clash-Studio/releases) · [GPL-3.0](LICENSE)
+It connects source subscriptions, personal edits, routing modules and runtime configuration. Organize nodes, groups and rules, then route domains, application processes and IP subnets through selected groups and exits.
 
-Clash Studio brings the subscription editing capabilities of [Clash Subscription Studio](https://github.com/zheng0625/clash-subscription-studio) into a Tauri desktop client powered by Mihomo. Keep source subscriptions separate from personal edits, then compose routing modules into a configuration you can inspect and apply.
+![Clash Studio 0.5.17 overview using a demo configuration; public IP lookup disabled](docs/screenshots/overview.png)
 
-## What makes it different
+## Precise routing comes first
 
-- **Editable subscriptions:** rename or exclude nodes, edit proxy group members and order, manage rules, preview YAML, publish drafts, and restore history. Saved edits are reapplied after source refreshes, with conflicts and validation results surfaced.
-- **Reusable routing modules:** match domains, suffixes, process names or paths, and IPv4/IPv6 subnets. Assign each module to an outbound or proxy group, enable it per plan, and order modules ahead of source rules.
-- **Strict outbound review:** check visible nested chains for reachable DIRECT, missing or circular references, and dynamic members that cannot be fully inspected.
-- **Inspect real routing:** view the core's actual connections, matched rules, policy chains, and transferred bytes.
-- **Desktop features:** system proxy, TUN with an on-demand administrator helper, individual/group/all-node HTTP latency tests, live traffic, session totals, public IP lookup, LAN proxy authentication, custom ports, IPv6, DNS overrides, and GeoData updates.
-- **Personalization:** custom palettes, full-window photo backgrounds with crop and preview, and Chinese/English selection following the Windows display language by default.
-- **Startup:** concurrent window/backend initialization, a loading view, and on-demand page loading.
+- Match domains, domain suffixes, process names, process paths, and IPv4 / IPv6 subnets.
+- Assign each module a group or exit; reuse, enable and order modules across subscription plans. Module rules precede source subscription rules.
+- Inspect visible nested exit chains in strict mode, rejecting reachable DIRECT exits, missing or cyclic references, and dynamic members that cannot be fully inspected.
+- Check actual Mihomo rule matches, chains and traffic in the connection view.
 
-Routing precision applies to traffic captured by the core and depends on capture mode, process detection, and network conditions. Strict review does not guarantee a fixed public IP. There is currently no firewall kill switch after the core exits.
+![Reusable routing modules](docs/screenshots/routing-modules.png)
 
-## Portable Windows release
+Precision applies to traffic captured by the core with identifiable matching conditions. Coverage depends on system proxy / TUN, process recognition and network conditions. Strict checks do not guarantee a fixed public IP. There is currently no firewall kill switch after the core exits.
 
-Download **0.5.1 Windows x64** from [Releases](https://github.com/zheng0625/Clash-Studio/releases), extract the entire ZIP into a writable directory, and run `ClashStudio.exe`.
+## A considered desktop interface
 
-Python, Mihomo, Wintun, and four base rule databases are bundled. The system must have [Microsoft Edge WebView2 Runtime](https://learn.microsoft.com/microsoft-edge/webview2/concepts/distribution). Remote providers or rule sets referenced by your subscription still require a network connection. No proxy service or usable subscription is included.
+- Liquid Glass inspired layers, rounded cards and a floating Dock organize the workspace.
+- Light / dark themes, custom colors and full-window photo backgrounds, with cropping and previews.
+- Dedicated appearance dialogs and horizontally centered notifications above the Dock.
+- Immediate node feedback, coalesced rapid clicks and less repeated rendering. Select manual nodes before starting the main core.
+- Simplified Chinese / English, system language following, lazy page loading and parallel desktop / backend startup.
 
-Import a subscription, edit and publish it, compose routing modules, select system proxy or TUN, and apply. Check actual connections to inspect the result. Language: **Settings and logs → Settings → Interface language**.
+![Appearance settings](docs/screenshots/appearance.png)
 
-Data stays in `data/` beside the application. Close the old version and back up this directory before upgrading. Do not run multiple versions simultaneously.
+## Edit subscriptions and keep your changes
 
-## Development and status
+Built on [Clash Subscription Studio](https://github.com/zheng0625/clash-subscription-studio), the editor separates source configuration from persistent user edits. Import URL / YAML subscriptions, edit nodes, groups and rules, refresh while replaying edits, review conflicts, preview YAML, publish and restore history.
 
-Stack: **Tauri 2 / Rust, Vue 3 / TypeScript / Vite, a local Python backend, and Mihomo**. See [BUILDING.md](BUILDING.md) for the source layout and build instructions.
+The workflow is draft → preview → save and publish → apply to the core. Manual node choices are stored per subscription and restored on the next start. Automatic groups retain automatic routing.
 
-This is a development preview for Windows x64. Type checking, frontend/Rust builds, and package integrity checks passed. This release has not undergone full clean-Windows, language-layout, or UAC/TUN validation. Unknown backend and third-party diagnostics retain their original text.
+![Configuration workbench](docs/screenshots/configuration-workbench.png)
 
-## License and acknowledgements
+## Desktop features
 
-Project code is licensed under **GNU GPL v3.0, SPDX: GPL-3.0-only**, with no warranty. Dependencies and datasets retain their own terms; see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Windows supports system proxy and TUN with an on-demand administrator helper. Linux supports GNOME system proxy and TUN with graphical authorization for the bundled core. Both include tray integration, desktop startup preferences, HTTP delay testing, traffic and connections, LAN proxy settings, IPv6, DNS overrides and GeoData updates. Login startup launches the application without automatically starting a subscription core.
 
-Thanks to **Clash Subscription Studio**, **Tauri**, **Clash / Dreamacro and contributors**, **Mihomo / MetaCubeX**, and **Clash Verge Rev** for the foundations and design inspiration. Thanks also to **Vue**, **Vite**, **Lucide**, **Python**, **FastAPI**, **WireGuard / Wintun**, **meta-rules-dat**, **Loyalsoldier**, **v2fly/domain-list-community**, **MaxMind**, and their upstream contributors. Project links and attribution details are in the [Chinese README](README.md#致谢).
+## Download v0.5.17
 
-Clash Studio is an independent community project and is not endorsed by or affiliated with these upstream projects.
+| Package | Download | Application data |
+| --- | --- | --- |
+| Windows x64 portable | [ZIP](https://github.com/zheng0625/Clash-Studio/releases/download/v0.5.17/ClashStudio-0.5.17-portable-windows-x64.zip) | Adjacent `data/` |
+| Windows x64 installer | [EXE](https://github.com/zheng0625/Clash-Studio/releases/download/v0.5.17/ClashStudio-0.5.17-setup-windows-x64.exe) | `%LOCALAPPDATA%\ClashStudio` |
+| Linux x64 | [tar.gz](https://github.com/zheng0625/Clash-Studio/releases/download/v0.5.17/ClashStudio-0.5.17-linux-x64-preview1.tar.gz) | Adjacent `data/`, or `--data-dir` |
+
+Extract the entire Windows ZIP and run `ClashStudio.exe`, or use the installer. On Linux, extract and run `./Start.sh`. The Linux package uses an Ubuntu 22.04 x64 baseline and retains the `preview1` filename. See the [Linux guide](docs/linux-preview.md).
+
+Python, Mihomo v1.19.33 and four base databases are bundled; Windows also includes Wintun. Windows requires system WebView2; Linux requires desktop GTK / WebKit libraries. No development tools are required. Remote providers / rule sets referenced by subscriptions still need network access. No proxy service or usable subscription is provided.
+
+The maintainer has confirmed using all three packages. Automated checks and their scope are in [validation notes](docs/validation-0.5.17.md). Validation on these devices does not cover every system and network. Windows packages are unsigned. Exit the old version and back up data before upgrading; portable and installed data locations differ.
+
+## Source and license
+
+Tauri 2 / Rust + Vue 3 / TypeScript / Vite + Python local configuration service + Mihomo. See [BUILDING.md](BUILDING.md). Releases include corresponding application source, upstream Mihomo source and SHA-256 checksums. Personal data, subscriptions, binary cores and local toolchains are excluded from the repository.
+
+Project code: **GPL-3.0-only**, see [LICENSE](LICENSE). Dependencies and datasets retain their respective licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Software is provided without warranty. This independent community project is not an official release of Tauri, Clash, Mihomo or Clash Verge Rev.
+
+Thanks to Clash Subscription Studio, Tauri, Clash / Dreamacro and contributors, Mihomo / MetaCubeX, Clash Verge Rev, Vue, Vite, Lucide, Python, FastAPI, WireGuard / Wintun, meta-rules-dat, Loyalsoldier, v2fly, MaxMind and other upstream contributors.

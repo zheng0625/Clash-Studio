@@ -25,8 +25,17 @@ from .lan import LanController, build_lan_app, is_lan_ipv4
 from .store import StaleRevision, Store, now
 from .paths import RESOURCE_ROOT, default_data_dir, instance_id
 from .version import VERSION
+from .usage import subscription_usage
 
 ROOT = RESOURCE_ROOT
+
+
+def demo_source():
+    try:
+        return (ROOT / 'examples' / 'demo.yaml').read_text(encoding='utf-8')
+    except OSError:
+        raise HTTPException(503, '示例配置资源缺失，请重新解压完整便携包') from None
+
 # Subscription panels commonly select their output from the client User-Agent.
 # Match the official Clash Verge Rev subscription request format, rather than
 # the previous unrecognised "ClashStudio/0.1 mihomo" identifier.
@@ -177,6 +186,7 @@ def create_app(data_dir: Path | None = None):
     def summarize(row):
         source = parse_config(row["source"])
         return {key: row[key] for key in ("id", "title", "source_type", "revision", "enabled", "interval_minutes", "created_at", "updated_at", "refreshed_at", "last_error")} | {
+            "usage": subscription_usage(row["source_headers"]),
             "source_host": urlsplit(row["source_url"]).hostname if row["source_url"] else "本地 YAML",
             "proxy_count": len(source.get("proxies", [])), "group_count": len(source.get("proxy-groups", [])), "rule_count": len(source.get("rules", []))}
 
@@ -197,7 +207,7 @@ def create_app(data_dir: Path | None = None):
             elif replacement is not None:
                 source = replacement
             elif row["source_type"] == "demo":
-                source = (ROOT / "examples" / "demo.yaml").read_text(encoding="utf-8")
+                source = demo_source()
             else:
                 raise HTTPException(400, "本地文件订阅需要重新上传 YAML 文件")
             result = compile_config(source, json.loads(row["edits"]))
@@ -311,7 +321,7 @@ def create_app(data_dir: Path | None = None):
         if body.source_type == "url":
             source, headers = fetch_source(body.source_url.strip())
         elif body.source_type == "demo":
-            source = (ROOT / "examples" / "demo.yaml").read_text(encoding="utf-8")
+            source = demo_source()
         else:
             source = body.yaml
         edits = empty_edits()

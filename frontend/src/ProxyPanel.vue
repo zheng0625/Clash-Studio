@@ -8,7 +8,7 @@ import { api } from './api'
 type Proxy={name:string;type:string;all?:string[];now?:string;history?:{delay:number}[]}
 type Result={name:string;endpoint:string;status:'ok'|'unreachable';delay_ms:number|null;checked_at:string}
 type Entry={status:'queued'|'testing'|'ok'|'unreachable'|'cancelled';delay_ms:number|null;checked_at?:string}
-const props=defineProps<{proxies:Record<string,Proxy>;busy:boolean;sessionKey:string;profileId:string;profileRevision:number;workspaceRevision:number;live:boolean;hasProviders:boolean}>()
+const props=defineProps<{proxies:Record<string,Proxy>;busy:boolean;pending:Record<string,string>;sessionKey:string;profileId:string;profileRevision:number;workspaceRevision:number;live:boolean;hasProviders:boolean}>()
 const emit=defineEmits<{select:[group:Proxy,name:string];notice:[message:string,error?:boolean];refresh:[]}>()
 const collapsed=ref<Record<string,boolean>>({})
 try{collapsed.value=JSON.parse(localStorage.getItem('clash-group-folds')||'{}')}catch{}
@@ -16,7 +16,7 @@ function fold(name:string){collapsed.value[name]=!collapsed.value[name];localSto
 function foldAll(value:boolean){groups.value.forEach(group=>collapsed.value[group.name]=value);localStorage.setItem('clash-group-folds',JSON.stringify(collapsed.value))}
 const endpoint=ref('cloudflare'), results=ref<Record<string,Entry>>({}), testing=ref(false), completed=ref(0), total=ref(0), inFlight=ref(0)
 let sequence=0
-const groups=computed(()=>Object.values(props.proxies).filter(p=>p.all&&p.name!=='GLOBAL'))
+const groups=computed(()=>Object.values(props.proxies).filter(p=>p.all&&(props.live||p.name!=='GLOBAL')))
 const isNode=(p:Proxy|undefined)=>!!p&&!p.all&&!['direct','reject','rejectdrop','pass','dns'].includes(p.type.toLowerCase())
 function leaves(names:string[],seen=new Set<string>()):string[]{
   const found:string[]=[]
@@ -25,6 +25,13 @@ function leaves(names:string[],seen=new Set<string>()):string[]{
 }
 const allNodes=computed(()=>Object.values(props.proxies).filter(isNode).map(p=>p.name))
 function cancel(){++sequence;testing.value=false;for(const entry of Object.values(results.value)){if(entry.status==='queued'||entry.status==='testing')entry.status='cancelled'}}
+function restoreResults(){
+  cancel();results.value={}
+  try{const saved=JSON.parse(localStorage.getItem('clash-node-delay-v1:'+props.profileId)||'{}');for(const [name,value] of Object.entries(saved)){const e=value as Entry;if(e&&['ok','unreachable'].includes(e.status)&&(e.delay_ms===null||Number.isFinite(e.delay_ms)))results.value[name]=e}}catch{}
+}
+watch(()=>props.profileId,restoreResults,{immediate:true})
+let saveTimer:ReturnType<typeof setTimeout>|undefined
+watch(results,()=>{clearTimeout(saveTimer);const id=props.profileId,value=results.value;saveTimer=setTimeout(()=>{try{localStorage.setItem('clash-node-delay-v1:'+id,JSON.stringify(Object.fromEntries(Object.entries(value).filter(([,e])=>['ok','unreachable'].includes(e.status)))))}catch{}},250)},{deep:true})
 async function measure(names:string[]){
   if(testing.value||inFlight.value||props.busy)return
   const unique=[...new Set(names)].filter(n=>isNode(props.proxies[n]))
@@ -59,8 +66,8 @@ async function measure(names:string[]){
 async function loadProviders(){if(testing.value||inFlight.value)return;inFlight.value++;try{await api('/api/client/probe/prepare','POST',{profile_id:props.profileId});emit('refresh')}catch(error){emit('notice',(error as Error).message,true)}finally{inFlight.value--}}
 function label(name:string){const value=results.value[name];if(!value)return t("测速");return value.status==='queued'?t("等待"):value.status==='testing'?t("测速中"):value.status==='ok'?`${value.delay_ms} ms`:value.status==='cancelled'?t("已取消"):t("超时 / 不可达")}
 function color(name:string){const value=results.value[name];if(value?.status==='unreachable')return 'unreachable';if(value?.status!=='ok')return '';return (value.delay_ms||0)<200?'fast':(value.delay_ms||0)<600?'medium':'slow'}
-watch(()=>props.sessionKey,()=>{cancel();results.value={};completed.value=0;total.value=0})
-watch(endpoint,()=>{results.value={};completed.value=0;total.value=0})
+watch(()=>props.sessionKey,()=>{cancel();completed.value=0;total.value=0})
+watch(endpoint,()=>{completed.value=0;total.value=0})
 onUnmounted(cancel)
 </script>
 
@@ -73,9 +80,9 @@ onUnmounted(cancel)
   <p class="page-caption delay-caption">{{ t("{0}测速为 HTTP 延迟，受当前网络路径影响。独立测速内核空闲两分钟自动关闭。", [props.live?t("当前节点来自运行配置。"):t("当前节点来自所选订阅的已发布配置；测速按需使用独立内核，不开启系统代理或 TUN。")]) }}</p>
   <div class="group-fold-toolbar"><span>{{ t("{0} 个策略组", [groups.length]) }}</span><button class="desk-text-btn" @click="foldAll(false)">{{ t("全部展开") }}</button><button class="desk-text-btn" @click="foldAll(true)">{{ t("全部折叠") }}</button><button v-if="props.hasProviders&&!props.live" class="desk-btn" :disabled="testing||inFlight>0||props.busy" @click="loadProviders">{{ t("加载 / 刷新 Provider 节点") }}</button></div>
   <section v-for="group in groups" :key="group.name" class="desk-card proxy-group">
-    <div class="section-head"><button class="group-fold-toggle" :aria-expanded="!collapsed[group.name]" @click="fold(group.name)"><ChevronDown :size="17" :class="{folded:collapsed[group.name]}"/><span><strong>{{ group.name }}</strong><small>{{ group.type }} · {{ props.live?t("当前 ")+(group.now||t("自动策略")):t("未应用到主内核") }}</small></span></button><div class="group-actions"><span class="small-badge">{{ t("{0} 个成员", [group.all?.length]) }}</span><button class="desk-btn" :disabled="testing||inFlight>0||props.busy||!leaves(group.all||[]).length" @click="measure(leaves(group.all||[]))"><Activity :size="13"/>{{ t("整组测速") }}</button></div></div>
-    <div v-show="!collapsed[group.name]" class="node-grid"><article v-for="name in group.all" :key="name" :class="['proxy-node-card',{picked:group.now===name}]">
-      <button class="node-choice" :disabled="!props.live||props.busy||group.type!=='Selector'" @click="emit('select',group,name)"><span class="node-dot"></span><span><strong>{{ name }}</strong><small>{{ props.proxies[name]?.type||t("未知类型") }}</small></span><Check v-if="group.now===name" :size="15"/></button>
+    <div class="section-head"><button class="group-fold-toggle" :aria-expanded="!collapsed[group.name]" @click="fold(group.name)"><ChevronDown :size="17" :class="{folded:collapsed[group.name]}"/><span><strong>{{ group.name }}</strong><small>{{ group.type }} · {{ props.live?t("当前 ")+(group.now||t("自动策略")):t("下次启动使用 ")+(group.now||t("自动策略")) }}</small></span></button><div class="group-actions"><span class="small-badge">{{ t("{0} 个成员", [group.all?.length]) }}</span><button class="desk-btn" :disabled="testing||inFlight>0||props.busy||!leaves(group.all||[]).length" @click="measure(leaves(group.all||[]))"><Activity :size="13"/>{{ t("整组测速") }}</button></div></div>
+    <div v-show="!collapsed[group.name]" class="node-grid"><article v-for="name in group.all" :key="name" v-memo="[group.now===name,props.pending[group.name]===name,group.type,props.proxies[name]?.type,!!props.proxies[name]?.all,results[name]?.status,results[name]?.delay_ms,results[name]?.checked_at,testing,inFlight>0,props.busy,locale]" :class="['proxy-node-card',{picked:group.now===name}]">
+      <button class="node-choice" :disabled="props.busy||group.type!=='Selector'" @click="emit('select',props.proxies[group.name]!,name)"><span class="node-dot"></span><span><strong>{{ name }}</strong><small>{{ props.proxies[name]?.type||t("未知类型") }}</small></span><Loader2 v-if="props.pending[group.name]===name" class="rotate" :size="15"/><Check v-else-if="group.now===name" :size="15"/></button>
       <div class="node-measure-row"><template v-if="isNode(props.proxies[name])"><span v-if="results[name]?.checked_at" class="delay-time">{{ new Date(results[name]!.checked_at!).toLocaleTimeString('zh-CN',{hour12:false}) }}</span><span v-else class="delay-time">{{ t("HTTP 延迟") }}</span><button :class="['node-delay',color(name)]" :disabled="testing||inFlight>0||props.busy" :aria-label="t('测速 {0}', [name])" @click="measure([name])"><Loader2 v-if="results[name]?.status==='testing'" class="rotate" :size="11"/><Gauge v-else :size="11"/>{{ label(name) }}</button></template><button v-else-if="props.proxies[name]?.all" class="desk-text-btn" :disabled="testing||inFlight>0||props.busy" @click="measure(leaves([name]))"><Gauge :size="11"/>{{ t("测速组内节点") }}</button><span v-else class="delay-time">{{ t("内置出口") }}</span></div>
     </article></div>
   </section>

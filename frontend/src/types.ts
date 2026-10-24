@@ -10,6 +10,7 @@ export interface Edits {
 export interface Preview { yaml: string; config: Config; errors: string[]; warnings: string[]; ai_routing?: {rule_count:number; overridden:number; group:string}|null }
 export interface AICatalogue {version:string; group_name:string; service_count:number; rule_count:number; services:{name:string;rules:{type:string;domain:string}[]}[]}
 export interface Summary {
+  usage: {used:number;total:number|null;remaining:number|null;percent:number|null}|null;
   id: string; title: string; source_type: 'url'|'file'|'demo'; source_host: string;
   revision: number; enabled: boolean; interval_minutes: number;
   created_at: string; updated_at: string; refreshed_at: string; last_error: string;

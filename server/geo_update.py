@@ -83,7 +83,7 @@ class GeoUpdater:
         return digest.hexdigest(), size
 
     def run(self):
-        stage = self.runtime.home / "data" / "geodata-updates" / secrets.token_hex(8)
+        stage = self.runtime.paths.data / "geodata-updates" / secrets.token_hex(8)
         stage.mkdir(parents=True)
         installed = []
         try:

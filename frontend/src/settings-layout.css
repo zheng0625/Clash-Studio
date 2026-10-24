@@ -1,0 +1,49 @@
+.desk .proxy-settings-card{display:block;padding:24px;width:100%;max-width:none;box-sizing:border-box}
+.desk .proxy-settings-card>.section-head{margin:0 0 20px;align-items:center}
+.desk .proxy-settings-card>.section-head h2{font-size:16px;line-height:1.5;margin:0}
+.desk .proxy-settings-card>.section-head p{font-size:12px;line-height:1.6;margin:4px 0 0}
+.proxy-settings-columns{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
+.proxy-settings-columns>div{min-width:0;display:flex;flex-direction:column;gap:12px}
+.desk .proxy-settings-card .setting-row{display:block;padding:0;margin:0;text-align:left}
+.desk .proxy-settings-card .setting-row>div{display:block;margin:0;width:100%;text-align:left}
+.desk .proxy-settings-card .setting-row strong{display:block;font-size:13px;line-height:1.6;margin:0}
+.desk .proxy-settings-card .setting-row small{display:block;font-size:12px;line-height:1.7;margin:5px 0 0;max-width:none}
+.desk .proxy-settings-card .desk-field{display:flex;flex-direction:column;align-items:stretch;gap:8px;font-size:13px;line-height:1.6;text-align:left}
+.desk .proxy-settings-card .small-explanation{font-size:12px;line-height:1.75}
+.desk .proxy-settings-card .proxy-port-controls{display:flex;align-items:center;gap:8px}
+.desk .proxy-settings-card .proxy-port-controls input{width:110px;min-width:0;flex:1;min-height:36px;box-sizing:border-box}
+.desk .proxy-settings-card .proxy-port-controls .desk-btn{flex:none;min-height:36px;padding:8px 10px}
+.desk .proxy-settings-card .mode-options{align-self:flex-start;display:flex;gap:6px;margin:0;padding:4px;width:auto;max-width:100%}
+.desk .proxy-settings-card .mode-options>button{flex:0 1 auto;min-height:36px;padding:8px 12px;gap:7px}
+.desk .proxy-settings-card .mode-options>button>span{font-size:12px;flex:none}
+.desk .proxy-settings-card .tun-settings{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:0;padding:0;border:0}
+.desk .proxy-settings-card .tun-settings .desk-field{width:100%;max-width:320px;margin:0}
+.desk .proxy-settings-card .tun-settings select{width:100%;min-height:36px;padding:8px 11px}
+.desk .proxy-settings-card .proxy-port-settings .desk-field{margin:0}
+.desk .proxy-settings-card .proxy-address{padding:9px 12px;margin:0}
+.desk .proxy-settings-card .helper-status{margin:12px 0 0}
+.desk .proxy-settings-card>.config-actions{display:flex;justify-content:flex-start;align-items:center;flex-wrap:wrap;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid var(--client-border)}
+.desk .proxy-settings-card>.config-actions>.desk-btn{margin:0;min-height:38px;padding:9px 16px}
+.desk .proxy-settings-card>.config-actions>.desk-btn{flex:none;width:auto}
+.desk .language-settings{padding:14px 24px}
+.desk .language-settings .desk-field{margin:0}
+.desk .embedded-desktop-settings{margin:0 0 16px;padding:0;border:0;background:transparent;box-shadow:none}
+.desk .embedded-desktop-settings .setting-row{margin-bottom:5px}
+.settings-layout-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.settings-layout-grid>div{min-width:0}
+.settings-left-column,.settings-right-column{display:flex;flex-direction:column;gap:16px;min-width:0}
+.settings-layout-grid .appearance-entries{display:flex;flex-direction:column;gap:16px}
+.settings-layout-grid .core-settings-card{margin:0;padding:24px}
+.desk .proxy-settings-card .mode-options{align-self:center;margin-inline:auto}
+.desk .proxy-settings-card .setting-row{width:100%;text-align:center}
+.desk .proxy-settings-card .setting-row>div{text-align:center}
+.geo-summary-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0 0;margin-top:16px;border-top:1px solid var(--client-border)}
+.geo-summary-copy{display:flex;flex-direction:column;gap:5px;min-width:0}
+.geo-summary-copy strong{font-size:13px}.geo-summary-copy small{font-size:12px;line-height:1.6}
+.geo-summary-row>.desk-btn{flex-shrink:0;min-height:36px}
+.desk .shell-brand .desk-mark{width:28px;height:28px;flex:0 0 28px;box-sizing:border-box;background:transparent;border:0;padding:0;box-shadow:none;border-radius:8px}
+.desk .shell-brand .desk-mark img{filter:none}
+.settings-layout-grid .clash-settings-card{margin:0;padding:24px}
+.settings-layout-grid .settings-loading{margin:0}
+@media(max-width:900px){.settings-layout-grid{grid-template-columns:minmax(0,1fr)}.settings-layout-grid .appearance-entries{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:680px){.proxy-settings-columns{grid-template-columns:1fr;gap:20px}.desk .proxy-settings-card{padding:20px}.desk .proxy-settings-card .mode-options{flex-wrap:wrap}}

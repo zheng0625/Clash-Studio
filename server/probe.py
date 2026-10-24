@@ -20,6 +20,8 @@ def catalog(config):
             members += [p["name"] for p in config.get("proxies", [])]
         proxies[group["name"]] = {"name": group["name"], "type": mapping.get(group.get("type"), group.get("type", "Selector")),
                                    "all": list(dict.fromkeys(members))}
+        if group.get('type') == 'select' and members:
+            proxies[group['name']]['now'] = members[0]
     return {"proxies": proxies, "has_providers": bool(config.get("proxy-providers"))}
 
 
@@ -39,7 +41,7 @@ class ProbeManager:
                 self.touch()
                 return self.core
             self.stop()
-            core = Runtime(self.main.home / "data" / "probe", resource_home=self.main.resource_home)
+            core = Runtime(self.main.home, resource_home=self.main.resource_home, data_dir=self.main.paths.data / 'probe' / 'data')
             core.binary = self.main.binary
             preferences = self.main.settings.load()
             core.settings.save(ClientSettings(ipv6=preferences.ipv6, dns_override=preferences.dns_override))
@@ -89,7 +91,7 @@ class ProbeManager:
                 self.timer.cancel()
                 self.timer = None
             if self.core:
-                self.core.stop()
+                self.core.stop(final_sample=False, report=False)
                 self.core.job.close()
                 self.core = None
             self.key = None

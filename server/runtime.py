@@ -1,52 +1,64 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import copy
 import os
 import secrets
 import socket
 import subprocess
+import sys
 import threading
 import time
 from collections import deque
 from pathlib import Path
+from urllib.parse import quote
 
 import httpx
 from fastapi import HTTPException
 
-from app.engine import dump_config
-from .proxy import SystemProxy
-from .job import CoreJob
-from .elevation import Elevation, ElevatedProcess
-from .windows import is_admin, other_cores
+from app.engine import dump_config, parse_config
+from .elevation import ElevatedProcess
+from .paths import AppPaths
+from .platforms import PlatformServices, core_binary, is_admin, other_cores
 from .geodata import seed_databases, validation_message
 from .settings import SettingsStore, lan_ipv6_networks
+from .selections import SelectionStore
 
 
 class Runtime:
-    def __init__(self, home: Path, resource_home: Path | None = None):
+    def __init__(self, home: Path, resource_home: Path | None = None, *, data_dir: Path | None = None):
         self.home = home
         self.resource_home = resource_home or home
-        self.directory = home / "data" / "runtime"
+        self.paths = AppPaths.for_app(self.resource_home, data_dir if data_dir is not None else home / 'data')
+        self.platform = PlatformServices(self.paths)
+        self.directory = self.paths.runtime
         self.directory.mkdir(parents=True, exist_ok=True)
-        self.binary = self.resource_home / "bin" / "mihomo-windows-amd64-compatible.exe"
+        self.binary = core_binary(self.resource_home)
         self.process = None
-        self.elevation = Elevation(home)
+        self.elevation = self.platform.elevation()
         self.controller_port = 0
         self.secret = secrets.token_urlsafe(32)
         self.lock = threading.RLock()
-        self.proxy = SystemProxy(home / "data")
-        self.settings = SettingsStore(home / "data" / "client-settings.json")
+        self.proxy = self.platform.proxy()
+        self.settings = SettingsStore(self.paths.data / "client-settings.json")
+        self.selections = SelectionStore(self.paths.data / 'proxy-selections.json')
         self.last_traffic = {"running": False, "session": "", "upload": 0, "download": 0, "connections": 0}
         self.traffic_raw = {"upload": 0, "download": 0}
         self.traffic_offset = {"upload": 0, "download": 0}
         self.version_cache = (None, "")
-        self.job = CoreJob()
+        self.job = self.platform.job()
         self.active = None
         self.last_composed = None
         self.active_row = None
         self.events = deque(maxlen=80)
         self.log_handle = None
+        self.routing_path = self.paths.data / 'routing-mode.json'
+        try:
+            mode = json.loads(self.routing_path.read_text(encoding='utf-8')).get('mode')
+        except (OSError, ValueError, AttributeError):
+            mode = 'rule'
+        self.routing_mode = mode if mode in ('rule', 'global', 'direct') else 'rule'
         try:
             copied = seed_databases(self.resource_home, self.directory)
             if copied:
@@ -78,14 +90,53 @@ class Runtime:
 
     def status(self):
         with self.lock:
+            routing_mode = self.routing_mode
+            if self.alive():
+                try:
+                    routing_mode = self.request('GET', '/configs').get('mode')
+                except HTTPException:
+                    routing_mode = None
             return {"running": self.alive(), "installed": self.binary.exists(),
+                    "routing_mode": routing_mode,
                     "active": self.active if self.alive() else None, "core_version": self.core_version(),
                     "proxy": self.proxy.status(), "events": list(self.events),
-                    "tun": {"supported": os.name == "nt", "admin": is_admin() or self.elevation.ready, "helper": self.elevation.ready,
+                    "tun": {"supported": self.platform.info['capabilities']['tun'], "admin": is_admin() or self.elevation.ready, "helper": self.platform.info['os'] == 'windows' and self.elevation.ready,
                             "enabled": bool(self.alive() and self.active and self.active.get("tun")),
                             "stack": (self.active or {}).get("tun_stack", "mixed"), "device": "ClashStudio",
                             "driver_installed": (self.binary.parent / "wintun.dll").exists(),
                             "conflicts": other_cores(self.process.pid if self.alive() else None)}}
+
+    def change_routing_mode(self, mode):
+        if mode not in ('rule', 'global', 'direct'):
+            raise HTTPException(422, '代理模式无效')
+        with self.lock:
+            running = self.alive()
+            old_mode = self.request('GET', '/configs').get('mode') if running else self.routing_mode
+            active_path = self.directory / 'active.yaml'
+            previous = active_path.read_text(encoding='utf-8') if active_path.exists() else None
+            if running:
+                self.request('PATCH', '/configs', json={'mode': mode})
+                if self.request('GET', '/configs').get('mode') != mode:
+                    raise HTTPException(502, '代理模式切换未确认，请刷新状态')
+            try:
+                if running and previous is not None:
+                    config = parse_config(previous)
+                    config['mode'] = mode
+                    temporary = active_path.with_suffix('.tmp')
+                    temporary.write_text(dump_config(config), encoding='utf-8')
+                    temporary.replace(active_path)
+                temporary = self.routing_path.with_suffix('.tmp')
+                temporary.write_text(json.dumps({'mode': mode}), encoding='utf-8')
+                temporary.replace(self.routing_path)
+            except OSError:
+                if running:
+                    self.request('PATCH', '/configs', json={'mode': old_mode})
+                    if previous is not None:
+                        active_path.write_text(previous, encoding='utf-8')
+                raise HTTPException(503, '代理模式保存失败，请检查目录权限') from None
+            self.routing_mode = mode
+            self.event('代理模式：' + mode)
+            return self.status()
 
     def core_version(self):
         with self.lock:
@@ -139,8 +190,12 @@ class Runtime:
         config.update({"mixed-port": port, "bind-address": "*" if preferences.allow_lan else "127.0.0.1", "allow-lan": preferences.allow_lan,
                        "geo-auto-update": False,
                        "ipv6": preferences.ipv6,
-                       "mode": "rule", "find-process-mode": "always", "tun": {"enable": False},
+                       "mode": self.routing_mode, "find-process-mode": "always", "tun": {"enable": False},
                        "external-controller": f"127.0.0.1:{self.controller_port}", "secret": self.secret})
+        if self.platform.info['os'] == 'linux':
+            profile = dict(config.get('profile') or {})
+            profile.update({'store-selected': True, 'store-fake-ip': True})
+            config['profile'] = profile
         if preferences.allow_lan:
             if preferences.lan_auth:
                 config["authentication"] = [f"{preferences.lan_username}:{preferences.lan_password}"]
@@ -152,25 +207,71 @@ class Runtime:
             config["tun"] = {"enable": True, "device": "ClashStudio", "stack": tun_stack,
                              "auto-route": True, "strict-route": True, "auto-detect-interface": True,
                              "dns-hijack": ["any:53", "tcp://any:53"]}
+            if self.platform.info['os'] == 'linux':
+                config['tun']['auto-redirect'] = True
             dns = config.setdefault("dns", {})
             dns["enable"] = True
             dns.setdefault("enhanced-mode", "fake-ip")
             dns.setdefault("fake-ip-range", "198.18.0.1/16")
             dns.setdefault("nameserver", ["https://dns.alidns.com/dns-query", "https://1.1.1.1/dns-query"])
+            if self.platform.info['os'] == 'linux':
+                # Keep our mapping separate from common upstream router Fake-IP
+                # pools. Recover HTTP/TLS names when the upstream supplied an IP.
+                dns['fake-ip-range'] = '198.19.0.1/16'
+                # Resolve node hosts before a proxy is available. Subscription
+                # fallback resolvers may themselves require that proxy.
+                if not dns.get('proxy-server-nameserver'):
+                    dns['proxy-server-nameserver'] = ['https://dns.alidns.com/dns-query', 'https://doh.pub/dns-query']
+                sniffer = copy.deepcopy(config.get('sniffer') or {})
+                sniffer.update({'enable': True, 'parse-pure-ip': True, 'force-dns-mapping': True})
+                sniff = sniffer.setdefault('sniff', {})
+                for protocol, ports in [('TLS', [443]), ('HTTP', [80, 8080]), ('QUIC', [443])]:
+                    item = sniff.setdefault(protocol, {})
+                    item.setdefault('ports', ports)
+                    item['override-destination'] = True
+                config['sniffer'] = sniffer
         return dump_config(config)
 
     def verify_tun(self, expected):
-        actual = self.request("GET", "/configs").get("tun", {}).get("enable", False)
-        if bool(actual) != expected:
-            raise HTTPException(502, "内核返回的 TUN 状态与请求不一致，未确认配置生效")
+        # The REST controller becomes ready before Linux's TUN listener finishes.
+        deadline = time.monotonic() + 5
+        missing_interface = False
+        while True:
+            actual = self.request("GET", "/configs").get("tun", {}).get("enable", False)
+            matched = bool(actual) == expected
+            missing_interface = False
+            if matched and expected and self.platform.info['os'] == 'linux':
+                try:
+                    socket.if_nametoindex('ClashStudio')
+                except OSError:
+                    missing_interface = True
+            if matched and not missing_interface:
+                return
+            if time.monotonic() >= deadline:
+                break
+            time.sleep(.1)
+        if missing_interface:
+            raise HTTPException(502, 'Linux TUN 网卡未创建，请检查内核权限与运行日志')
+        raise HTTPException(502, "内核返回的 TUN 状态与请求不一致，未确认配置生效")
+
+    def restore_selectors(self, choices):
+        if not choices:
+            return
+        catalog = self.request('GET', '/proxies').get('proxies', {})
+        for name, selected in choices.items():
+            group = catalog.get(name, {})
+            if group.get('type') == 'Selector' and selected in group.get('all', []):
+                self.request('PUT', '/proxies/' + quote(name, safe=''), json={'name': selected})
 
     def apply(self, composed, row, port, tun=False, tun_stack="mixed"):
+        if tun:
+            self.platform.require('tun')
         with self.lock:
             if tun:
                 conflicts = other_cores(self.process.pid if self.alive() else None)
                 if conflicts:
                     raise HTTPException(409, "检测到其他代理内核，请先在对应软件中关闭内核后再启用 TUN：" + "、".join(conflicts))
-                if not (self.binary.parent / "wintun.dll").exists():
+                if self.platform.info['os'] == 'windows' and not (self.binary.parent / "wintun.dll").exists():
                     raise HTTPException(503, "缺少 Wintun 驱动库，请补齐 bin/wintun.dll")
             if composed["errors"]:
                 raise HTTPException(422, {"message": "模块配置未通过校验", "errors": composed["errors"]})
@@ -179,8 +280,12 @@ class Runtime:
             if not self.binary.exists():
                 raise HTTPException(503, "缺少随附的 Mihomo 内核")
             running = self.alive()
-            migrating = bool(tun and running and not is_admin() and not isinstance(self.process, ElevatedProcess))
+            linux = self.platform.info['os'] == 'linux'
+            migrating = bool(tun and running and (
+                (linux and not self.active.get('tun')) or
+                (not linux and not is_admin() and not isinstance(self.process, ElevatedProcess))))
             rollback = None
+            choices = self.selections.get(row['id'])
             if running and self.active["mixed_port"] != port:
                 raise HTTPException(409, "修改代理端口需要先停止内核")
             if not running:
@@ -190,6 +295,8 @@ class Runtime:
                 with socket.socket() as probe:
                     try:
                         if not running:
+                            if os.name != "nt":
+                                probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                             probe.bind(("127.0.0.1", port))
                     except OSError:
                         raise HTTPException(409, f"代理端口 {port} 已被占用，请修改端口") from None
@@ -212,6 +319,9 @@ class Runtime:
                 if tun and not is_admin():
                     self.elevation.ensure()
                 if migrating:
+                    if linux and self.active['profile_id'] == row['id']:
+                        choices.update({name: item['now'] for name, item in self.request('GET', '/proxies').get('proxies', {}).items()
+                                        if item.get('type') == 'Selector' and item.get('now')})
                     rollback = (copy.deepcopy(self.last_composed), dict(self.active_row), self.active["mixed_port"], bool(self.proxy.status().get("owned")))
                     self.stop()
                     running = False
@@ -227,11 +337,15 @@ class Runtime:
                             raise HTTPException(502, "新配置应用失败且旧配置恢复失败，已停止内核并尝试恢复系统代理") from None
                         raise HTTPException(502, "新配置应用失败，已重新加载上次运行配置") from None
                 else:
-                    if tun and not is_admin():
+                    if tun and not is_admin() and not linux:
                         self.process = self.elevation.launch(candidate)
                     else:
                         self.log_handle = (self.directory / "core.log").open("ab")
-                        self.process = subprocess.Popen([str(self.binary), "-d", str(self.directory), "-f", str(candidate)],
+                        command = [str(self.binary), "-d", str(self.directory), "-f", str(candidate)]
+                        if linux:
+                            command = [sys.executable, '-I', '-B', str(Path(__file__).with_name('linux_core.py')),
+                                       str(os.getpid()), str(self.binary), str(self.directory), str(candidate)]
+                        self.process = subprocess.Popen(command,
                                                         stdout=self.log_handle, stderr=subprocess.STDOUT, creationflags=flags)
                         self.job.assign(self.process)
                     self.last_traffic = {"running": True, "session": str(self.process.pid), "upload": 0, "download": 0, "connections": 0}
@@ -257,6 +371,7 @@ class Runtime:
                         self.stop()
                         raise
                     threading.Thread(target=self.monitor, args=(self.process,), daemon=True).start()
+                self.restore_selectors(choices)
                 active_path = self.directory / "active.yaml"
                 active_path.write_text(payload, encoding="utf-8")
                 self.active = {"profile_id": row["id"], "title": row["title"], "revision": row["revision"],
@@ -273,6 +388,7 @@ class Runtime:
                     try:
                         self.stop()
                         self.apply(rollback[0], rollback[1], rollback[2], False, tun_stack)
+                        self.restore_selectors(choices)
                         if rollback[3]:
                             self.proxy.enable(rollback[2])
                         self.event("TUN 迁移失败，已恢复普通权限内核")
@@ -293,6 +409,10 @@ class Runtime:
             return self.apply(self.last_composed, self.active_row, self.active["mixed_port"], enabled, stack)
 
     def change_mode(self, mode, stack="mixed"):
+        if mode == 'tun':
+            self.platform.require('tun')
+        elif mode == 'system':
+            self.platform.require('system_proxy')
         with self.lock:
             if not self.alive() or self.active is None:
                 raise HTTPException(409, "请先启动内核，再切换接管模式")
@@ -314,7 +434,7 @@ class Runtime:
                     except HTTPException:
                         self.stop()
                 raise HTTPException(409, "接管模式切换未完成，请检查系统代理恢复状态与目录权限") from error
-            self.event("接管模式已切换：" + {"system": "Windows 系统代理", "tun": "TUN", "manual": "仅代理端口"}[mode])
+            self.event("接管模式已切换：" + {"system": "系统代理", "tun": "TUN", "manual": "仅代理端口"}[mode])
             return self.status()
 
     def monitor(self, process):
@@ -327,29 +447,31 @@ class Runtime:
                     self.log_handle.close()
                     self.log_handle = None
 
-    def stop(self):
+    def stop(self, final_sample=True, report=True):
         with self.lock:
             if self.alive():
                 try:
-                    self.traffic()
+                    if final_sample:
+                        self.traffic()
                 except HTTPException:
                     pass
                 try:
-                    self.request("PATCH", "/configs", json={"tun": {"enable": False}}, timeout=4)
+                    if self.active and self.active.get('tun'):
+                        self.request("PATCH", "/configs", json={"tun": {"enable": False}}, timeout=1)
                 except HTTPException:
                     self.event("内核未确认关闭 TUN；进程退出后请检查网络恢复状态")
             self.proxy.restore()
             if self.alive():
                 self.process.terminate()
                 try:
-                    self.process.wait(timeout=5)
+                    self.process.wait(timeout=6 if self.platform.info['os'] == 'linux' else 1)
                 except subprocess.TimeoutExpired:
                     self.process.kill()
-                    self.process.wait(timeout=3)
+                    self.process.wait(timeout=1)
                 self.event("内核已停止")
             self.active = None
             self.last_traffic = {**self.last_traffic, "running": False, "connections": 0}
             if self.log_handle:
                 self.log_handle.close()
                 self.log_handle = None
-            return self.status()
+            return self.status() if report else None

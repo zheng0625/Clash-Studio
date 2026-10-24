@@ -1,0 +1,52 @@
+# 演示配置：所有地址均为示例，不提供实际代理服务。
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: info
+ipv6: false
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+  nameserver:
+    - https://dns.alidns.com/dns-query
+proxies:
+  - name: 香港 01
+    type: ss
+    server: hk1.example.com
+    port: 443
+    cipher: aes-128-gcm
+    password: demo-only
+  - name: 香港 02
+    type: ss
+    server: hk2.example.com
+    port: 443
+    cipher: aes-128-gcm
+    password: demo-only
+  - name: 日本 01
+    type: trojan
+    server: jp1.example.com
+    port: 443
+    password: demo-only
+  - name: 新加坡 01
+    type: ss
+    server: sg1.example.com
+    port: 443
+    cipher: aes-128-gcm
+    password: demo-only
+proxy-groups:
+  - name: 节点选择
+    type: select
+    proxies: [自动选择, 香港 01, 香港 02, 日本 01, 新加坡 01, DIRECT]
+  - name: 自动选择
+    type: url-test
+    proxies: [香港 01, 香港 02, 日本 01, 新加坡 01]
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+  - name: 流媒体
+    type: select
+    proxies: [节点选择, 日本 01, 新加坡 01, DIRECT]
+rules:
+  - DOMAIN-SUFFIX,example.org,DIRECT
+  - DOMAIN-SUFFIX,youtube.com,流媒体
+  - GEOIP,CN,DIRECT
+  - MATCH,节点选择

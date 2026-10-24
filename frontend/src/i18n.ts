@@ -31,9 +31,15 @@ export function message(value: string | null | undefined): string {
 }
 export async function initializeLanguage() {
   if ('__TAURI_INTERNALS__' in window) {
-    try { const { invoke } = await import('@tauri-apps/api/core'); systemLanguage.value = await invoke<string>('system_locale') } catch { /* Browser locale remains the fallback. */ }
+    try { const { invoke } = await import('@tauri-apps/api/core'); systemLanguage.value = await invoke<string>('system_locale'); await invoke('set_desktop_language', { language: language.value }) } catch { /* Browser locale remains the fallback. */ }
   }
 }
+watch(language, async value => {
+  if ('__TAURI_INTERNALS__' in window) {
+    try { const { invoke } = await import('@tauri-apps/api/core'); await invoke('set_desktop_language', { language: value }) }
+    catch (error) { console.error('Unable to synchronize tray language', error) }
+  }
+}, { flush: 'sync' })
 window.addEventListener('languagechange', () => { if (!('__TAURI_INTERNALS__' in window)) systemLanguage.value = detected() })
 window.addEventListener('storage', event => { if (event.key === key) language.value = saved() })
 watch(language, value => { try { localStorage.setItem(key, value) } catch { /* Current session still switches. */ } }, { flush: 'sync' })

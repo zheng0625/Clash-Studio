@@ -14,3 +14,9 @@ src-tauri/target/
 bin/*.dll
 bin/geodata/*.mmdb
 bin/geodata/*.dat
+
+.venv/
+.venv-linux/
+bin/mihomo-linux-*
+bin/mihomo-darwin-*
+src-tauri/gen/

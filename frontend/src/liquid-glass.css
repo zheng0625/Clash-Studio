@@ -1,0 +1,151 @@
+/* Liquid Glass demo: a separate visual layer over the existing client. */
+:root{
+  color-scheme:light;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+  --client-accent:#000000;--client-background:#ffffff;--client-surface:#ffffff;
+  --client-text:#000000;--client-secondary:#000000;--client-sidebar:#ffffff;
+  --client-sidebar-text:#000000;--client-border:#00000018;--client-accent-ink:#ffffff;
+  --client-tint:#ffffff;--client-control-selected:#ffffff;
+  --text-1:var(--client-text);--text-2:var(--client-secondary);--text-3:var(--client-secondary);--ink:var(--client-text);
+  --muted:var(--client-secondary);--green:var(--client-accent);--line:var(--client-border);
+  background:#ffffff;color:#000000;
+}
+html body{background:var(--client-background);color:var(--text-1)}
+.desk{isolation:isolate;background:transparent}
+.desk .desk-main{margin-left:0;width:100%;height:100dvh}
+.desk .desk-topbar{height:44px;min-height:44px;padding:0 16px 0 205px;background:color-mix(in srgb,var(--client-surface) 40%,transparent);border-bottom:1px solid color-mix(in srgb,var(--client-surface) 70%,transparent);color:var(--client-text);backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%)}
+.desk .desk-topbar :is(.desk-crumb,.desk-crumb strong,.topbar-speed>span,.local-tag,.version-tag,.window-controls button){color:var(--client-text)}
+.desk .desk-content{max-width:1440px;padding:28px 36px 108px;scroll-padding-bottom:100px}
+.desk .desk-page-heading{margin-bottom:28px}
+.desk .desk-page-heading h1{font-size:32px!important;font-weight:650;letter-spacing:-1px;line-height:1.25;margin:10px 0 12px}
+.desk .desk-page-heading p{font-size:13px;color:var(--client-text)}
+.desk .desk-eyebrow{font-size:10px;letter-spacing:2px;color:var(--client-text)}
+.desk .heading-dot{display:none}
+.desk :is(.desk-card,.proxy-node-card,.native-editor,.desk-modal,.settings-dialog){background:linear-gradient(145deg,color-mix(in srgb,var(--client-surface) 22%,transparent),color-mix(in srgb,var(--client-surface) 8%,transparent));border:1px solid color-mix(in srgb,var(--client-surface) 94%,transparent);border-radius:23px;box-shadow:0 8px 32px #00000008,inset 0 1px 0 var(--client-surface);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(22px) saturate(135%);color:var(--client-text)}
+.desk :is(.desk-btn,input,textarea,select){border-radius:12px;border-color:var(--client-surface);color:var(--client-text);background:color-mix(in srgb,var(--client-surface) 65%,transparent)}
+.desk .desk-btn{min-height:38px;padding:9px 16px;box-shadow:0 2px 5px #00000005}
+.desk .desk-btn.primary{background:linear-gradient(var(--client-text),var(--client-text));border-color:var(--client-text);color:var(--client-surface);box-shadow:0 4px 10px #00000016}
+.desk .desk-btn.primary:hover:not(:disabled){background:var(--client-text);color:var(--client-surface)}
+.desk :is(.desk-btn:not(.primary):not(.danger):hover,.desk-icon-btn:hover){background:var(--client-surface);color:var(--client-text);border-color:var(--client-surface)}
+.desk :is(.mode-options,.session-traffic,.ip-route-tabs,.proxy-address,.core-version-block,.native-ai,.editor-node-row.table-head){background:color-mix(in srgb,var(--client-surface) 50%,transparent);border-color:var(--client-surface);color:var(--client-text);border-radius:14px}
+.desk :is(.mode-options>button.selected,.ip-route-tabs>button.selected,.native-segment>button.active,.modal-tabs>button.active,.proxy-node-card.picked){background:color-mix(in srgb,var(--client-surface) 85%,transparent);color:var(--client-text);border-color:var(--client-surface);outline-color:var(--client-surface);box-shadow:0 2px 8px #0000000a}
+.desk .mode-options>button{border-radius:11px;color:var(--client-text)}
+.desk :is(.power-mark,.metric-icon,.metric-icon.mint,.module-symbol,.profile-symbol){background:linear-gradient(145deg,var(--client-surface),var(--client-surface));border:1px solid var(--client-surface);color:var(--client-text);border-radius:16px}
+.desk :is(.status-chip,.network-pill,.route-target,.small-badge){background:var(--client-surface);color:var(--client-text);border-color:var(--client-surface)}
+.desk .status-chip.is-live{color:var(--client-text);background:var(--client-surface)}
+.desk .desk-toast{bottom:132px;border-radius:18px;background:color-mix(in srgb,var(--client-surface) 93%,transparent);color:var(--client-text);backdrop-filter:blur(22px);box-shadow:0 8px 30px #00000018}
+.desk .desk-backdrop{z-index:100;background:#00000033;backdrop-filter:blur(9px)}
+.desk :is(button,a,input,textarea,select):focus-visible{outline:2px solid var(--client-text);outline-offset:4px}
+/* Navigation floats above the content; its layout space is reserved by the scroll pane. */
+.desk .liquid-dock-shell{position:fixed;inset:auto auto 22px 50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 24px);height:auto;padding:0;overflow:visible;display:block;background:transparent;border:0;z-index:50}
+.desk .liquid-dock-shell :is(.workspace-label,.sidebar-tip,.sidebar-foot){display:none}
+.desk .desk-brand small{color:var(--client-text);font-size:10px;letter-spacing:.3px;margin-top:4px}
+.desk .shell-brand{position:fixed;top:17px;left:28px;z-index:55;display:flex;gap:10px;margin:0;padding:0;border:0;background:transparent;font-size:19px;letter-spacing:-.6px}
+.desk .shell-brand :is(.brand-copy,.brand-name,strong){color:var(--client-text);display:block}
+.desk .shell-brand .brand-name strong{display:inline}
+.desk .desk-mark{width:35px;height:35px;background:linear-gradient(145deg,var(--client-surface),var(--client-surface));border:1px solid var(--client-surface);border-radius:11px;box-shadow:0 3px 10px #00000012;padding:6px}
+.desk .desk-mark img{width:100%;height:100%;filter:grayscale(1)}
+.dock-indicator{position:absolute;bottom:1px;width:4px;height:4px;border-radius:50%;background:transparent}
+.chosen .dock-indicator{background:var(--client-text)}
+@media(prefers-reduced-motion:reduce){.desk .liquid-dock .dock-item{transition:none;transform:none!important}}
+@media(prefers-reduced-transparency:reduce){.desk .liquid-dock,.desk .desk-topbar,.desk .desk-card{background:var(--client-surface);backdrop-filter:none}}
+@supports not (backdrop-filter:blur(1px)){.desk .liquid-dock,.desk .desk-topbar,.desk .desk-card{background:var(--client-surface)}}
+/* Demo 2: text-only, translucent Dock and compact title bar. */
+.desk :is(input,textarea,select,.desk-btn){border-color:#00000020}
+.desk .mode-options>button:not(.selected){border-color:#00000015}
+.desk :is(.plot-idle,.plot-empty){border-color:#00000018}
+.desk .local-tag>span,.desk .live-indicator{background:var(--client-text)}
+.desk .desk-topbar{background:color-mix(in srgb,var(--client-surface) 15%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom-color:#0000000a}
+.desk .shell-brand{top:8px;left:24px;font-size:17px;gap:9px;align-items:center}
+.desk .shell-brand small{display:none}
+.desk .desk-mark{width:27px;height:27px;padding:5px;border-radius:8px;background:color-mix(in srgb,var(--client-surface) 19%,transparent);box-shadow:0 2px 6px #00000008}
+.desk .window-controls{height:44px;align-items:center}
+.desk .window-controls button{height:32px;width:36px;border-radius:8px}
+.desk .desk-card{border-color:#0000000c;box-shadow:inset 0 1px 0 var(--client-surface),0 6px 28px #00000006}
+.desk .desk-btn.primary{background:var(--client-text);border-color:var(--client-text);color:var(--client-surface)}
+.desk :is(.status-chip,.status-chip.is-live,.network-pill,.route-target,.small-badge,.mode-warning,.ip-status,.ip-status.success,.ip-status.failure){color:var(--client-text);background:transparent;border-color:#00000018}
+.desk :is(.mode-options,.session-traffic,.ip-route-tabs,.proxy-address,.native-ai,.core-version-block,.native-segment,.modal-tabs,.inline-note,.setting-status){background:color-mix(in srgb,var(--client-surface) 13%,transparent);border-color:#00000012;color:var(--client-text)}
+.desk :is(.mode-options>button,.ip-route-tabs>button,.modal-tabs>button,.native-segment>button){background:transparent;color:var(--client-text)}
+.desk :is(.mode-options>button.selected,.ip-route-tabs>button.selected){background:color-mix(in srgb,var(--client-surface) 38%,transparent);border-color:var(--client-text);outline-color:var(--client-text)}
+.desk .desk-toast{bottom:100px}
+.desk .liquid-dock{display:flex;flex-direction:row;align-items:center;gap:3px;padding:7px;border:1px solid color-mix(in srgb,var(--client-surface) 79%,transparent);outline:1px solid #00000008;border-radius:25px;background:linear-gradient(135deg,color-mix(in srgb,var(--client-surface) 24%,transparent),color-mix(in srgb,var(--client-surface) 5%,transparent) 50%,color-mix(in srgb,var(--client-surface) 22%,transparent));box-shadow:inset 0 1px 0 var(--client-surface),inset 0 -1px 0 color-mix(in srgb,var(--client-surface) 44%,transparent),0 8px 32px #0000000e;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.desk .liquid-dock .dock-item{display:flex;align-items:center;justify-content:center;position:relative;width:auto;min-width:64px;min-height:44px;padding:11px 19px;border:1px solid transparent;border-radius:19px;background:transparent;color:var(--client-text);text-align:center;transition:transform .2s,background .2s;transform-origin:center bottom}
+.desk .liquid-dock .dock-item .dock-label{display:block!important;flex:none;white-space:nowrap;font-weight:500;color:var(--client-text);font-size:13px}
+.desk .dock-item.chosen .dock-label{font-weight:650}
+.dock-indicator{bottom:3px;width:3px;height:3px}
+@media(hover:hover){.desk .liquid-dock .dock-item:hover{transform:translateY(-3px);background:color-mix(in srgb,var(--client-surface) 44%,transparent)}}
+@media(max-width:760px){.desk .desk-topbar{height:44px;padding:0 12px 0 185px}.desk .desk-content{padding:24px 18px 105px}.desk .desk-page-heading{align-items:flex-start}.desk .desk-page-heading h1{font-size:27px!important}.desk .version-tag,.desk .desk-crumb{display:none}.desk .liquid-dock{gap:1px;padding:5px;border-radius:22px}.desk .liquid-dock .dock-item{min-width:0;min-height:42px;padding:10px 12px;border-radius:17px}.desk .liquid-dock .dock-item .dock-label{font-size:12px}.desk .liquid-dock-shell{bottom:18px}.desk .shell-brand{top:8px;left:18px}.desk .shell-brand .brand-copy{display:block;font-size:16px}}
+@media(max-width:480px){.desk .liquid-dock{gap:0;padding:4px}.desk .liquid-dock .dock-item{padding:10px 7px}.desk .liquid-dock .dock-item .dock-label{font-size:11px}.desk .local-tag{display:none}}
+@media(prefers-reduced-motion:reduce){.desk .liquid-dock .dock-item{transition:none;transform:none!important}}
+@media(prefers-reduced-transparency:reduce){.desk .liquid-dock,.desk .desk-topbar,.desk .desk-card{background:var(--client-surface);backdrop-filter:none}}
+@supports not (backdrop-filter:blur(1px)){.desk .liquid-dock,.desk .desk-topbar,.desk .desk-card{background:var(--client-surface)}}
+/* One canvas and one theme source for the glass shell. */
+:root .desk select{background-repeat:no-repeat;background-position:right 12px center;background-size:16px 16px;padding-right:36px}
+:root{--client-glass-chrome:22%;--client-glass-panel:22%}
+.desk::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--client-background)}
+:root[data-wallpaper] .desk::before{background-color:var(--client-background);background-image:var(--wallpaper-image)}
+.desk .desk-main,.desk .desk-content{background:transparent}
+.desk .liquid-dock-shell{background:transparent;border:0;outline:0;box-shadow:none}
+:root .desk .liquid-dock,:root .desk .desk-topbar{
+  background:color-mix(in srgb,var(--client-sidebar) var(--client-glass-chrome),transparent);
+  color:var(--client-sidebar-text);border-color:color-mix(in srgb,var(--client-sidebar-text) 16%,transparent)
+}
+.desk .desk-topbar :is(.desk-crumb,.desk-crumb strong,.topbar-speed>span,.local-tag,.version-tag,.window-controls button),
+.desk .shell-brand :is(.brand-copy,.brand-name,strong){color:var(--client-sidebar-text)}
+.desk .liquid-dock .dock-item,.desk .liquid-dock .dock-item .dock-label{color:var(--client-sidebar-text)}
+.desk .liquid-dock .dock-item.chosen{
+  background:color-mix(in srgb,var(--client-sidebar-text) 12%,transparent);
+  color:var(--client-sidebar-text);border-color:color-mix(in srgb,var(--client-sidebar-text) 20%,transparent)
+}
+.desk .chosen .dock-indicator{background:var(--client-sidebar-text)}
+:root .desk :is(.desk-card,.proxy-node-card,.native-editor){
+  background:color-mix(in srgb,var(--client-surface) var(--client-glass-panel),transparent);
+  color:var(--client-text);border-color:var(--client-border)
+}
+:root .desk :is(.desk-modal,.settings-dialog,.desk-toast){background:var(--client-surface);color:var(--client-text)}
+.desk .desk-btn.primary,.desk .desk-btn.primary:hover:not(:disabled){background:var(--client-accent);border-color:var(--client-accent);color:var(--client-accent-ink)}
+.desk :is(input,textarea,select,.desk-btn){border-color:var(--client-border)}
+.desk :is(.mode-options>button.selected,.ip-route-tabs>button.selected){background:var(--client-control-selected);border-color:var(--client-accent);outline-color:var(--client-accent);color:var(--client-text)}
+@media(hover:hover){.desk .liquid-dock .dock-item:hover{background:color-mix(in srgb,var(--client-sidebar-text) 9%,transparent);color:var(--client-sidebar-text)}}
+@media(prefers-reduced-transparency:reduce){.desk .liquid-dock,.desk .desk-topbar{background:var(--client-sidebar);backdrop-filter:none}.desk .desk-card{background:var(--client-surface);backdrop-filter:none}}
+@supports not (backdrop-filter:blur(1px)){.desk .liquid-dock,.desk .desk-topbar{background:var(--client-sidebar)}.desk .desk-card{background:var(--client-surface)}}
+
+/* The workbench is one inset surface, with continuous header/tab/body edges. */
+:root .desk .desk-modal .match-editor .match-row,:root .desk .desk-modal .match-editor .match-row:hover,:root .desk .desk-modal .match-editor .match-row:focus-within{background:transparent;background-image:none;box-shadow:none;border-color:transparent}
+.glass-select{min-width:0;width:100%}.glass-select-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:40px;border:1px solid var(--client-border);border-radius:12px;padding:10px 12px;background:var(--client-surface);color:var(--client-text);text-align:left;font:inherit}.glass-select-trigger span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:root .desk .glass-select-trigger:focus-visible{outline:none;border-color:color-mix(in srgb,var(--client-text) 28%,var(--client-surface));box-shadow:0 0 0 2px color-mix(in srgb,var(--client-text) 4%,transparent)}
+.match-row>.glass-select{width:145px;flex-shrink:0}.glass-select-menu{position:fixed;z-index:300;padding:5px;background:var(--client-surface);color:var(--client-text);border:1px solid var(--client-border);border-radius:13px;box-shadow:0 10px 30px #00000020;overflow:auto;overscroll-behavior:contain;font-size:13px;line-height:1.6;font-family:inherit}.glass-select-menu button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:9px 11px;min-height:36px;border:0;border-radius:8px;background:transparent;color:var(--client-text);text-align:left}.glass-select-menu button.highlight,.glass-select-menu button:hover{background:color-mix(in srgb,var(--client-text) 6%,var(--client-surface))}.glass-select-menu button span{overflow-wrap:anywhere}
+.desktop-settings{padding:20px;margin-bottom:16px}.desktop-settings .setting-row small{display:block;margin-top:6px;font-size:12px;line-height:1.8;color:var(--client-secondary)}
+:root .desk :is(input,textarea,select):is(:focus,:focus-visible){outline:none;outline-offset:0;border-color:color-mix(in srgb,var(--client-text) 28%,var(--client-surface));box-shadow:0 0 0 2px color-mix(in srgb,var(--client-text) 4%,transparent)}
+:root .desk .match-row,:root .desk .match-row:hover,:root .desk .match-row:focus-within{background:transparent;border-color:transparent;border-radius:14px}
+:root .desk .match-row :is(input,select),:root .desk select option{background-color:var(--client-surface);color:var(--client-text);border-color:var(--client-border)}
+:root .desk .match-row ::selection{background:color-mix(in srgb,var(--client-text) 16%,var(--client-surface));color:var(--client-text)}
+:root .desk .proxy-node-card.picked{border:2px solid var(--client-accent);background:color-mix(in srgb,var(--client-accent) 9%,var(--client-surface));box-shadow:inset 4px 0 0 var(--client-accent),0 3px 12px #0000000a}
+:root .desk .proxy-node-card.picked .node-choice{color:var(--client-text)}
+:root .desk .proxy-node-card.picked .node-choice strong{font-weight:700}
+:root .desk .proxy-node-card.picked .node-dot{background:var(--client-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--client-accent) 14%,transparent)}
+.subscription-usage{margin:20px 0;padding:16px 0;border-top:1px solid var(--client-border);border-bottom:1px solid var(--client-border);color:var(--client-text)}
+.usage-heading,.usage-numbers,.usage-caption{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12px;line-height:1.8}.usage-heading{margin-bottom:10px}.usage-heading strong{font-weight:600}.usage-numbers b{font-weight:500}.subscription-usage progress,.usage-track{display:block;width:100%;height:7px;border:0;border-radius:20px;background:color-mix(in srgb,var(--client-text) 9%,transparent);margin:10px 0;overflow:hidden;accent-color:var(--client-accent)}.subscription-usage progress::-webkit-progress-bar{background:color-mix(in srgb,var(--client-text) 9%,transparent);border-radius:20px}.subscription-usage progress::-webkit-progress-value{background:var(--client-accent);border-radius:20px}.subscription-usage progress::-moz-progress-bar{background:var(--client-accent);border-radius:20px}.subscription-usage :is(small,p){font-size:11px;color:var(--client-secondary);line-height:1.8}.subscription-usage small{display:block;margin-top:7px}.routing-mode-card{padding:18px 22px;display:flex;align-items:center;flex-wrap:wrap;gap:18px;margin:0 0 20px}.routing-mode-card h2{font-size:14px;margin-bottom:5px}.routing-mode-card p{font-size:12px;color:var(--client-secondary);line-height:1.8}.routing-segment{display:flex;gap:4px;margin-left:auto;padding:4px;border-radius:14px;border:1px solid var(--client-border)}.routing-segment button{background:transparent;border:1px solid transparent;border-radius:10px;min-height:36px;padding:8px 24px;color:var(--client-text)}.routing-segment button[aria-pressed=true]{background:var(--client-accent);color:var(--client-accent-ink);border-color:var(--client-accent)}
+:root .desk .native-editor{padding:24px;min-width:0;overflow:hidden;border-radius:24px}
+:root .desk .native-editor .native-editor-head{background:transparent;margin:0 0 20px;padding:0;min-width:0;gap:20px}
+:root .desk .native-editor-head>div:first-child{min-width:0;flex:1}
+:root .desk .native-editor-head h2{overflow-wrap:anywhere}
+:root .desk .native-editor-head p{line-height:1.8;margin-top:7px}
+:root .desk .native-editor-head .heading-buttons{flex-wrap:wrap;justify-content:flex-end;gap:8px;flex-shrink:0}
+:root .desk .editor-tabs{margin:0 -24px 20px;padding:4px 24px 0;gap:8px;scroll-padding-inline:24px;border-bottom:1px solid var(--client-border)}
+:root .desk .editor-tabs>button{padding:10px 14px 12px;border-radius:12px 12px 0 0;color:var(--client-text);border-bottom:2px solid transparent;flex-shrink:0}
+:root .desk .editor-tabs>button.active{color:var(--client-text);border-bottom-color:var(--client-accent);background:color-mix(in srgb,var(--client-text) 4%,transparent)}
+:root .desk .native-editor>.section-toolbar{margin:0 0 16px;flex-wrap:wrap;line-height:1.8;background:transparent;padding:0}
+:root .desk .native-editor :is(.editor-node-table,.group-details,.native-rules,.native-code,.native-rule-form,.settings-card){border-radius:16px;box-shadow:none}
+:root .desk .editor-node-row{border-bottom-color:var(--client-border)}
+:root .desk .native-editor .editor-node-row.table-head{background:color-mix(in srgb,var(--client-text) 3%,transparent)}
+:root .desk .native-editor .editor-validation-footer{background:transparent;border-color:var(--client-border);margin-top:20px;padding:16px 0 0;line-height:1.7}
+
+/* Dock has no palette fill: its boundary comes from light, blur and shadow. */
+:root .desk .liquid-dock{background:transparent;background-image:none;color:var(--client-text);border:1px solid color-mix(in srgb,var(--client-text) 8%,transparent);outline:0;box-shadow:0 8px 30px #00000012,0 1px 4px #00000008,inset 0 1px 0 #ffffff60;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+:root .desk .liquid-dock .dock-item,:root .desk .liquid-dock .dock-item .dock-label{color:var(--client-text)}
+:root .desk .liquid-dock .dock-item.chosen{background:transparent;background-image:none;color:var(--client-text);border-color:color-mix(in srgb,var(--client-text) 12%,transparent);box-shadow:0 2px 9px #0000000c,inset 0 1px 0 #ffffff40}
+:root .desk .liquid-dock .dock-indicator{background:transparent}
+:root .desk .liquid-dock .chosen .dock-indicator{background:var(--client-text)}
+@media(hover:hover){:root .desk .liquid-dock .dock-item:hover{background:transparent;color:var(--client-text);box-shadow:0 3px 10px #00000012}}
+@media(max-width:760px){:root .desk .native-editor{padding:18px;border-radius:20px}:root .desk .editor-tabs{margin-inline:-18px;padding-inline:18px;scroll-padding-inline:18px}:root .desk .native-editor-head{gap:14px}:root .desk .native-editor-head .heading-buttons{align-self:stretch;justify-content:flex-start}:root .desk .editor-node-row{padding-inline:12px;gap:8px}}

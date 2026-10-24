@@ -15,7 +15,7 @@ import zipfile
 from packaging.requirements import Requirement
 
 ROOT = Path(__file__).resolve().parents[1]
-NAME = 'ClashStudio-0.5.1-portable-windows-x64'
+NAME = 'ClashStudio-0.5.17-portable-windows-x64'
 RELEASES = ROOT / 'artifacts' / 'releases'
 OUT = RELEASES / NAME
 ZIP = RELEASES / (NAME + '.zip')
@@ -54,7 +54,7 @@ def main():
         raise SystemExit('Build using the existing Windows x64 Python 3.12 development venv.')
     if OUT.exists() or ZIP.exists():
         raise SystemExit('Release path already exists. Keep it and select a new release name.')
-    required = ['bin/mihomo-windows-amd64-compatible.exe', 'bin/wintun.dll', 'bin/geodata/source.json',
+    required = ['vendor/examples/demo.yaml', 'bin/mihomo-windows-amd64-compatible.exe', 'bin/wintun.dll', 'bin/geodata/source.json',
                 *['bin/geodata/' + name for name in ['Country.mmdb', 'geoip.dat', 'geosite.dat', 'ASN.mmdb']]]
     for name in required:
         if not (ROOT / name).is_file() or (ROOT / name).stat().st_size < 16:
@@ -66,7 +66,7 @@ def main():
     OUT.mkdir(parents=True)
     copy(ROOT / 'src-tauri/target/release/clash-studio.exe', OUT / 'ClashStudio.exe')
     copy(ROOT / 'run.py', OUT / 'run.py')
-    for folder in ['server', 'vendor/app', 'frontend/dist']:
+    for folder in ['server', 'vendor/app', 'vendor/examples', 'frontend/dist']:
         shutil.copytree(ROOT / folder, OUT / folder, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
 
     runtime = OUT / 'runtime/python'
@@ -106,11 +106,11 @@ def main():
     for name in ['LICENSE', 'THIRD_PARTY_NOTICES.md']:
         copy(ROOT / name, OUT / name)
     copy(ROOT / '六项优化说明.md', OUT / '六项优化说明.md')
-    copy(ROOT / '0.5.1发布说明.md', OUT / '0.5.1发布说明.md')
-    (OUT / 'portable.json').write_text(json.dumps({'version': '0.5.1', 'architecture': 'windows-x64', 'python': '.'.join(map(str, sys.version_info[:3])), 'data': 'data', 'webview2': 'system runtime required'}, indent=2), encoding='utf-8')
+    copy(ROOT / '0.5.17发布说明.md', OUT / '0.5.17发布说明.md')
+    (OUT / 'portable.json').write_text(json.dumps({'version': '0.5.17', 'architecture': 'windows-x64', 'python': '.'.join(map(str, sys.version_info[:3])), 'data': 'data', 'webview2': 'system runtime required'}, indent=2), encoding='utf-8')
     (OUT / '管理员启动.cmd').write_text('@echo off\r\npowershell.exe -NoProfile -Command "Start-Process -FilePath \'%~dp0ClashStudio.exe\' -WorkingDirectory \'%~dp0\' -Verb RunAs"\r\n', encoding='utf-8')
     (OUT / '恢复系统代理.cmd').write_text('@echo off\r\n"%~dp0runtime\\python\\python.exe" -I -B "%~dp0run.py" --restore-proxy\r\npause\r\n', encoding='utf-8')
-    (OUT / '使用说明.txt').write_text('''Clash Studio 0.5.1 Portable · Windows x64
+    (OUT / '使用说明.txt').write_text('''Clash Studio 0.5.17 Portable · Windows x64
 
 Quick start: extract the entire ZIP, then run ClashStudio.exe. Keep all folders together.
 Language: Settings and logs > Settings > Interface language (Follow system / 简体中文 / English).
@@ -140,13 +140,13 @@ WebView2官方说明：https://learn.microsoft.com/microsoft-edge/webview2/conce
     source_zip = OUT / 'source/ClashStudio-source.zip'
     source_zip.parent.mkdir()
     with zipfile.ZipFile(source_zip, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
-        for folder in ['server', 'vendor/app', 'frontend/src', 'frontend/public', 'src-tauri/src', 'src-tauri/capabilities', 'src-tauri/icons', 'scripts']:
+        for folder in ['server', 'vendor/app', 'vendor/examples', 'frontend/src', 'frontend/public', 'src-tauri/src', 'src-tauri/capabilities', 'src-tauri/icons', 'scripts', 'docs', 'tests']:
             for path in sorted((ROOT / folder).rglob('*')):
                 if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
                     archive.write(path, path.relative_to(ROOT).as_posix())
-        for name in ['run.py', 'LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md', '六项优化说明.md', '0.5.1发布说明.md', 'dev-env.ps1', 'build-tauri.ps1', 'frontend/index.html', 'frontend/package.json', 'frontend/pnpm-lock.yaml', 'frontend/tsconfig.json', 'frontend/vite.config.ts', 'src-tauri/Cargo.toml', 'src-tauri/Cargo.lock', 'src-tauri/build.rs', 'src-tauri/tauri.conf.json']:
+        for name in ['run.py', 'LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md', '六项优化说明.md', '0.5.17发布说明.md', 'dev-env.ps1', 'build-tauri.ps1', 'frontend/index.html', 'frontend/package.json', 'frontend/pnpm-lock.yaml', 'frontend/tsconfig.json', 'frontend/vite.config.ts', 'src-tauri/Cargo.toml', 'src-tauri/Cargo.lock', 'src-tauri/build.rs', 'src-tauri/tauri.conf.json']:
             archive.write(ROOT / name, name)
-    manifest = {'version': '0.5.1-portable', 'typecheck': 'passed', 'frontend_build': 'passed', 'rust_build': 'passed', 'portable_launch': 'not tested', 'uac_and_tun': 'not tested', 'files': [{'path': path.relative_to(OUT).as_posix(), 'bytes': path.stat().st_size, 'sha256': digest(path)} for path in sorted(OUT.rglob('*')) if path.is_file()]}
+    manifest = {'version': '0.5.17-portable', 'typecheck': 'passed', 'frontend_build': 'passed', 'rust_build': 'passed', 'portable_launch': 'not tested', 'uac_and_tun': 'not tested', 'files': [{'path': path.relative_to(OUT).as_posix(), 'bytes': path.stat().st_size, 'sha256': digest(path)} for path in sorted(OUT.rglob('*')) if path.is_file()]}
     (OUT / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
     with zipfile.ZipFile(ZIP, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
         for path in sorted(OUT.rglob('*')):

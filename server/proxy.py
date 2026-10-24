@@ -18,7 +18,7 @@ class SystemProxy:
 
     def status(self):
         if sys.platform != "win32":
-            return {"supported": False, "owned": False}
+            return {"supported": False, "owned": False, "enabled": False, "server": ""}
         winreg, key = self.registry()
         with key:
             def read(name):

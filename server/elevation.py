@@ -49,8 +49,9 @@ def user_sid():
 
 
 class Elevation:
-    def __init__(self, home):
+    def __init__(self, home, data_dir=None):
         self.home = Path(home)
+        self.data_dir = Path(data_dir) if data_dir is not None else self.home / 'data'
         self.connection = None
         self.lock = threading.RLock()
         self.token = ''
@@ -73,7 +74,7 @@ class Elevation:
             pipe = r'\\.\pipe\ClashStudio-' + secrets.token_hex(20)
             self.token = secrets.token_hex(32)
             python = Path(sys.executable).with_name('pythonw.exe')
-            args = subprocess.list2cmdline(['-I', '-B', str(self.home / 'run.py'), '--core-helper', pipe, self.token, str(os.getpid()), user_sid()])
+            args = subprocess.list2cmdline(['-I', '-B', str(self.home / 'run.py'), '--core-helper', pipe, self.token, str(os.getpid()), user_sid(), str(self.data_dir.resolve())])
             shell = ctypes.WinDLL('shell32', use_last_error=True)
             shell.ShellExecuteW.argtypes = [wintypes.HWND, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.LPCWSTR, ctypes.c_int]
             shell.ShellExecuteW.restype = ctypes.c_ssize_t
@@ -99,13 +100,13 @@ class Elevation:
             self.connection.close()
         self.connection = None
 
-    def rpc(self, operation, **values):
+    def rpc(self, operation, timeout=12, **values):
         with self.lock:
             if not self.connection:
                 raise HTTPException(409, '管理员助手未连接，请重新申请权限')
             try:
                 self.connection.send_bytes(json.dumps({'token': self.token, 'op': operation, **values}).encode())
-                if not self.connection.poll(12):
+                if not self.connection.poll(timeout):
                     raise OSError('helper timeout')
                 result = json.loads(self.connection.recv_bytes(65536))
                 if not result.get('ok'):
@@ -123,7 +124,7 @@ class Elevation:
         with self.lock:
             if self.ready:
                 try:
-                    self.rpc('exit')
+                    self.rpc('exit', timeout=1)
                 except HTTPException:
                     pass
             self.disconnect()
@@ -154,14 +155,17 @@ class ElevatedProcess:
 
 
 def run_helper(home, args):
+    from .platforms import core_binary
     import _winapi
     from multiprocessing.connection import PipeConnection
     from .job import CoreJob
     from .windows import is_admin
     from app.engine import parse_config
-    if not is_admin() or len(args) != 4:
+    if not is_admin() or len(args) != 5:
         raise SystemExit('Invalid helper invocation')
-    pipe, token, parent, sid = args
+    pipe, token, parent, sid, data_dir = args
+    if not Path(data_dir).is_absolute():
+        raise SystemExit('Helper data directory must be absolute')
     if not pipe.startswith(r'\\.\pipe\ClashStudio-') or len(token) != 64 or not sid.startswith('S-1-') or any(c not in 'S-0123456789' for c in sid):
         raise SystemExit('Invalid helper session')
     kernel = ctypes.WinDLL('kernel32', use_last_error=True)
@@ -180,7 +184,7 @@ def run_helper(home, args):
     control = {}
     state_lock = threading.RLock()
     closing = threading.Event()
-    directory = (Path(home) / 'data/runtime').resolve()
+    directory = (Path(data_dir) / 'runtime').resolve()
     def cleanup_core():
         with state_lock:
             closing.set()
@@ -209,7 +213,7 @@ def run_helper(home, args):
             if log:
                 log.close()
             log = (directory / 'core.log').open('ab')
-            process = subprocess.Popen([str(Path(home) / 'bin/mihomo-windows-amd64-compatible.exe'), '-d', str(directory), '-f', str(candidate)], stdout=log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW)
+            process = subprocess.Popen([str(core_binary(Path(home))), '-d', str(directory), '-f', str(candidate)], stdout=log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW)
             job.assign(process)
             control = {'address': config['external-controller'], 'secret': config['secret']}
             return process.pid

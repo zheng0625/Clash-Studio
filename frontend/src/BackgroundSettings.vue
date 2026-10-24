@@ -5,7 +5,7 @@ import { computed, onUnmounted, ref } from 'vue'
 import { ImagePlus, Trash2, Save, RotateCcw, Crop as CropIcon } from 'lucide-vue-next'
 import SettingsDialog from './SettingsDialog.vue'
 import { backgroundState, readBackground, preparePhoto, photoInfo, saveBackground, clearBackground, type Wallpaper } from './background'
-import { currentTheme, defaultTheme, themePresets, readableCoverage, secondaryColor } from './theme'
+import { currentTheme, lightTheme, darkTheme, readableCoverage, secondaryColor } from './theme'
 const emit=defineEmits<{notice:[message:string,error?:boolean]}>()
 const dialog=ref<InstanceType<typeof SettingsDialog>|null>(null),stage=ref<HTMLElement|null>(null)
 const source=ref<Blob|null>(null),sourceUrl=ref(''),name=ref(''),size=ref({width:1,height:1,dark:false})
@@ -15,7 +15,7 @@ const aspect=computed(()=>ratio.value==='source'?size.value.width/size.value.hei
 const geometry=computed(()=>{const scale=Math.max(1/size.value.width,1/(aspect.value*size.value.height))*zoom.value;return {width:size.value.width*scale,height:size.value.height*scale}})
 const crop=computed(()=>{const width=1/geometry.value.width,height=1/(aspect.value*geometry.value.height);const x=Math.max(width/2,Math.min(1-width/2,cx.value)),y=Math.max(height/2,Math.min(1-height/2,cy.value));return {x:Math.max(0,x-width/2),y:Math.max(0,y-height/2),width:Math.min(1,width),height:Math.min(1,height)}})
 const imageStyle=computed(()=>({width:`${100/crop.value.width}%`,height:`${100/crop.value.height}%`,left:`${-crop.value.x/crop.value.width*100}%`,top:`${-crop.value.y/crop.value.height*100}%`}))
-const palette=computed(()=>adapt.value?{...(size.value.dark?themePresets.find(p=>p.name==='深夜')!.colors:defaultTheme),accent:currentTheme.value.accent}:currentTheme.value)
+const palette=computed(()=>adapt.value?{...(size.value.dark?darkTheme:lightTheme),accent:currentTheme.value.accent}:currentTheme.value)
 const previewStyle=computed(()=>({'--photo-surface':palette.value.surface,'--photo-text':palette.value.text,'--photo-side':palette.value.sidebar,'--photo-side-text':palette.value.sidebarText,'--photo-accent':palette.value.accent,'--photo-bg':palette.value.background,'--photo-panel':Math.max(readableCoverage(palette.value.surface,palette.value.text,panel.value),readableCoverage(palette.value.surface,secondaryColor(palette.value,adapt.value),panel.value))+'%','--photo-chrome':readableCoverage(palette.value.sidebar,palette.value.sidebarText,Math.max(80,panel.value-8))+'%','--photo-shade':shade.value+'%','--photo-blur':blur.value+'px',aspectRatio:String(aspect.value)}))
 function reset(){zoom.value=1;cx.value=cy.value=.5}
 async function install(blob:Blob,label:string,saved:Wallpaper|undefined,ticket:number){
