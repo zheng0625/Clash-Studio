@@ -66,7 +66,7 @@ def main():
     OUT.mkdir(parents=True)
     copy(ROOT / 'src-tauri/target/release/clash-studio.exe', OUT / 'ClashStudio.exe')
     copy(ROOT / 'run.py', OUT / 'run.py')
-    for folder in ['server', 'vendor/app', 'vendor/examples', 'frontend/dist']:
+    for folder in ['server', 'vendor/app', 'vendor/examples', 'frontend/dist', 'docs']:
         shutil.copytree(ROOT / folder, OUT / folder, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
 
     runtime = OUT / 'runtime/python'
@@ -105,7 +105,8 @@ def main():
     copy(ROOT / 'bin/wintun-package/wintun/LICENSE.txt', OUT / 'licenses/Wintun-LICENSE.txt')
     for name in ['LICENSE', 'THIRD_PARTY_NOTICES.md']:
         copy(ROOT / name, OUT / name)
-    copy(ROOT / '六项优化说明.md', OUT / '六项优化说明.md')
+    for name in ['README.md', 'README.en.md', 'BUILDING.md', 'RELEASE.md']:
+        copy(ROOT / name, OUT / name)
     copy(ROOT / '0.5.17发布说明.md', OUT / '0.5.17发布说明.md')
     (OUT / 'portable.json').write_text(json.dumps({'version': '0.5.17', 'architecture': 'windows-x64', 'python': '.'.join(map(str, sys.version_info[:3])), 'data': 'data', 'webview2': 'system runtime required'}, indent=2), encoding='utf-8')
     (OUT / '管理员启动.cmd').write_text('@echo off\r\npowershell.exe -NoProfile -Command "Start-Process -FilePath \'%~dp0ClashStudio.exe\' -WorkingDirectory \'%~dp0\' -Verb RunAs"\r\n', encoding='utf-8')
@@ -144,7 +145,7 @@ WebView2官方说明：https://learn.microsoft.com/microsoft-edge/webview2/conce
             for path in sorted((ROOT / folder).rglob('*')):
                 if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
                     archive.write(path, path.relative_to(ROOT).as_posix())
-        for name in ['run.py', 'LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md', '六项优化说明.md', '0.5.17发布说明.md', 'dev-env.ps1', 'build-tauri.ps1', 'frontend/index.html', 'frontend/package.json', 'frontend/pnpm-lock.yaml', 'frontend/tsconfig.json', 'frontend/vite.config.ts', 'src-tauri/Cargo.toml', 'src-tauri/Cargo.lock', 'src-tauri/build.rs', 'src-tauri/tauri.conf.json']:
+        for name in ['run.py', 'LICENSE', 'README.md', 'README.en.md', 'BUILDING.md', 'RELEASE.md', 'THIRD_PARTY_NOTICES.md', '0.5.17发布说明.md', 'dev-env.ps1', 'build-tauri.ps1', 'frontend/index.html', 'frontend/package.json', 'frontend/pnpm-lock.yaml', 'frontend/tsconfig.json', 'frontend/vite.config.ts', 'src-tauri/Cargo.toml', 'src-tauri/Cargo.lock', 'src-tauri/build.rs', 'src-tauri/tauri.conf.json']:
             archive.write(ROOT / name, name)
     manifest = {'version': '0.5.17-portable', 'typecheck': 'passed', 'frontend_build': 'passed', 'rust_build': 'passed', 'portable_launch': 'not tested', 'uac_and_tun': 'not tested', 'files': [{'path': path.relative_to(OUT).as_posix(), 'bytes': path.stat().st_size, 'sha256': digest(path)} for path in sorted(OUT.rglob('*')) if path.is_file()]}
     (OUT / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')

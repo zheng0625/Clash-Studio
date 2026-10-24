@@ -1,48 +1,62 @@
-# Linux x64 版 0.5.17-preview1
+# Linux x64 使用指南 · 0.5.17
 
-Ubuntu 22.04 x64 基线构建，附带 Python、业务依赖、Mihomo 和四项 GeoData；不需要 Node 或单独安装 Python。Linux 桌面系统仍需提供 GTK/WebKit 等动态库。
+Linux 包以 Ubuntu 22.04 x64 为构建基线，文件名保留 preview1 标记。附带 Python、业务依赖、Mihomo v1.19.33 和四项 GeoData，无需安装 Node、Rust 或单独的 Python 环境。
 
-在 Ubuntu 桌面终端安装依赖：
+## 安装与启动
+
+Ubuntu 桌面系统需要以下动态库：
 
 ```sh
 sudo apt update
 sudo apt install libwebkit2gtk-4.1-0 libayatana-appindicator3-1 librsvg2-2
 ```
 
-依据：[Tauri 官方 Linux 依赖说明](https://v2.tauri.app/start/prerequisites/#linux)。请先完整解压 tar.gz，在解压目录执行 `./Start.sh`。不要使用 root/sudo 启动桌面程序。退出可使用托盘菜单或 `./Stop.sh`。
+完整解压 tar.gz 后执行 `./Start.sh`。不要使用 root/sudo 运行桌面程序。退出可使用托盘菜单或 `./Stop.sh`。GNOME 托盘显示可能需要 AppIndicator 扩展；其他发行版需提供兼容的系统库。
 
-默认数据保存在解压目录 data；也可执行 `./Start.sh --data-dir "$HOME/.local/share/clash-studio"`。检查 data/startup.log 与 data/tauri-backend.log。
+默认数据位于解压目录 `data/`。可使用 `./Start.sh --data-dir "$HOME/.local/share/clash-studio"` 指定其他目录。升级前退出旧版并备份数据；不要同时运行多个版本。日志位于数据目录的 `startup.log` 与 `tauri-backend.log`，分享前删除订阅凭据、控制密钥和个人网络信息。
 
-目前 Linux 版提供订阅导入、编辑、分流、节点测速、Mihomo 代理端口和规则/全局/直连模式。GNOME 桌面已支持系统代理接管，配置 HTTP/HTTPS/SOCKS，并在停止和退出时恢复原设置；其他程序改动代理时保留备份且不覆盖。系统代理只影响遵循桌面代理设置的应用，终端 curl 等应用通常需显式传入代理地址。非 GNOME 环境可使用 TUN 或手动配置 HTTP/SOCKS 地址 127.0.0.1:17890。GNOME 托盘显示可能需要 AppIndicator 扩展；WSLg 通常不提供完整状态栏宿主。
+## 订阅、节点与网络接管
 
-## Linux TUN 与登录自启（0.5.14）
+导入订阅，在配置工作台编辑并保存发布，再组合分流模块。主内核停止时即可选择手动策略组节点，选择按订阅保存，下次启动自动应用；自动策略组仍由内核选路。点击节点立即显示选中态，同组连续点击合并提交。
 
-在「设置与日志 → 代理设置」选择 TUN，然后应用并启动。第一次可先点「请求管理员权限」：通过 Clash Studio 的图形 polkit 认证窗口，仅为本包的 Mihomo 文件授予 `cap_net_admin,cap_net_raw,cap_net_bind_service=ep`，主窗口和 Python 服务保持普通用户权限。0.5.15 会为本次请求注册进程级认证代理，远程会话启动的应用也能弹出窗口，不依赖所属会话已有认证代理或终端。密码直接交给 PolkitAgent.Session，不经过前端或后端接口，也不保存。
+节点测速可按单节点、整组或全部执行；主内核停止时按需使用独立测速内核，不开启系统代理或 TUN，空闲两分钟自动退出。使用 Provider 时可先点击“加载 / 刷新 Provider 节点”。测速反映 HTTP 延迟，不代表下载带宽。
 
-Linux 需要 `/dev/net/tun`、pkexec、setcap，以及系统 Python 的 GTK/Polkit GI 绑定；Ubuntu GNOME 通常已有。缺失时可安装 `sudo apt install pkexec libcap2-bin python3-gi gir1.2-polkit-1.0 gir1.2-gtk-3.0`。取消授权或授权失败时不切换原内核。普通内核切换 TUN 时会重启内核以取得新权限，现有连接可能中断。
+GNOME 支持 HTTP/HTTPS/SOCKS 系统代理接管，并在停止或退出时恢复本程序拥有的设置。系统代理仅影响遵循桌面代理设置的应用。其他桌面环境可使用 TUN，或在应用中手动指定 HTTP/SOCKS 地址（默认 `127.0.0.1:17890`）。
 
-文件能力会保留到下次启动；重新解压、复制或升级内核后通常需重新授权。文件系统必须支持 Linux capabilities，不能位于禁止能力生效的挂载点。可用 `getcap bin/mihomo-linux-amd64` 检查；完全退出后，可手动执行 `sudo setcap -r bin/mihomo-linux-amd64` 撤销。不要为 Python 或桌面程序授予文件能力。TUN 停止时关闭网卡和自动路由；普通用户守护进程在后端异常退出时通知内核退出，并进行有界清理。
+## TUN 与图形授权
 
-在桌面设置打开「开机自启」，程序写入当前用户的 `$XDG_CONFIG_HOME/autostart/studio.clash.desktop.desktop`，未设置 XDG_CONFIG_HOME 时使用 `~/.config/autostart/`。这是登录图形桌面后启动，不是登录前的系统服务。保留当前可执行文件与数据目录，开启后台驻留时隐藏至托盘；关闭开关会移除该条目，不影响其他应用。重新移动程序后，请在新位置启动一次以更新已开启的条目。自启不会自动启动订阅内核，网络接管仍需主动开启。
+在概览选择 TUN 模式并启动内核，或在内核运行时切换模式。首次授权使用 Clash Studio 的图形 polkit 窗口，仅为随附 Mihomo 授予 `cap_net_admin,cap_net_raw,cap_net_bind_service=ep`；主窗口和后端保持普通用户权限。远程启动时会注册本次请求的进程级认证代理。密码直接交给 PolkitAgent.Session，不经过前端或后端接口，也不保存。
 
-## 0.5.15 桌面与提醒
+需要 `/dev/net/tun`、pkexec、setcap 和系统 Python 的 GTK/Polkit GI 绑定；缺失时可安装：
 
-操作提醒水平居中，位于应用底部 Dock 上方，随 Dock 实际高度及窗口尺寸调整，较长错误信息可换行。Linux 启用 GTK 应用 ID，并为当前用户注册带软件 Logo 的桌面条目与图标，供 GNOME/Wayland Dock 识别。程序正常启动会刷新条目的当前路径；不会因此启用登录自启。
+```sh
+sudo apt install pkexec libcap2-bin python3-gi gir1.2-polkit-1.0 gir1.2-gtk-3.0
+```
 
-Linux TUN 使用独立的 `198.19.0.0/16` fake-IP 池，避开常见上游路由器的 `198.18.0.0/16` 池，并启用 HTTP/TLS/QUIC 域名识别，避免双层 fake-IP 发生映射冲突。该默认值不等于自动检测所有上游地址池；如果上游也使用 198.19/16，仍需调整上游配置。
+取消授权或授权失败会保留原内核。普通内核迁移到 TUN 时需要重启，现有连接可能中断，并恢复同一订阅中仍有效的节点选择。
 
-0.5.16 为缺少节点专用 DNS 的 Linux TUN 配置补充独立的 `proxy-server-nameserver`，使用阿里 DNS 与 DNSPod DoH，避免节点域名依赖尚未建立的代理或不可达的订阅 DNS 回退链。显式配置的节点 DNS 保留；只更改生成的运行配置，不改源订阅。Linux 保存手动节点选择和 fake-IP 映射；普通内核切换 TUN 重启时，对同一订阅恢复仍有效的手动策略组选择。
+文件能力在后续启动时保留；重新解压、复制或升级内核后通常需要重新授权。文件系统必须支持 Linux capabilities。可用 `getcap bin/mihomo-linux-amd64` 检查，完全退出后可用 `sudo setcap -r bin/mihomo-linux-amd64` 撤销。不要为 Python 或桌面程序设置这些能力。
 
-虚拟机建议验收：启动浅色界面、导入示例/真实订阅、启动内核、手动代理连通性、节点选择和测速、三种路由模式、编辑保存、重启持久化、关闭和托盘驻留、退出后无残留服务。示例节点不能代理真实网络。
+Linux TUN 默认使用 `198.19.0.0/16` fake-IP 池，并启用 HTTP/TLS/QUIC 域名识别。如果上游同样使用这个地址池，仍需调整配置。缺少节点专用 DNS 时，生成的运行配置补充阿里 DNS 与 DNSPod DoH 作为 `proxy-server-nameserver`，避免节点域名依赖尚未建立的代理；显式节点 DNS 保留，源订阅不改写。
 
-0.5.13 修复：界面平台名称按实际系统显示，隐藏不适用的 Windows 驱动提示；原生托盘实时跟随应用语言（中文、英文及跟随系统），并持久保存；GNOME 下从主窗口或托盘开启代理时自动设置系统代理，停止/退出时恢复之前的设置（原先关闭则恢复关闭），无需进入网络设置手动操作。TUN 与登录自启已在后续版本开放，使用方式见上文。
+正常停止会关闭 TUN 与自动路由；后端异常退出时，守护进程通知内核退出并进行有界清理。精确分流依赖流量接管、规则与进程识别，不代表所有应用和网络环境均已覆盖。
 
-历史 WSL 验证：Ubuntu 22.04.5 x64，32 项 Python 测试、3 项 Rust 测试通过；打包后的独立运行时完成本机 HTTP 代理请求、规则/全局/直连、托盘接口启停和正常退出。WSLg 实际创建桌面窗口，前端完成 desktop_ready 桌面接口调用，单实例退出成功。以上不替代 Ubuntu 虚拟机中的视觉、GNOME 托盘与真实订阅联网验收。
+## 桌面图标、托盘与登录自启
 
-实际联网测试示例：导入可用订阅、启动内核并选择节点后，在终端执行 `curl --proxy http://127.0.0.1:17890 https://example.com`。若修改了代理端口，请替换命令中的端口。报告问题时附上 Ubuntu 版本、桌面环境、错误提示以及 data 下的日志；分享前检查并删除订阅凭据。
+程序为当前用户注册带软件 Logo 的桌面入口，供 GNOME/Wayland Dock 识别；操作提醒水平居中显示于应用 Dock 上方。托盘语言随应用设置切换。
 
-如遇虚拟机图形加速问题，可临时在终端用 `WEBKIT_DISABLE_COMPOSITING_MODE=1 ./Start.sh` 对比定位，不建议默认设置或关闭沙箱。
+在桌面设置打开“开机自启”，写入 `$XDG_CONFIG_HOME/autostart/studio.clash.desktop.desktop`；未设置时使用 `~/.config/autostart/`。这是登录图形桌面后启动，不是登录前的系统服务。启用后台驻留时可隐藏至托盘。自启只启动应用，不自动启动订阅内核。
 
-## 0.5.17 节点选择与切换
+移动程序后，在新位置启动一次以更新已开启的自启条目。关闭开关会移除本应用的条目，不影响其他应用。
 
-主内核停止时可以选择手动策略组节点，按订阅保存，下次启动自动应用。点击立即显示选中态，同组连续点击合并提交。维护者已确认本版本三个发行包的使用验证；自动化范围见 [验证说明](validation-0.5.17.md)。
+## 连通性与排查
+
+应用代理端口测试（替换为实际端口）：
+
+```sh
+curl --proxy http://127.0.0.1:17890 https://example.com
+```
+
+先核对实际接管模式，再在连接页检查规则、策略链和流量。已有连接可能继续使用原节点，新连接使用新选择。出现虚拟机图形加速问题时，可临时用 `WEBKIT_DISABLE_COMPOSITING_MODE=1 ./Start.sh` 对比，不建议默认启用。
+
+维护者已确认 Windows 便携版、安装版和 Linux 版的使用验证。构建与自动检查范围见 [0.5.17 验证说明](validation-0.5.17.md)，平台与数据路径见 [平台契约](platform-contract.md)，开发构建见 [BUILDING.md](../BUILDING.md)。
