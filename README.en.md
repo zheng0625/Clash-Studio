@@ -1,9 +1,7 @@
-Current development version: **Clash Studio 1.0** (build version `1.0.0`) for Windows, Linux and Android. The download links below refer to previous releases until new packages are built and published.
-
 <p align="center"><img src="frontend/src/assets/brand.svg" width="84" alt="Clash Studio"></p>
 <h1 align="center">Clash Studio</h1>
 <p align="center">Precise routing. Thoughtful desktop design.</p>
-<p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/v0.5.17">Download for Windows / Linux</a> · <a href="README.md">简体中文</a> · <a href="LICENSE">GPL-3.0</a></p>
+<p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/v1.0">Download for Windows / Linux / Android</a> · <a href="README.md">简体中文</a> · <a href="LICENSE">GPL-3.0</a></p>
 
 **Clash Studio is a Windows / Linux Mihomo desktop client focused on visual subscription editing, reusable routing modules and precise routing, with a customizable desktop interface.**
 
@@ -44,19 +42,20 @@ The workflow is draft → preview → save and publish → apply to the core. Ma
 
 Windows supports system proxy and TUN with an on-demand administrator helper. Linux supports GNOME system proxy and TUN with graphical authorization for the bundled core. Both include tray integration, desktop startup preferences, HTTP delay testing, traffic and connections, LAN proxy settings, IPv6, DNS overrides and GeoData updates. Login startup launches the application without automatically starting a subscription core.
 
-## Download v0.5.17
+## Download 1.0
 
 | Package | Download | Application data |
 | --- | --- | --- |
-| Windows x64 portable | [ZIP](https://github.com/zheng0625/Clash-Studio/releases/download/v0.5.17/ClashStudio-0.5.17-portable-windows-x64.zip) | Adjacent `data/` |
-| Windows x64 installer | [EXE](https://github.com/zheng0625/Clash-Studio/releases/download/v0.5.17/ClashStudio-0.5.17-setup-windows-x64.exe) | `%LOCALAPPDATA%\ClashStudio` |
-| Linux x64 | [tar.gz](https://github.com/zheng0625/Clash-Studio/releases/download/v0.5.17/ClashStudio-0.5.17-linux-x64-preview1.tar.gz) | Adjacent `data/`, or `--data-dir` |
+| Windows x64 portable | [ZIP](https://github.com/zheng0625/Clash-Studio/releases/download/v1.0/ClashStudio-1.0-portable-windows-x64.zip) | Adjacent `data/` |
+| Windows x64 installer | [EXE](https://github.com/zheng0625/Clash-Studio/releases/download/v1.0/ClashStudio-1.0-setup-windows-x64.exe) | `%LOCALAPPDATA%\ClashStudio` |
+| Android arm64-v8a | [APK](https://github.com/zheng0625/Clash-Studio/releases/download/v1.0/ClashStudio-1.0-android-arm64-v8a.apk) | App private storage; export settings and uninstall the old debug build first |
+| Linux x64 | [tar.gz](https://github.com/zheng0625/Clash-Studio/releases/download/v1.0/ClashStudio-1.0-linux-x64.tar.gz) | Adjacent `data/`, or `--data-dir` |
 
-Extract the entire Windows ZIP and run `ClashStudio.exe`, or use the installer. On Linux, extract and run `./Start.sh`. The Linux package uses an Ubuntu 22.04 x64 baseline and retains the `preview1` filename. See the [Linux guide](docs/linux-preview.md).
+Extract the entire Windows ZIP and run `ClashStudio.exe`, or use the installer. On Linux, extract and run `./Start.sh`. The Linux package uses an Ubuntu 22.04 x64 baseline . See the [Linux guide](docs/linux-preview.md).
 
 Python, Mihomo v1.19.33 and four base databases are bundled; Windows also includes Wintun. Windows requires system WebView2; Linux requires desktop GTK / WebKit libraries. No development tools are required. Remote providers / rule sets referenced by subscriptions still need network access. No proxy service or usable subscription is provided.
 
-The maintainer has confirmed using all three packages. Automated checks and their scope are in [validation notes](docs/validation-0.5.17.md). Validation on these devices does not cover every system and network. Windows packages are unsigned. Exit the old version and back up data before upgrading; portable and installed data locations differ.
+Version 1.0 includes Windows, Linux and Android packages. Automated checks and their scope are in [validation notes](docs/validation-1.0.md). Validation on these devices does not cover every system and network. Windows packages are unsigned. Exit the old version and back up data before upgrading; portable and installed data locations differ.
 
 ## Source and license
 
@@ -65,3 +64,5 @@ Tauri 2 / Rust + Vue 3 / TypeScript / Vite + Python local configuration service 
 Project code: **GPL-3.0-only**, see [LICENSE](LICENSE). Dependencies and datasets retain their respective licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Software is provided without warranty. This independent community project is not an official release of Tauri, Clash, Mihomo or Clash Verge Rev.
 
 Thanks to Clash Subscription Studio, Tauri, Clash / Dreamacro and contributors, Mihomo / MetaCubeX, Clash Verge Rev, Vue, Vite, Lucide, Python, FastAPI, WireGuard / Wintun, meta-rules-dat, Loyalsoldier, v2fly, MaxMind and other upstream contributors.
+
+See the [project statement](docs/project-statement.md) for scope, upstream attribution, privacy and platform limits.
