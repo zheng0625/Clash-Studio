@@ -49,7 +49,7 @@ def test_real_core_lifecycle_dispatch_and_revision(tmp_path):
     before_proxy = app.state.runtime.proxy.status()
     try:
         with TestClient(app) as client:
-            assert client.get("/api/client/info").json()["app"] == "clash-studio-alpha"
+            assert client.get("/api/client/info").json()["app"] == "clash-studio"
             assert client.put("/api/client/workspace", json={}).status_code == 403
             imported = client.post("/api/subscriptions", headers=HEADERS,
                 json={"title": "local-core-test", "source_type": "file", "yaml": CONFIG})

@@ -2,13 +2,13 @@
 import { t, message, locale } from './i18n'
 
 import { computed, onUnmounted, ref, watch } from 'vue'
-import { Activity, Check, ChevronDown, Gauge, Loader2, Play, Square } from 'lucide-vue-next'
+import { Activity, Check, ChevronDown, Gauge, Loader2, Play, Square, Zap } from 'lucide-vue-next'
 import { api } from './api'
 
 type Proxy={name:string;type:string;all?:string[];now?:string;history?:{delay:number}[]}
 type Result={name:string;endpoint:string;status:'ok'|'unreachable';delay_ms:number|null;checked_at:string}
 type Entry={status:'queued'|'testing'|'ok'|'unreachable'|'cancelled';delay_ms:number|null;checked_at?:string}
-const props=defineProps<{proxies:Record<string,Proxy>;busy:boolean;pending:Record<string,string>;sessionKey:string;profileId:string;profileRevision:number;workspaceRevision:number;live:boolean;hasProviders:boolean}>()
+const props=defineProps<{proxies:Record<string,Proxy>;busy:boolean;pending:Record<string,string>;sessionKey:string;profileId:string;profileRevision:number;workspaceRevision:number;live:boolean;hasProviders:boolean;benchmarkAvailable?:boolean}>()
 const emit=defineEmits<{select:[group:Proxy,name:string];notice:[message:string,error?:boolean];refresh:[]}>()
 const collapsed=ref<Record<string,boolean>>({})
 try{collapsed.value=JSON.parse(localStorage.getItem('clash-group-folds')||'{}')}catch{}
@@ -33,7 +33,7 @@ watch(()=>props.profileId,restoreResults,{immediate:true})
 let saveTimer:ReturnType<typeof setTimeout>|undefined
 watch(results,()=>{clearTimeout(saveTimer);const id=props.profileId,value=results.value;saveTimer=setTimeout(()=>{try{localStorage.setItem('clash-node-delay-v1:'+id,JSON.stringify(Object.fromEntries(Object.entries(value).filter(([,e])=>['ok','unreachable'].includes(e.status)))))}catch{}},250)},{deep:true})
 async function measure(names:string[]){
-  if(testing.value||inFlight.value||props.busy)return
+  if(props.benchmarkAvailable===false||testing.value||inFlight.value||props.busy)return
   const unique=[...new Set(names)].filter(n=>isNode(props.proxies[n]))
   if(!unique.length){emit('notice',t("该范围内没有可测速的实际代理节点"),true);return}
   const run=++sequence;testing.value=true;completed.value=0;total.value=unique.length
@@ -72,19 +72,21 @@ onUnmounted(cancel)
 </script>
 
 <template>
-  <section class="desk-card delay-toolbar">
+  <section v-if="props.benchmarkAvailable!==false" class="desk-card delay-toolbar">
     <div><span class="desk-eyebrow">PROXY BENCHMARK</span><h2><Gauge :size="18"/>{{ t("节点延迟测速") }}</h2><p>{{ t("HTTP 延迟 · 单节点超时 5 秒 · 最多 4 个并发") }}</p></div>
     <div class="delay-controls"><label>{{ t("检测地址") }}<select v-model="endpoint" :disabled="testing||inFlight>0"><option value="cloudflare">Cloudflare · HTTPS 204</option><option value="gstatic">Google · HTTPS 204</option></select></label><button v-if="!testing" class="desk-btn primary" :disabled="props.busy||inFlight>0||!allNodes.length" @click="measure(allNodes)"><Play :size="13"/>{{ inFlight>0?t("等待请求结束"):t("全部测速") }}</button><button v-else class="desk-btn" @click="cancel"><Square :size="12"/>{{ t("取消 {0}/{1}", [completed, total]) }}</button></div>
     <div v-if="total" class="delay-progress"><span :style="{width:`${completed/total*100}%`}"></span></div>
   </section>
-  <p class="page-caption delay-caption">{{ t("{0}测速为 HTTP 延迟，受当前网络路径影响。独立测速内核空闲两分钟自动关闭。", [props.live?t("当前节点来自运行配置。"):t("当前节点来自所选订阅的已发布配置；测速按需使用独立内核，不开启系统代理或 TUN。")]) }}</p>
-  <div class="group-fold-toolbar"><span>{{ t("{0} 个策略组", [groups.length]) }}</span><button class="desk-text-btn" @click="foldAll(false)">{{ t("全部展开") }}</button><button class="desk-text-btn" @click="foldAll(true)">{{ t("全部折叠") }}</button><button v-if="props.hasProviders&&!props.live" class="desk-btn" :disabled="testing||inFlight>0||props.busy" @click="loadProviders">{{ t("加载 / 刷新 Provider 节点") }}</button></div>
+  <p v-if="props.benchmarkAvailable===false" class="page-caption">{{ t("节点选择会保存在手机中；代理内核接入后生效，测速暂未开放。") }}</p><p v-else class="page-caption delay-caption">{{ t("{0}测速为 HTTP 延迟，受当前网络路径影响。独立测速内核空闲两分钟自动关闭。", [props.live?t("当前节点来自运行配置。"):t("当前节点来自所选订阅的已发布配置；测速按需使用独立内核，不开启系统代理或 TUN。")]) }}</p>
+  <div class="group-fold-toolbar"><span>{{ t("{0} 个策略组", [groups.length]) }}</span><button class="desk-text-btn" @click="foldAll(false)">{{ t("全部展开") }}</button><button class="desk-text-btn" @click="foldAll(true)">{{ t("全部折叠") }}</button><button v-if="props.hasProviders&&!props.live" class="desk-btn" :disabled="props.benchmarkAvailable===false||testing||inFlight>0||props.busy" @click="loadProviders">{{ t("加载 / 刷新 Provider 节点") }}</button></div>
   <section v-for="group in groups" :key="group.name" class="desk-card proxy-group">
-    <div class="section-head"><button class="group-fold-toggle" :aria-expanded="!collapsed[group.name]" @click="fold(group.name)"><ChevronDown :size="17" :class="{folded:collapsed[group.name]}"/><span><strong>{{ group.name }}</strong><small>{{ group.type }} · {{ props.live?t("当前 ")+(group.now||t("自动策略")):t("下次启动使用 ")+(group.now||t("自动策略")) }}</small></span></button><div class="group-actions"><span class="small-badge">{{ t("{0} 个成员", [group.all?.length]) }}</span><button class="desk-btn" :disabled="testing||inFlight>0||props.busy||!leaves(group.all||[]).length" @click="measure(leaves(group.all||[]))"><Activity :size="13"/>{{ t("整组测速") }}</button></div></div>
+    <div class="section-head"><button class="group-fold-toggle" :aria-expanded="!collapsed[group.name]" @click="fold(group.name)"><ChevronDown :size="17" :class="{folded:collapsed[group.name]}"/><span><strong>{{ group.name }}</strong><small>{{ group.type }} · {{ props.live?t("当前 ")+(group.now||t("自动策略")):t("下次启动使用 ")+(group.now||t("自动策略")) }}</small></span></button><div class="group-actions"><span class="small-badge">{{ t("{0} 个成员", [group.all?.length]) }}</span><button class="desk-btn" :disabled="props.benchmarkAvailable===false||testing||inFlight>0||props.busy||!leaves(group.all||[]).length" @click="measure(leaves(group.all||[]))"><Activity :size="13"/>{{ t("整组测速") }}</button></div></div>
     <div v-show="!collapsed[group.name]" class="node-grid"><article v-for="name in group.all" :key="name" v-memo="[group.now===name,props.pending[group.name]===name,group.type,props.proxies[name]?.type,!!props.proxies[name]?.all,results[name]?.status,results[name]?.delay_ms,results[name]?.checked_at,testing,inFlight>0,props.busy,locale]" :class="['proxy-node-card',{picked:group.now===name}]">
       <button class="node-choice" :disabled="props.busy||group.type!=='Selector'" @click="emit('select',props.proxies[group.name]!,name)"><span class="node-dot"></span><span><strong>{{ name }}</strong><small>{{ props.proxies[name]?.type||t("未知类型") }}</small></span><Loader2 v-if="props.pending[group.name]===name" class="rotate" :size="15"/><Check v-else-if="group.now===name" :size="15"/></button>
-      <div class="node-measure-row"><template v-if="isNode(props.proxies[name])"><span v-if="results[name]?.checked_at" class="delay-time">{{ new Date(results[name]!.checked_at!).toLocaleTimeString('zh-CN',{hour12:false}) }}</span><span v-else class="delay-time">{{ t("HTTP 延迟") }}</span><button :class="['node-delay',color(name)]" :disabled="testing||inFlight>0||props.busy" :aria-label="t('测速 {0}', [name])" @click="measure([name])"><Loader2 v-if="results[name]?.status==='testing'" class="rotate" :size="11"/><Gauge v-else :size="11"/>{{ label(name) }}</button></template><button v-else-if="props.proxies[name]?.all" class="desk-text-btn" :disabled="testing||inFlight>0||props.busy" @click="measure(leaves([name]))"><Gauge :size="11"/>{{ t("测速组内节点") }}</button><span v-else class="delay-time">{{ t("内置出口") }}</span></div>
+      <div class="node-measure-row"><template v-if="isNode(props.proxies[name])"><span v-if="results[name]?.checked_at" class="delay-time">{{ new Date(results[name]!.checked_at!).toLocaleTimeString('zh-CN',{hour12:false}) }}</span><span v-else class="delay-time">{{ t("HTTP 延迟") }}</span><button :class="['node-delay',color(name)]" :disabled="props.benchmarkAvailable===false||testing||inFlight>0||props.busy" :aria-label="t('测速 {0}', [name])" @click="measure([name])"><Loader2 v-if="results[name]?.status==='testing'" class="rotate" :size="11"/><Gauge v-else :size="11"/>{{ label(name) }}</button></template><button v-else-if="props.proxies[name]?.all" class="desk-text-btn" :disabled="props.benchmarkAvailable===false||testing||inFlight>0||props.busy" @click="measure(leaves([name]))"><Gauge :size="11"/>{{ t("测速组内节点") }}</button><span v-else class="delay-time">{{ t("内置出口") }}</span></div>
     </article></div>
   </section>
   <div v-if="!groups.length" class="desk-card desk-empty"><Gauge :size="32"/><p>{{ t("当前运行配置没有代理组。") }}</p></div>
+  <!-- Keep fixed controls outside the transformed page stage during transitions. -->
+  <Teleport to=".desk" defer><button v-if="props.benchmarkAvailable!==false" type="button" class="delay-fab" :disabled="!testing&&(props.busy||inFlight>0||!allNodes.length)" :aria-label="testing?t('取消测速'):t('全部测速')" @click="testing?cancel():measure(allNodes)"><Loader2 v-if="testing" class="rotate" :size="22"/><Zap v-else :size="22"/><span v-if="testing" class="delay-fab-count">{{ completed }}/{{ total }}</span></button></Teleport>
 </template>

@@ -1,0 +1,7 @@
+.gradle/
+.idea/
+local.properties
+**/build/
+*.iml
+gradle/gradle-daemon-jvm.properties
+app/libs/*.aar

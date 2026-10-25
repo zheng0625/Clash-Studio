@@ -1,14 +1,18 @@
-export const isDesktop = '__TAURI_INTERNALS__' in window
+import { androidRequest } from './android'
+export const isDesktop = '__TAURI_INTERNALS__' in window && !/Android/i.test(navigator.userAgent)
 export async function desktopInfo():Promise<{backend_base:string;version:string;desktop:boolean}> {
   if(isDesktop){const {invoke}=await import('@tauri-apps/api/core');return invoke('desktop_info')}
-  return {backend_base:location.origin,version:'0.5.17',desktop:false}
+  return {backend_base:location.origin,version:'1.0.0',desktop:false}
 }
 export async function restartElevated(){const {invoke}=await import('@tauri-apps/api/core');return invoke('restart_elevated')}
 export async function quitDesktop(){const {invoke}=await import('@tauri-apps/api/core');return invoke('quit_app')}
 export async function closeDesktop(){const {invoke}=await import('@tauri-apps/api/core');return invoke<boolean>('close_desktop')}
 export async function api<T>(path:string,method='GET',body?:unknown):Promise<T>{
   let status:number,data:any
-  if(isDesktop){
+  if(window.ClashAndroid){
+    const result=await androidRequest(path,method,body)
+    status=result.status;data=result.data
+  }else if(isDesktop){
     const {invoke}=await import('@tauri-apps/api/core')
     const result=await invoke<{status:number;data:any}>('backend_request',{path,method,body:body??null})
     status=result.status;data=result.data

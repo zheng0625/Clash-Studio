@@ -28,7 +28,7 @@
 body{color:var(--text-1)}small{font-size:var(--fs-sm)}
 .desk-page-heading h1{letter-spacing:0;font-weight:600}
 .desk-sidebar :is(p,small,span,button,a,strong){color:#e6dff5}.desk-sidebar nav button.chosen{background:#6445b4;color:#fff}.desk-sidebar .sidebar-tip{background:#302b43}.desk-sidebar .sidebar-foot{color:#ddd5ee}
-.desk-btn.primary{background:#6445b4;color:#fff}.mode-options>button.selected,.proxy-node-card.picked{outline:2px solid #7659d5;outline-offset:-2px}
+.desk-btn.primary{background:#6445b4;color:#fff}.mode-options>button.selected,.proxy-node-card.picked{outline:2px solid color-mix(in srgb,var(--client-accent) 22%,transparent);outline-offset:-2px}
 .node-delay.fast{color:#17613e;background:#e9f6ef}.node-delay.medium{color:#78500b;background:#fff4d8}.node-delay.slow{color:#9b2929;background:#ffeded}
 .group-actions .desk-btn,.group-fold-toolbar>.desk-btn{min-height:32px}
 *{scrollbar-width:thin;scrollbar-color:#b9afcb #f4f1f8}::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#b9afcb;border-radius:8px}::-webkit-scrollbar-track{background:#f4f1f8}

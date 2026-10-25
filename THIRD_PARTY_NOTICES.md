@@ -78,3 +78,19 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 ```
+# Android 开发版新增依赖
+
+Android 开发版使用 SnakeYAML 2.7（Apache License 2.0）解析 Clash YAML：
+https://bitbucket.org/snakeyaml/snakeyaml 。AndroidX WebKit / Activity 同样采用
+Apache License 2.0。许可正文随 APK 放在 `assets/licenses/`。
+`org.json:json` 与 JUnit 仅供 JVM 单元测试，不作为应用依赖打入 APK。
+
+Android ARM64 内核使用 Mihomo v1.19.32，JNI 包装库为 libmihomo-android v0.3.11（GPL-3.0），
+固定提交 `5acd6a9ebf7946e18c8f0feaf8302fedf4ebb17d`。
+源码与构建说明：https://github.com/oviron/libmihomo-android/tree/5acd6a9ebf7946e18c8f0feaf8302fedf4ebb17d 。
+AAR SHA-256 固定校验，许可与来源记录随 APK 放在 `assets/licenses/`。
+Kotlin 标准库 2.2.21 为 Apache-2.0。
+
+Android 二维码识别使用 ZXing Android Embedded 4.3.0（https://github.com/journeyapps/zxing-android-embedded）
+和 ZXing Core 3.5.3（https://github.com/zxing/zxing），均为 Apache-2.0。
+相机图像与用户选择的照片在设备上识别，不上传至识别服务。

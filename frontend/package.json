@@ -1,7 +1,7 @@
 {
-  "name": "clash-studio-alpha",
+  "name": "clash-studio",
   "private": true,
-  "version": "0.5.17-alpha",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",

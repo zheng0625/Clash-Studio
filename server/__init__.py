@@ -1,1 +1,1 @@
-"""Windows alpha backend, reusing Clash Subscription Studio."""
+"""Desktop backend, reusing Clash Subscription Studio."""

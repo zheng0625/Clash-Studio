@@ -1,4 +1,4 @@
-"""Run the isolated Windows alpha from the existing project's Python runtime."""
+"""Run the isolated desktop application from the existing project's Python runtime."""
 from __future__ import annotations
 
 import argparse
@@ -30,7 +30,7 @@ def is_ours(url):
     try:
         with LOCAL.open(url + "/api/client/info", timeout=1) as response:
             info = json.load(response)
-        return info.get("app") == "clash-studio-alpha" and info.get("instance") == instance_id()
+        return info.get("app") == "clash-studio" and info.get("instance") == instance_id()
     except (OSError, ValueError):
         return False
 
@@ -54,7 +54,7 @@ def main():
         from server.elevation import run_helper
         run_helper(HOME, sys.argv[2:])
         return
-    parser = argparse.ArgumentParser(description="Clash Studio Windows Alpha")
+    parser = argparse.ArgumentParser(description="Clash Studio 1.0")
     parser.add_argument("--port", type=int, default=8870)
     parser.add_argument("--no-window", action="store_true")
     parser.add_argument("--desktop", action="store_true", help="Backend owned by the Tauri desktop process")
@@ -77,11 +77,11 @@ def main():
     url = f"http://127.0.0.1:{args.port}"
     if args.stop:
         if not is_ours(url):
-            raise SystemExit("This alpha installation is not running on the selected port.")
+            raise SystemExit("This installation is not running on the selected port.")
         request = urllib.request.Request(url + "/api/shutdown", method="POST", data=b"{}",
                                          headers={"X-Clash-Studio": "1", "Content-Type": "application/json"})
         with LOCAL.open(request, timeout=12):
-            print("Stopping alpha backend and its core; restoring owned system proxy.")
+            print("Stopping backend and its core; restoring owned system proxy.")
         return
     with socket.socket() as probe:
         try:
@@ -99,7 +99,7 @@ def main():
     app = build_app(HOME, data_dir=DATA)
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=args.port, access_log=False, timeout_graceful_shutdown=2))
     app.state.shutdown_callback = lambda: setattr(server, "should_exit", True)
-    print(f"Clash Studio Alpha: {url}")
+    print(f"Clash Studio 1.0: {url}")
     server.run()
 
 

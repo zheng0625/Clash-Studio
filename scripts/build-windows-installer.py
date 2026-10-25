@@ -9,7 +9,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.5.17'
+VERSION = '1.0'
 RELEASES = ROOT / 'artifacts/releases'
 PAYLOAD = RELEASES / f'ClashStudio-{VERSION}-portable-windows-x64'
 OUTPUT = RELEASES / f'ClashStudio-{VERSION}-setup-windows-x64.exe'
@@ -37,7 +37,7 @@ RequestExecutionLevel user
 SetCompressor /SOLID lzma
 Icon "{literal(ROOT / 'src-tauri/icons/icon.ico')}"
 UninstallIcon "{literal(ROOT / 'src-tauri/icons/icon.ico')}"
-VIProductVersion "{VERSION}.0"
+VIProductVersion "{VERSION}.0.0"
 VIAddVersionKey /LANG=1033 "ProductName" "Clash Studio"
 VIAddVersionKey /LANG=1033 "FileDescription" "Clash Studio Setup"
 VIAddVersionKey /LANG=1033 "FileVersion" "{VERSION}"

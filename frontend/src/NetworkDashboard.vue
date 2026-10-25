@@ -10,7 +10,7 @@ const emit=defineEmits<{speed:[value:{upload:number|null;download:number|null;ru
 type Counter={running:boolean;session:string;upload:number;download:number;connections:number}
 type Lookup={status:'ok'|'partial'|'unavailable';ip:string;family:string;country:string;region:string;city:string;isp:string;asn:string;provider:string;route:'system'|'proxy';route_label:string;profile:string;checked_at:string;elapsed_ms:number;cached:boolean;message:string}
 type Sample={at:number;upload:number;download:number}
-const route=ref<'system'|'proxy'>('system'), checking=ref(false), lookup=ref<Lookup|null>(null), ipError=ref(''), copied=ref(false)
+const route=computed<'system'|'proxy'>(()=>props.running?'proxy':'system'), checking=ref(false), lookup=ref<Lookup|null>(null), ipError=ref(''), copied=ref(false)
 const counter=ref<Counter>({running:false,session:'',upload:0,download:0,connections:0})
 const upload=ref<number|null>(null), download=ref<number|null>(null), samples=ref<Sample[]>([]), trafficError=ref('')
 let baseline:{at:number;value:Counter}|null=null, timer:ReturnType<typeof setTimeout>|undefined, copyTimer:ReturnType<typeof setTimeout>|undefined
@@ -73,11 +73,11 @@ onUnmounted(()=>{disposed=true;++lookupSequence;clearTimeout(timer);clearTimeout
 
     <article class="desk-card ip-card">
       <div class="network-card-heading"><div><span class="desk-eyebrow">NETWORK IDENTITY</span><h2>{{ t("你的网络出口") }}</h2></div><button class="desk-btn" :disabled="checking" @click="detect(true)"><RefreshCw :size="14" :class="{rotate:checking}"/>{{ checking?t("检测中"):t("重新检测") }}</button></div>
-      <div class="ip-route-tabs" role="group" :aria-label="t('检测路径')"><button :class="{selected:route==='system'}" @click="route='system'">{{ t("系统路由") }}</button><button :class="{selected:route==='proxy'}" :disabled="!props.running" :title="props.running?'':t('启动内核后可检测代理出口')" @click="route='proxy'">{{ t("本程序代理") }}</button></div>
+      <div class="ip-route-tabs" role="group" :aria-label="t('检测路径')"><span class="ip-route-now">{{ route==='proxy'?t("当前出口 · 本程序代理，按分流规则"):t("当前出口 · 系统路由，VPN 未开启") }}</span></div>
       <div class="ip-status" :class="{success:lookup?.status==='ok'||lookup?.status==='partial',failure:ipError||lookup?.status==='unavailable'}"><Loader2 v-if="checking" :size="13" class="rotate"/><WifiOff v-else-if="ipError||lookup?.status==='unavailable'" :size="13"/><Radio v-else :size="13"/><span>{{ checking?t("正在查询出口…"):ipError||lookup?.status==='unavailable'?t("检测未完成"):lookup?.status==='partial'?t("已联网 · 归属地暂缺"):lookup?t("检测服务可达"):t("等待检测") }}</span><span v-if="lookup?.family" class="ip-family">{{ lookup.family }}</span></div>
       <div class="ip-address"><strong>{{ lookup?.ip||'— —' }}</strong><button class="desk-icon-btn" :aria-label="t('复制公网 IP')" :title="t('复制 IP')" :disabled="!lookup?.ip" @click="copy"><Check v-if="copied" :size="15"/><Copy v-else :size="15"/></button></div>
       <div class="ip-location"><MapPin :size="14"/><span>{{ checking?t("正在查找 IP 归属地"):location||t("暂无归属地信息") }}</span></div>
-      <dl class="ip-details"><div><dt>{{ t("网络服务商") }}</dt><dd :title="lookup?.isp">{{ lookup?.isp||'—' }}</dd></div><div><dt>{{ t("自治系统") }}</dt><dd>{{ lookup?.asn?'AS'+lookup.asn:'—' }}</dd></div><div><dt>{{ t("检测时间") }}</dt><dd>{{ lookup?new Date(lookup.checked_at).toLocaleTimeString(locale,{hour12:false}):'—' }}<small v-if="lookup?.cached">{{ t("缓存") }}</small></dd></div></dl>
+      <dl class="ip-details"><div><dt>{{ t("网络服务商") }}</dt><dd :title="lookup?.isp">{{ lookup?.isp||'—' }}</dd></div><div><dt>{{ t("自治系统") }}</dt><dd>{{ lookup?.asn?'AS'+lookup.asn:'—' }}</dd></div><div><dt>{{ t("检测时间") }}</dt><dd>{{ lookup?.checked_at?new Date(lookup.checked_at).toLocaleTimeString(locale,{hour12:false}):'—' }}<small v-if="lookup?.cached">{{ t("缓存") }}</small></dd></div></dl>
       <div v-if="ipError||lookup?.status==='unavailable'||lookup?.status==='partial'" class="ip-message" role="status">{{ message(ipError||lookup?.message) }}</div>
       <div class="ip-card-bottom"><p>{{ route==='system'?t("遵循系统路由，TUN 可能影响出口。"):t("通过本程序混合端口，遵循当前分流规则。") }}<br>{{ t("服务：{0} · 归属地仅供参考", [lookup?.provider||'ipwho.is / ipify']) }}</p></div>
     </article>

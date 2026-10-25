@@ -12,6 +12,7 @@ window.fetch = async (input, init) => {
   let value: unknown
   const p = url.pathname
   if (p === '/api/client/tray/context') return Response.json({ ok: true })
+  if (p === '/api/client/runtime/delay') return Response.json({ name: '', endpoint: 'cloudflare', status: 'ok', delay_ms: 48 + Math.round(Math.random() * 320), checked_at: new Date().toISOString() })
   if ((init?.method || 'GET') !== 'GET') return Response.json({ detail: '设计预览仅用于调整界面，操作不会提交。' }, { status: 400 })
   if (p === '/api/subscriptions') value = [profile]
   else if (p === '/api/subscriptions/ui-preview') value = profile
@@ -26,7 +27,9 @@ window.fetch = async (input, init) => {
   else if (p === '/api/client/settings') value = settings
   else if (p === '/api/client/runtime') value = runtime
   else if (p === '/api/client/tray') value = { context_configured: false, proxy_mode: 'system', tun_stack: 'mixed', profile_id: '' }
-  else if (p === '/api/client/platform') value = { os: 'windows', arch: 'x64' }
+  else if (p === '/api/client/platform') value = new URLSearchParams(location.search).get('platform') === 'android'
+    ? { os: 'android', arch: 'arm64-v8a', capabilities: { validation: false, development: true, native_insets: true, subscriptions: true, modules: false, ai: false, lan_share: false, autostart: false, core: true, vpn: true } }
+    : { os: 'windows', arch: 'x64' }
   else if (p === '/api/client/network/traffic') value = { running: true, session: 'preview', upload: 3145728, download: 25165824, connections: 3 }
   else if (p === '/api/client/network/ip') value = { ip: '192.0.2.24', country: '设计预览', region: '示例位置', city: '', isp: '示例网络 · 非真实数据', asn: 'AS0000', checked_at: new Date().toISOString(), elapsed_ms: 0, cached: true, message: '' }
   else if (p.includes('logs')) value = { entries: [], logs: [], events: [] }

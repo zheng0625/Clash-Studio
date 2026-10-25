@@ -160,7 +160,7 @@ async fn desktop_info(startup: State<'_, Startup>) -> Result<DesktopInfo, String
     let startup = startup.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let backend = startup.wait()?;
-        Ok(DesktopInfo { backend_base: backend.base.clone(), version: "0.5.13", desktop: true })
+        Ok(DesktopInfo { backend_base: backend.base.clone(), version: env!("CARGO_PKG_VERSION"), desktop: true })
     }).await.map_err(|e| e.to_string())?
 }
 

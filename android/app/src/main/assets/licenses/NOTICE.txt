@@ -1,0 +1,35 @@
+Clash Studio 1.0 Android
+Project license: GNU General Public License v3.0 only (GPL-3.0.txt).
+
+AndroidX WebKit 1.14.0 and AndroidX Activity 1.10.1
+Copyright The Android Open Source Project.
+https://developer.android.com/jetpack/androidx
+Apache License 2.0 (Apache-2.0.txt).
+
+SnakeYAML 2.7
+https://bitbucket.org/snakeyaml/snakeyaml
+https://central.sonatype.com/artifact/org.yaml/snakeyaml/2.7
+Apache License 2.0 (Apache-2.0.txt).
+
+JUnit and org.json:json are used only for local JVM tests and are not packaged
+as application dependencies. Android supplies its own org.json implementation.
+
+Mihomo v1.19.32 + libmihomo-android v0.3.11 (bridge ABI 3)
+https://github.com/MetaCubeX/mihomo/tree/v1.19.32
+https://github.com/oviron/libmihomo-android/tree/5acd6a9ebf7946e18c8f0feaf8302fedf4ebb17d
+Copyright Mihomo contributors, oviron and upstream bridge contributors.
+GPL-3.0; see libmihomo-android-GPL-3.0.txt and GPL-3.0.txt.
+AAR SHA-256: 01bc41748840c8200bbaf08c044ba8704e35303a3179b75a3cce8517c8944251
+Source and build instructions: linked source tree, build-native.sh and MAINTENANCE.md.
+Go dependency records: src/main/jni/core/go.mod and go.sum.
+
+Kotlin standard library 2.2.21
+Copyright JetBrains s.r.o. and Kotlin contributors.
+https://github.com/JetBrains/kotlin/tree/v2.2.21
+Apache License 2.0 (Apache-2.0.txt).
+
+ZXing Android Embedded 4.3.0 and ZXing Core 3.5.3
+https://github.com/journeyapps/zxing-android-embedded
+https://github.com/zxing/zxing
+Copyright ZXing authors and Journey Mobile, Inc. contributors.
+Apache License 2.0 (Apache-2.0.txt).

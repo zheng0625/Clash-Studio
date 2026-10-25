@@ -3,6 +3,9 @@
 .settings-dialog{width:min(860px,calc(100vw - 64px));padding:0;margin:auto;max-height:calc(100vh - 64px);overflow:hidden;color:var(--text-1)}.settings-dialog:not([open]){display:none}.settings-dialog::backdrop{background:#17132688;backdrop-filter:blur(6px)}.settings-dialog-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:22px 26px;border-bottom:1px solid var(--line)}.settings-dialog-heading h2{font-size:20px;margin:0 0 8px}.settings-dialog-heading p{font-size:12px;line-height:1.8;color:var(--text-2)}.settings-dialog-body{overflow:auto;max-height:calc(100vh - 190px);padding:4px 26px 26px}body:has(.settings-dialog[open]){overflow:hidden}
 .appearance-settings{padding:24px;margin:22px 0}
 .appearance-settings .section-head p{font-size:12px;color:var(--text-2);margin-top:8px;line-height:1.8}
+.appearance-mode{display:flex;gap:8px;margin:20px 0 8px}
+.appearance-mode>button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;border:1px solid var(--client-border,var(--line));border-radius:10px;background:transparent;padding:8px 10px;font-size:12px;color:var(--client-text,var(--text-1))}
+.appearance-mode>button[aria-checked=true]{border-color:var(--client-accent,#7659d5);outline:2px solid color-mix(in srgb,var(--client-accent,#7659d5) 35%,transparent);outline-offset:-2px;font-weight:600}
 .appearance-presets{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0}
 .appearance-presets>button{display:flex;align-items:center;gap:8px;min-height:38px;border:1px solid var(--line);border-radius:8px;background:transparent;padding:8px 12px;font-size:12px;color:var(--text-1)}
 .appearance-presets>button[aria-pressed=true]{outline:2px solid var(--client-accent,#7659d5);outline-offset:-2px}
@@ -23,11 +26,11 @@
 :root[data-client-theme] :is(.desk-card h2,.desk-modal h2,.section-head h2,.desk-field,.desk-btn,.desk-icon-btn,.desk-text-btn,.wide-link,.group-fold-toggle strong){color:var(--client-text)}
 :root[data-client-theme] :is(.desk-btn,.appearance-presets>button){border-color:var(--client-border)}
 :root[data-client-theme] :is(.desk-btn.primary,.desk-btn.primary:not(:disabled):hover,.desk-switch.on){background:var(--client-accent);border-color:var(--client-accent);color:var(--client-accent-ink)}
-:root[data-client-theme] :is(button:focus-visible,a:focus-visible,input:focus,textarea:focus,select:focus){outline-color:var(--client-accent);border-color:var(--client-accent)}
-:root[data-client-theme] :is(.mode-options>button.selected,.proxy-node-card.picked){outline-color:var(--client-accent)}
+:root[data-client-theme] :is(button:focus-visible,a:focus-visible,input:focus,textarea:focus,select:focus){outline-color:color-mix(in srgb,var(--client-accent) 40%,transparent);border-color:color-mix(in srgb,var(--client-text) 28%,var(--client-surface))}
+:root[data-client-theme] :is(.mode-options>button.selected){outline-color:color-mix(in srgb,var(--client-accent) 22%,transparent)}
 :root[data-client-theme] :is(.mode-options,.ip-route-tabs,.session-traffic,.traffic-strip,.core-version-block,.lan-addresses,.native-ai,.native-segment,.modal-tabs,.inline-note,.source-note,.proxy-address,.setting-status,.network-pill,.route-target,.small-badge,.member-grid>label,.editor-group-list,.power-mark,.metric-icon,.metric-icon.mint,.status-card,.metric,.native-editor-head,.editor-validation-footer){background:var(--client-surface);border-color:var(--client-border);color:var(--client-text)}
 :root[data-client-theme] :is(.mode-options>button,.ip-route-tabs>button,.modal-tabs>button,.native-segment>button){color:var(--client-text)}
-:root[data-client-theme] :is(.mode-options>button.selected,.ip-route-tabs>button.selected,.modal-tabs>button.active,.native-segment>button.active,.editor-group-item.active,.proxy-node-card.picked,.member-selected>div:hover,.member-grid>label:hover,.editor-node-row:hover,.match-row:hover,.desk-icon-btn:hover,.appearance-presets>button:hover){background:var(--client-surface);color:var(--client-text);border-color:var(--client-accent)}
+:root[data-client-theme] :is(.mode-options>button.selected,.ip-route-tabs>button.selected,.modal-tabs>button.active,.native-segment>button.active,.editor-group-item.active,.member-selected>div:hover,.member-grid>label:hover,.editor-node-row:hover,.match-row:hover,.desk-icon-btn:hover,.appearance-presets>button:hover){background:var(--client-surface);color:var(--client-text);border-color:var(--client-accent)}
 :root[data-client-theme] .desk-sidebar{background:var(--client-sidebar);border-color:var(--client-border)}
 :root[data-client-theme] .desk-sidebar :is(p,small,span,button,a,strong),:root[data-client-theme] .desk-sidebar nav :is(button,button:hover,.nav-count){color:var(--client-sidebar-text)}
 :root[data-client-theme] .desk-sidebar nav button.chosen{background:var(--client-accent);color:var(--client-accent-ink)}
@@ -62,7 +65,9 @@ html,body,#app{height:100%;overflow:hidden}.desk{height:100dvh;overflow:hidden}.
 :root[data-client-theme] .desk-search input{background:transparent;color:var(--client-text);border-color:transparent;box-shadow:none}
 :root[data-client-theme] :is(input,textarea)::placeholder{color:var(--client-secondary);opacity:1}
 :root[data-client-theme] select option,:root[data-client-theme] select optgroup{background:var(--client-surface);color:var(--client-text)}
-:root[data-client-theme] :is(select option:checked,.editor-group-option.active,.editor-group-option:hover,.node-option.picked,.node-option:hover,.mode-options>button.selected,.mode-options>button:hover:not(:disabled),.ip-route-tabs>button.selected,.modal-tabs>button.active,.native-segment>button.active,.proxy-node-card.picked,.member-grid>label:hover,.editor-node-row:hover,.match-row:hover,.desk-btn:not(.primary):not(.danger):hover){background:var(--client-control-selected);color:var(--client-text);border-color:var(--client-accent)}
+:root[data-client-theme] :is(select option:checked,.editor-group-option.active,.editor-group-option:hover,.node-option.picked,.node-option:hover,.mode-options>button.selected,.ip-route-tabs>button.selected,.modal-tabs>button.active,.native-segment>button.active,.member-grid>label:hover,.editor-node-row:hover,.match-row:hover),
+:root[data-client-theme] .mode-options>button:hover:not(:disabled),
+:root[data-client-theme] .desk-btn:not(.primary):not(.danger):hover{background:var(--client-control-selected);color:var(--client-text);border-color:var(--client-accent)}
 :root[data-client-theme] :is(.editor-group-option.active,.node-option.picked){box-shadow:inset 3px 0 var(--client-accent)}
 :root[data-client-theme] :is(input[type=checkbox],input[type=radio],input[type=range]){accent-color:var(--client-accent)}
 :root[data-client-theme] input[type=search]::-webkit-search-cancel-button{filter:grayscale(1);opacity:.7}

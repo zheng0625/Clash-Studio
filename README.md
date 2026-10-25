@@ -1,3 +1,5 @@
+当前迭代版本：**Clash Studio 1.0 正式版**（构建版本 `1.0.0`），覆盖 Windows、Linux、Android。下方下载链接为历史发行包，1.0 安装包待重新构建并发布。
+
 <p align="center"><img src="frontend/src/assets/brand.svg" width="84" alt="Clash Studio"></p>
 <h1 align="center">Clash Studio</h1>
 <p align="center">定义新时代 Clash 客户端，让流量分配更精准，让日常使用更舒适。</p>

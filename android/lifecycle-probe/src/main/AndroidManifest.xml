@@ -1,0 +1,4 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <instrumentation android:name=".LifecycleProbe" android:targetPackage="studio.clash.android.validation" />
+    <application android:label="Clash lifecycle verification" android:allowBackup="false" android:testOnly="true" />
+</manifest>

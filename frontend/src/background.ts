@@ -1,5 +1,5 @@
 import { ref, watch } from 'vue'
-import { setBackgroundPalette, readableCoverage, effectiveTheme, secondaryColor, currentTheme } from './theme'
+import { setBackgroundPalette, readableCoverage, effectiveTheme, secondaryColor, themeEpoch } from './theme'
 export type Crop={x:number;y:number;width:number;height:number}
 export type Wallpaper={blob:Blob;rendered?:Blob;name:string;shade:number;blur?:number;panel?:number;adapt?:boolean;dark?:boolean;crop?:Crop;ratio?:string}
 export const backgroundState=ref({name:'',shade:45,blur:0,panel:92,adapt:false,hasImage:false})
@@ -12,7 +12,9 @@ async function storage(action:'get'|'put'|'delete',value?:Wallpaper):Promise<Wal
 }
 const clamp=(v:number,min:number,max:number)=>Math.max(min,Math.min(max,Number.isFinite(v)?v:min))
 function protectText(panel:number){const palette=effectiveTheme(),style=document.documentElement.style;const coverage=Math.max(readableCoverage(palette.surface,palette.text,panel),readableCoverage(palette.surface,secondaryColor(palette),panel));style.setProperty('--wallpaper-panel',coverage+'%');style.setProperty('--wallpaper-chrome',readableCoverage(palette.sidebar,palette.sidebarText,Math.max(80,panel-8))+'%')}
-watch(currentTheme,()=>{if(backgroundState.value.hasImage)protectText(backgroundState.value.panel)},{flush:'sync'})
+/* Any repaint (custom palette, built-in mode, or a system dark toggle) must
+   re-check wallpaper text coverage. */
+watch(themeEpoch,()=>{if(backgroundState.value.hasImage)protectText(backgroundState.value.panel)})
 function apply(value?:Wallpaper){
   const previous=backgroundUrl.value,style=document.documentElement.style
   backgroundUrl.value=value?URL.createObjectURL(value.rendered??value.blob):''

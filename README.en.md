@@ -1,3 +1,5 @@
+Current development version: **Clash Studio 1.0** (build version `1.0.0`) for Windows, Linux and Android. The download links below refer to previous releases until new packages are built and published.
+
 <p align="center"><img src="frontend/src/assets/brand.svg" width="84" alt="Clash Studio"></p>
 <h1 align="center">Clash Studio</h1>
 <p align="center">Precise routing. Thoughtful desktop design.</p>

@@ -15,7 +15,7 @@ import zipfile
 from packaging.requirements import Requirement
 
 ROOT = Path(__file__).resolve().parents[1]
-NAME = 'ClashStudio-0.5.17-portable-windows-x64'
+NAME = 'ClashStudio-1.0-portable-windows-x64'
 RELEASES = ROOT / 'artifacts' / 'releases'
 OUT = RELEASES / NAME
 ZIP = RELEASES / (NAME + '.zip')
@@ -107,11 +107,11 @@ def main():
         copy(ROOT / name, OUT / name)
     for name in ['README.md', 'README.en.md', 'BUILDING.md', 'RELEASE.md']:
         copy(ROOT / name, OUT / name)
-    copy(ROOT / '0.5.17发布说明.md', OUT / '0.5.17发布说明.md')
-    (OUT / 'portable.json').write_text(json.dumps({'version': '0.5.17', 'architecture': 'windows-x64', 'python': '.'.join(map(str, sys.version_info[:3])), 'data': 'data', 'webview2': 'system runtime required'}, indent=2), encoding='utf-8')
+    copy(ROOT / '1.0发布说明.md', OUT / '1.0发布说明.md')
+    (OUT / 'portable.json').write_text(json.dumps({'version': '1.0.0', 'architecture': 'windows-x64', 'python': '.'.join(map(str, sys.version_info[:3])), 'data': 'data', 'webview2': 'system runtime required'}, indent=2), encoding='utf-8')
     (OUT / '管理员启动.cmd').write_text('@echo off\r\npowershell.exe -NoProfile -Command "Start-Process -FilePath \'%~dp0ClashStudio.exe\' -WorkingDirectory \'%~dp0\' -Verb RunAs"\r\n', encoding='utf-8')
     (OUT / '恢复系统代理.cmd').write_text('@echo off\r\n"%~dp0runtime\\python\\python.exe" -I -B "%~dp0run.py" --restore-proxy\r\npause\r\n', encoding='utf-8')
-    (OUT / '使用说明.txt').write_text('''Clash Studio 0.5.17 Portable · Windows x64
+    (OUT / '使用说明.txt').write_text('''Clash Studio 1.0 Portable · Windows x64
 
 Quick start: extract the entire ZIP, then run ClashStudio.exe. Keep all folders together.
 Language: Settings and logs > Settings > Interface language (Follow system / 简体中文 / English).
@@ -126,7 +126,7 @@ Startup diagnostics: data/startup.log and data/tauri-backend.log.
 5. 订阅、日志、WebView配色及缓存保存在程序旁data目录。移动/备份请关闭程序后复制整个文件夹。
 6. 正常退出会停止自己的内核并恢复本程序设置的系统代理；异常中断后可使用“恢复系统代理.cmd”。
 7. 同时只运行一个Clash Studio版本。升级前关闭旧版，保留data目录并备份。
-8. 未做干净Windows或另一台电脑实机验收；网络、TUN与自定义主题功能继承开发版。
+8. 未做干净Windows或另一台电脑实机验收；网络、TUN与自定义主题功能需在目标设备验证。
 9. 设置页提供独立的配色及背景照片弹窗。局域网齿轮管理可选认证、密码和地址信息；新配置默认无需认证，旧认证保留。地址列表收在子菜单，IPv6齿轮位于开关左侧。
 10. 本版代理端口编辑入口位于“本地运行”。“Clash 设置”集中管理局域网、IPv6及DNS覆写；详细参数点击对应齿轮，修改后保存。
 11. 内核、Wintun和四项基础规则库已内置，data/runtime也预置全新数据库，无需另行下载；订阅中额外指定的远程规则集仍取决于该订阅。
@@ -145,9 +145,9 @@ WebView2官方说明：https://learn.microsoft.com/microsoft-edge/webview2/conce
             for path in sorted((ROOT / folder).rglob('*')):
                 if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
                     archive.write(path, path.relative_to(ROOT).as_posix())
-        for name in ['run.py', 'LICENSE', 'README.md', 'README.en.md', 'BUILDING.md', 'RELEASE.md', 'THIRD_PARTY_NOTICES.md', '0.5.17发布说明.md', 'dev-env.ps1', 'build-tauri.ps1', 'frontend/index.html', 'frontend/package.json', 'frontend/pnpm-lock.yaml', 'frontend/tsconfig.json', 'frontend/vite.config.ts', 'src-tauri/Cargo.toml', 'src-tauri/Cargo.lock', 'src-tauri/build.rs', 'src-tauri/tauri.conf.json']:
+        for name in ['run.py', 'LICENSE', 'README.md', 'README.en.md', 'BUILDING.md', 'RELEASE.md', 'THIRD_PARTY_NOTICES.md', '1.0发布说明.md', 'dev-env.ps1', 'build-tauri.ps1', 'frontend/index.html', 'frontend/package.json', 'frontend/pnpm-lock.yaml', 'frontend/tsconfig.json', 'frontend/vite.config.ts', 'src-tauri/Cargo.toml', 'src-tauri/Cargo.lock', 'src-tauri/build.rs', 'src-tauri/tauri.conf.json']:
             archive.write(ROOT / name, name)
-    manifest = {'version': '0.5.17-portable', 'typecheck': 'passed', 'frontend_build': 'passed', 'rust_build': 'passed', 'portable_launch': 'not tested', 'uac_and_tun': 'not tested', 'files': [{'path': path.relative_to(OUT).as_posix(), 'bytes': path.stat().st_size, 'sha256': digest(path)} for path in sorted(OUT.rglob('*')) if path.is_file()]}
+    manifest = {'version': '1.0.0', 'typecheck': 'passed', 'frontend_build': 'passed', 'rust_build': 'passed', 'portable_launch': 'not tested', 'uac_and_tun': 'not tested', 'files': [{'path': path.relative_to(OUT).as_posix(), 'bytes': path.stat().st_size, 'sha256': digest(path)} for path in sorted(OUT.rglob('*')) if path.is_file()]}
     (OUT / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
     with zipfile.ZipFile(ZIP, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
         for path in sorted(OUT.rglob('*')):

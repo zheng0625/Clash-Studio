@@ -13,7 +13,7 @@ import zipfile
 from packaging.requirements import Requirement
 
 ROOT=Path(__file__).resolve().parents[1]
-NAME='ClashStudio-0.5.17-linux-x64-preview1'
+NAME='ClashStudio-1.0-linux-x64'
 OUT=ROOT/'artifacts/releases'/NAME
 if sys.platform!='linux' or OUT.exists():
     raise SystemExit('Build on Linux with a new output path')
@@ -53,7 +53,7 @@ while todo:
         target=site/relative;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
 subprocess.run([str(python),'-I','-c','import fastapi,uvicorn,httpx,ruamel.yaml,ssl,sqlite3;print("Bundled Python imports passed")'],check=True)
 (OUT/'requirements.lock.txt').write_text('\n'.join(sorted(versions))+'\n')
-(OUT/'portable.json').write_text(json.dumps({'version':'0.5.17-linux-preview1','architecture':'linux-x64','data':'data'},indent=2)+'\n')
+(OUT/'portable.json').write_text(json.dumps({'version':'1.0.0','architecture':'linux-x64','data':'data'},indent=2)+'\n')
 for name,body in [('Start.sh','exec "$root/ClashStudio" "$@"'),('Stop.sh','exec "$root/ClashStudio" --quit "$@"')]:
     (OUT/name).write_text('#!/bin/sh\nset -eu\nroot=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\n'+body+'\n');(OUT/name).chmod(0o755)
 shutil.copy2(ROOT/'docs/linux-preview.md',OUT/'Linux测试说明.md')

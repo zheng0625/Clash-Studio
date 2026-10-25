@@ -38,7 +38,7 @@ class SystemProxy:
 
     def enable(self, port):
         if sys.platform != "win32":
-            raise ValueError("测试版仅支持 Windows 系统代理")
+            raise ValueError("此系统代理实现仅支持 Windows")
         applied = f"127.0.0.1:{port}"
         if self.path.exists():
             if self.status()["owned"]:

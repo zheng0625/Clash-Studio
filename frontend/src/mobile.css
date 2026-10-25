@@ -1,0 +1,210 @@
+/* Phone & tablet layout shared by the Android WebView and browser previews.
+   mobile-tier.ts decides the tier from the usable CSS viewport, the
+   orientation and the real Android platform identity together, and marks
+   <html data-mobile-tier="compact|tablet">; desktop leaves it unset. Every
+   rule below keys off that attribute through :where(), which adds no
+   specificity, so the cascade keeps exactly the strength the old media
+   queries had and the desktop shell stays intact. */
+.mobile-navigation,.mobile-tools,.delay-fab{display:none}
+.page-stage{display:contents}
+/* Rotating between tiers swaps the dock axis; mobile-tier.ts flags the swap
+   for two frames so the thumb snaps to its new slot instead of flying. */
+:root[data-tier-switch] .desk .mobile-nav-thumb{transition:none!important}
+
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]){--mobile-top:env(safe-area-inset-top,0px);--mobile-left:env(safe-area-inset-left,0px);--mobile-right:env(safe-area-inset-right,0px);--mobile-nav-height:92px;--mobile-bottom:env(safe-area-inset-bottom,0px)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]):has(.android-inset-host){--mobile-top:0px;--mobile-bottom:var(--android-nav-inset,0px);--mobile-left:0px;--mobile-right:0px}
+:where([data-mobile-tier=compact],[data-mobile-tier=tablet]):is(html,body,#app){width:100%;height:100%;min-width:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk{height:100dvh;min-height:0;overflow:hidden}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-main{height:100%;min-height:0;min-width:0;width:100%;margin:0;display:flex;flex-direction:column}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .liquid-dock-shell{display:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-topbar{height:calc(64px + var(--mobile-top));min-height:calc(64px + var(--mobile-top));padding:var(--mobile-top) max(16px,var(--mobile-right)) 0 max(180px,var(--mobile-left));background:var(--client-background);border:0;backdrop-filter:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .shell-brand{position:absolute;z-index:2;top:calc(15px + var(--mobile-top));left:max(18px,var(--mobile-left));width:auto;margin:0;padding:0;gap:10px;min-height:40px;transform:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .shell-brand .brand-name{font-size:18px;letter-spacing:-.6px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .shell-brand small,:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-crumb,:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .version-tag,:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .window-controls,:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .local-tag{display:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-top-right{margin-left:auto;min-width:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .topbar-speed{flex-direction:column;gap:2px;font-size:10px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-content{flex:1;min-height:0;width:100%;max-width:none;box-sizing:border-box;overflow:auto;overscroll-behavior-y:contain;padding:14px max(16px,var(--mobile-right)) calc(var(--mobile-nav-height) + var(--mobile-bottom) + 24px) max(16px,var(--mobile-left));scroll-padding-block:16px calc(var(--mobile-nav-height) + var(--mobile-bottom) + 16px)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-content>*{min-width:0;max-width:100%;box-sizing:border-box}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .page-stage{display:block;min-width:0;max-width:100%}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .page-stage>*{min-width:0;max-width:100%;box-sizing:border-box}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-page-heading{display:flex;flex-direction:column;align-items:stretch;gap:16px;margin:0 0 20px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-page-heading h1{font-size:28px!important;letter-spacing:-.8px;margin:0 0 7px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-page-heading .desk-eyebrow{display:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-page-heading p{font-size:12px;line-height:1.7;margin:0;color:var(--client-secondary)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .heading-buttons{display:flex;gap:8px;align-self:stretch;margin:0;flex-wrap:wrap}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .heading-buttons .desk-btn{flex:1;white-space:normal}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk :is(.desk-btn,.desk-icon-btn,.desk-text-btn,.wide-link,.node-delay,.plan-order>button,.modal-tabs>button,.routing-segment>button,.ip-route-tabs>button,.settings-tabs>button){min-height:44px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-icon-btn{min-width:44px;flex-shrink:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk :is(input:not([type=checkbox]):not([type=color]),select,textarea,.glass-select-trigger){min-height:46px;font-size:16px;max-width:100%;box-sizing:border-box}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk :is(button,a,input,textarea,select){touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-card{border-radius:20px;padding:20px;box-shadow:0 3px 14px #00000005;backdrop-filter:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk :is(.overview-grid,.home-grid,.network-dashboard,.settings-grid,.settings-layout-grid,.modules-layout,.profile-grid){display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .overview-grid>.metric:last-child:nth-child(2){grid-column:1/-1}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .kernel-launch-card{grid-column:1/-1;border-color:color-mix(in srgb,var(--client-accent) 30%,var(--client-border));background:linear-gradient(145deg,var(--client-selected),var(--client-surface) 75%)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .section-head{gap:10px;flex-wrap:wrap;margin-bottom:16px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk :is(.section-head h2,.network-card-heading h2){font-size:16px;line-height:1.5}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .kernel-summary{margin:22px 0;gap:12px;min-width:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .kernel-summary>div{min-width:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .kernel-summary strong{font-size:19px;line-height:1.5;overflow-wrap:anywhere}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .kernel-summary small{line-height:1.7}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .power-mark{display:grid;width:48px;height:48px;flex:0 0 48px;border-radius:50%;color:var(--client-accent);background:var(--client-surface)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mode-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;box-sizing:border-box;gap:6px;margin:0;padding:4px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mode-options>button{min-width:0;min-height:56px;padding:8px;gap:6px;text-align:left}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mode-options>button>span{font-size:12px;min-width:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mode-options>button small{font-size:10px;line-height:1.6}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .kernel-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .kernel-actions>.primary{flex:1;min-height:50px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .kernel-actions>.desk-text-btn{width:100%;justify-content:center}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .metric{padding:16px;min-height:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .metric strong{font-size:30px;margin:8px 0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .metric-icon{margin-bottom:8px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .metric small{line-height:1.7}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .routing-mode-card{display:flex;flex-wrap:wrap;gap:12px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .routing-segment{flex:1;min-width:200px;display:flex}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .routing-segment>button{flex:1}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .routing-mode-card>p{width:100%;margin:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .bandwidth-readings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .bandwidth-readings strong{font-size:25px;overflow-wrap:anywhere}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connections-reading{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--client-border)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connections-reading strong{font-size:20px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .session-traffic{flex-wrap:wrap;gap:12px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .network-card-heading{gap:10px;flex-wrap:wrap}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .ip-address strong{font-size:26px;overflow-wrap:anywhere}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk :is(.config-meta,.config-actions,.profile-actions,.section-toolbar,.group-fold-toolbar,.delay-controls){flex-wrap:wrap;gap:10px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk :is(.flow-item,.module-bottom,.traffic-strip,.geo-summary-row){flex-wrap:wrap;gap:10px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk :is(.route-target,.module-bottom b,.profile-card h2,.match-tags code){overflow-wrap:anywhere;white-space:normal}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-footnote{font-size:11px;line-height:1.7}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-footnote>span{display:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .plan-panel{position:static}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-toolbar{display:flex;flex-direction:column;align-items:stretch;gap:14px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-controls>label{flex:1;min-width:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-controls select{width:100%;min-width:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .node-grid{grid-template-columns:minmax(0,1fr);gap:10px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .node-choice{min-height:56px;padding:12px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .node-choice strong{white-space:normal;overflow-wrap:anywhere}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .proxy-node-card{border-radius:14px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .group-fold-toggle{min-width:0;flex:1}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .group-fold-toggle span{min-width:0;overflow-wrap:anywhere}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .group-actions{display:flex;flex-wrap:wrap;gap:8px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-search{width:100%;box-sizing:border-box}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-table{padding:0;overflow:hidden}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-row.table-head{display:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-row{display:grid;grid-template-columns:minmax(0,1fr) 44px;padding:16px;gap:10px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-row>span{min-width:0;overflow-wrap:anywhere}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-row>span:first-child{grid-column:1;grid-row:1}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-row>span:nth-child(2){grid-column:1;grid-row:2;font-size:12px;color:var(--client-secondary)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-row>span:nth-child(3){display:block;grid-column:1/-1;grid-row:3;font-size:12px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-row>span:nth-child(4){display:flex;gap:18px;grid-column:1/-1;grid-row:4}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-row>button{grid-column:2;grid-row:1/3;align-self:start}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-row strong{white-space:normal;overflow-wrap:anywhere}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .native-editor{padding:16px;border-radius:18px;min-width:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .editor-tabs{display:flex;overflow-x:auto;flex-wrap:nowrap;max-width:100%;padding-bottom:6px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .editor-tabs>button{flex-shrink:0;min-height:44px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk :is(.editor-toolbar,.native-editor-head){flex-wrap:wrap;gap:12px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk :is(.editor-node-table,.native-code,.native-rules){max-width:100%;overflow:auto}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk :is(.appearance-entry,.background-entry){padding:18px;margin:0;gap:12px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk :is(.appearance-entry,.background-entry)>div{gap:10px;min-width:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk :is(.appearance-entry,.background-entry) p{line-height:1.6}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .proxy-settings-card .mode-options{width:100%}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .setting-row{gap:12px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .setting-row>div:first-child{min-width:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .settings-tabs{display:flex}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .settings-tabs>button{flex:1}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-tools{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin:0 0 20px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-tools>button{display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:12px 16px;border:1px solid var(--client-border);border-radius:14px;background:var(--client-surface);color:var(--client-text);text-align:left;font:inherit;font-size:13px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-tools>button>span{flex:1}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-tools>button[aria-pressed=true]{background:var(--client-selected);border-color:var(--client-accent)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-navigation{position:fixed;z-index:50;bottom:calc(14px + var(--mobile-bottom));left:max(12px,var(--mobile-left));right:max(12px,var(--mobile-right));display:grid;grid-template-columns:repeat(var(--nav-count,5),minmax(0,1fr));height:var(--nav-height,68px);max-width:480px;margin-inline:auto;box-sizing:border-box;padding:5px;gap:3px;--nav-item-pad:5px;--nav-item-gap:3px;border:1px solid color-mix(in srgb,var(--client-text) 12%,transparent);border-radius:var(--nav-radius,26px);background:linear-gradient(135deg,color-mix(in srgb,var(--client-surface) 50%,transparent),color-mix(in srgb,var(--client-surface) 18%,transparent) 50%,color-mix(in srgb,var(--client-surface) 40%,transparent));box-shadow:0 8px 30px #00000020,0 1px 4px #0000000a,inset 0 1px 0 #ffffff70,inset 0 -1px 0 #ffffff20;backdrop-filter:blur(var(--nav-blur,18px)) saturate(160%);-webkit-backdrop-filter:blur(var(--nav-blur,18px)) saturate(160%)}
+/* The selection pill is one absolutely positioned layer moved by transform only.
+   Column geometry (padding/gap/count) stays in calc, so rotation, resize and
+   safe-area changes reposition it without script; a mid-flight retarget keeps
+   sliding from wherever it currently is. */
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-navigation .mobile-nav-thumb{position:absolute;top:var(--nav-item-pad);bottom:var(--nav-item-pad);left:var(--nav-item-pad);width:calc((100% - var(--nav-item-pad)*2 - var(--nav-item-gap)*(var(--nav-count,5) - 1))/var(--nav-count,5));border-radius:20px;border:1px solid color-mix(in srgb,var(--client-text) 12%,transparent);background:color-mix(in srgb,var(--client-surface) var(--nav-tint,35%),transparent);box-shadow:0 2px 9px #0000000c,inset 0 1px 0 #ffffff60;transform:translateX(calc(var(--nav-index,0)*(100% + var(--nav-item-gap))));transition:transform var(--nav-slide-duration,.42s) var(--nav-slide-ease,cubic-bezier(.3,1.28,.36,1));pointer-events:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-navigation .mobile-nav-thumb::after{content:'';position:absolute;bottom:2px;left:50%;width:3px;height:3px;margin-left:-1.5px;border-radius:50%;background:var(--client-accent)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-navigation>button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px 0;border:1px solid transparent;border-radius:20px;min-width:0;background:transparent;color:var(--client-secondary);font:inherit;font-size:11px;line-height:1.3;transition:color .2s,transform .16s ease-out}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-navigation>button:active{transform:scale(var(--nav-press-scale,.94))}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-nav-icon{display:grid;place-items:center;width:38px;height:25px;transition:transform .3s cubic-bezier(.3,1.28,.36,1)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-navigation>button.active{color:var(--client-accent);font-weight:650}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-navigation>button.active .mobile-nav-icon{transform:translateY(-1px) scale(var(--nav-pop-scale,1.08))}
+@media(prefers-reduced-motion:reduce){
+  :root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-navigation .mobile-nav-thumb,:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-nav-icon{transition:none}
+  :root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-navigation>button:active{transform:none}
+}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-toolbar{display:none}
+/* Floating latency-test action: a glass round button with an outlined bolt,
+   anchored above the dock on the right. Tapping while testing cancels. */
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-fab{position:fixed;z-index:49;right:max(18px,var(--mobile-right));bottom:calc(var(--mobile-nav-height) + var(--mobile-bottom) + 18px);display:grid;place-items:center;width:54px;height:54px;border-radius:50%;border:1px solid color-mix(in srgb,var(--client-text) 14%,transparent);background:linear-gradient(145deg,color-mix(in srgb,var(--client-surface) 55%,transparent),color-mix(in srgb,var(--client-surface) 30%,transparent));color:var(--client-accent);box-shadow:0 8px 26px #00000026,inset 0 1px 0 #ffffff60;backdrop-filter:blur(14px) saturate(150%);-webkit-backdrop-filter:blur(14px) saturate(150%);transition:transform .16s ease-out,color .2s}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-fab:active{transform:scale(.92)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-fab:disabled{opacity:.45}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=proxies]:has(.delay-fab) .desk-content{padding-bottom:calc(var(--mobile-nav-height) + var(--mobile-bottom) + 90px)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=proxies]:has(.delay-fab) .desk-toast{bottom:calc(var(--mobile-nav-height) + var(--mobile-bottom) + 84px)}
+@media(prefers-reduced-motion:reduce){:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-fab:active{transform:none}}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-fab .delay-fab-count{position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);font-size:9px;line-height:1;padding:3px 6px;border-radius:8px;background:var(--client-accent);color:var(--client-accent-ink,#fff);white-space:nowrap}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .android-network-note{font-size:12px;line-height:1.8;color:var(--client-secondary);padding:12px 14px;border:1px solid var(--client-border);border-radius:14px;background:color-mix(in srgb,var(--client-surface) 65%,transparent)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-toast{bottom:calc(var(--mobile-nav-height) + var(--mobile-bottom) + 12px);max-width:calc(100vw - 32px);max-height:40dvh;box-sizing:border-box;font-size:12px}
+/* Native dialog lives in the top layer; import/confirmation use overlays. */
+:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk-backdrop,:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-backdrop{position:fixed;inset:0;display:flex;align-items:flex-end;padding:var(--mobile-top) 0 0;box-sizing:border-box;overflow:hidden}
+:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk-backdrop .desk-modal,:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-backdrop .desk-modal{width:100%;max-width:none;max-height:calc(100dvh - var(--mobile-top) - 12px);margin:0;padding:26px 20px calc(24px + var(--mobile-bottom));box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;border-radius:24px 24px 0 0}
+:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .confirm-backdrop .desk-btn,:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .confirm-backdrop .desk-icon-btn{min-height:44px;min-width:44px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .settings-dialog{width:calc(100% - 16px);max-width:none;max-height:calc(100dvh - var(--mobile-top) - var(--mobile-bottom) - 16px);padding:0;border-radius:22px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .settings-dialog-heading{padding:20px;gap:10px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .settings-dialog-body{max-height:calc(100dvh - var(--mobile-top) - var(--mobile-bottom) - 160px);padding:0 20px 24px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .form-columns{grid-template-columns:minmax(0,1fr);gap:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .match-row{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:8px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .match-row>.glass-select{grid-column:1/-1;width:100%}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .match-row>input{width:100%;min-width:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .modal-actions{flex-wrap:wrap;gap:12px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .modal-actions>.primary{flex:1}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .appearance-fields{grid-template-columns:minmax(0,1fr)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk :is(.desk-modal,.settings-dialog){backdrop-filter:none}
+:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .glass-select-menu>button{min-height:44px}
+
+/* Page transitions: a short slide and fade restarted by real navigation only
+   (Client.vue re-adds the class when the page ref actually changes), so
+   polling, list refreshes and node switches never replay it. The wrapper
+   carries no overflow, and modals/toast/dock live outside it, so fixed
+   positioning references are untouched at rest. */
+@keyframes page-enter-forward{from{opacity:0;transform:translateX(18px)}}
+@keyframes page-enter-backward{from{opacity:0;transform:translateX(-18px)}}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .page-stage.page-enter-forward{animation:page-enter-forward .2s cubic-bezier(.25,.46,.35,.94)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .page-stage.page-enter-backward{animation:page-enter-backward .2s cubic-bezier(.25,.46,.35,.94)}
+/* The tablet rail runs vertically, so its pages slide along the same axis:
+   forward moves down the dock and enters from below, backward from above. */
+@keyframes page-enter-down{from{opacity:0;transform:translateY(18px)}}
+@keyframes page-enter-up{from{opacity:0;transform:translateY(-18px)}}
+:root:where([data-mobile-tier=tablet]) .desk .page-stage.page-enter-forward{animation:page-enter-down .2s cubic-bezier(.25,.46,.35,.94)}
+:root:where([data-mobile-tier=tablet]) .desk .page-stage.page-enter-backward{animation:page-enter-up .2s cubic-bezier(.25,.46,.35,.94)}
+@media(prefers-reduced-motion:reduce){:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .page-stage{animation:none!important}}
+
+/* Tablet landscape: the dock becomes a floating vertical rail on the right,
+   grids widen, and dialogs center instead of becoming bottom sheets. */
+:root:where([data-mobile-tier=tablet]){--nav-rail-width:84px;--nav-rail-space:114px}
+:root:where([data-mobile-tier=tablet]) .desk .desk-content{padding:18px calc(var(--nav-rail-space) + var(--mobile-right)) calc(var(--mobile-bottom) + 28px) max(22px,var(--mobile-left));scroll-padding-block:16px calc(var(--mobile-bottom) + 16px)}
+:root:where([data-mobile-tier=tablet]) .desk .desk-page-heading{flex-direction:row;align-items:flex-end;gap:18px}
+:root:where([data-mobile-tier=tablet]) .desk .desk-page-heading p{max-width:640px}
+:root:where([data-mobile-tier=tablet]) .desk .heading-buttons{flex:0 0 auto;align-self:flex-end}
+:root:where([data-mobile-tier=tablet]) .desk .heading-buttons .desk-btn{flex:0 0 auto;white-space:nowrap}
+:root:where([data-mobile-tier=tablet]) .desk .home-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+:root:where([data-mobile-tier=tablet]) .desk .profile-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+:root:where([data-mobile-tier=tablet]) .desk .node-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+:root:where([data-mobile-tier=tablet]) .desk .modules-layout{grid-template-columns:minmax(0,1fr) minmax(300px,360px)}
+:root:where([data-mobile-tier=tablet]) .desk .settings-stack{display:grid;grid-template-columns:minmax(0,1fr);align-items:start}
+:root:where([data-mobile-tier=tablet]) .desk .settings-stack>*:last-child{grid-column:1/-1}
+/* ClientSettings already owns two columns; give it a full row rather than
+   nesting those columns inside half of the outer settings grid. */
+:root:where([data-mobile-tier=tablet]) .desk .settings-stack>.settings-layout-grid{grid-column:1/-1}
+:root:where([data-mobile-tier=tablet]) .desk .settings-layout-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+:root:where([data-mobile-tier=tablet]) .desk .mobile-tools{grid-template-columns:repeat(3,minmax(0,1fr))}
+:root:where([data-mobile-tier=tablet]) .desk .mobile-navigation{top:50%;bottom:auto;left:auto;right:calc(14px + var(--mobile-right));transform:translateY(-50%);margin:0;max-width:none;width:var(--nav-rail-width);height:min(380px,calc(100dvh - var(--mobile-top) - var(--mobile-bottom) - 48px));grid-template-columns:none;grid-template-rows:repeat(var(--nav-count,5),minmax(48px,1fr));padding:5px;border-radius:26px}
+:root:where([data-mobile-tier=tablet]) .desk .mobile-navigation .mobile-nav-thumb{top:var(--nav-item-pad);bottom:auto;width:calc(100% - var(--nav-item-pad)*2);height:calc((100% - var(--nav-item-pad)*2 - var(--nav-item-gap)*(var(--nav-count,5) - 1))/var(--nav-count,5));border-radius:18px;transform:translateY(calc(var(--nav-index,0)*(100% + var(--nav-item-gap))))}
+:root:where([data-mobile-tier=tablet]) .desk .mobile-navigation>button{min-height:48px;padding:8px 0}
+:root:where([data-mobile-tier=tablet]) .desk .delay-fab{right:calc(var(--nav-rail-space) + 14px);bottom:calc(24px + var(--mobile-bottom))}
+:root:where([data-mobile-tier=tablet]) .desk[data-ui-page=proxies]:has(.delay-fab) .desk-content{padding-bottom:calc(var(--mobile-bottom) + 96px)}
+:root:where([data-mobile-tier=tablet]) .desk[data-ui-page=proxies]:has(.delay-fab) .desk-toast{bottom:calc(var(--mobile-bottom) + 96px)}
+:root:where([data-mobile-tier=tablet]) .desk .desk-toast{left:auto;transform:none;right:calc(var(--nav-rail-space) + 16px);bottom:calc(16px + var(--mobile-bottom));max-width:min(560px,calc(100vw - var(--nav-rail-space) - 48px))}
+:where([data-mobile-tier=tablet]) .desk-backdrop,:root:where([data-mobile-tier=tablet]) .desk .desk-backdrop{align-items:center;justify-content:center;padding:24px}
+:where([data-mobile-tier=tablet]) .desk-backdrop .desk-modal,:root:where([data-mobile-tier=tablet]) .desk .desk-backdrop .desk-modal{width:min(560px,100%);max-height:min(82dvh,720px);margin:0;padding:26px 26px 24px;border-radius:22px}
+:where([data-mobile-tier=tablet]) .desk-backdrop .desk-modal.wide{width:min(760px,100%)}
+:root:where([data-mobile-tier=tablet]) .desk .settings-dialog{width:min(720px,calc(100vw - 48px));max-height:min(84dvh,780px)}
+:root:where([data-mobile-tier=tablet]) .desk .settings-dialog-body{max-height:min(60dvh,560px)}

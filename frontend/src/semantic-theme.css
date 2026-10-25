@@ -13,8 +13,8 @@ html,html body,#app{background:var(--client-background);color:var(--client-text)
 :root .desk :is(.desk-btn.danger,.desk-icon-btn.danger){color:var(--client-error);background:transparent;border-color:var(--client-border)}
 :root .desk .desk-btn.danger:hover:not(:disabled){background:color-mix(in srgb,var(--client-error) 12%,var(--client-surface));border-color:var(--client-error)}
 :root .desk :is(button,input,select,textarea):disabled{opacity:.55}
-:root .desk :is(button,input,select,textarea,.glass-select-trigger):focus-visible{outline:2px solid var(--client-accent);outline-offset:2px;box-shadow:none}
-:root .desk :is(input,textarea,select):focus{border-color:var(--client-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--client-accent) 18%,transparent)}
+:root .desk button:focus-visible{outline:2px solid color-mix(in srgb,var(--client-accent) 40%,transparent);outline-offset:2px;box-shadow:none}
+:root .desk :is(input,textarea,select):focus{border-color:color-mix(in srgb,var(--client-text) 28%,var(--client-surface));box-shadow:0 0 0 2px color-mix(in srgb,var(--client-text) 5%,transparent)}
 :root .desk :is(.mode-options>button.selected,.ip-route-tabs>button.selected,.settings-tabs>button[aria-selected=true],.native-segment>button.active,.modal-tabs>button.active){background:var(--client-selected);color:var(--client-text);border-color:var(--client-accent);outline:0}
 :root .desk .routing-segment button[aria-pressed=true]{background:var(--client-selected);color:var(--client-accent);border-color:var(--client-accent)}
 :root .desk .liquid-dock{border-color:var(--client-border);box-shadow:0 8px 30px #00000028,inset 0 1px 0 color-mix(in srgb,var(--client-text) 8%,transparent)}
@@ -31,7 +31,7 @@ html,html body,#app{background:var(--client-background);color:var(--client-text)
 :root .desk .ip-status .ip-family{background:transparent;color:var(--client-secondary);border-color:var(--client-border)}
 :root .desk :is(.mode-warning,.inline-note,.log-level.warning,.node-delay.medium){color:var(--client-warning);background:transparent;border-color:var(--client-border)}
 :root .desk :is(.desk-alert.error,.ip-status.failure,.geo-message.failed,.log-level.error,.node-delay.unreachable,.node-delay.slow){color:var(--client-error);background:transparent;border-color:var(--client-error)}
-:root .desk .proxy-node-card.picked{background:var(--client-selected);border-color:var(--client-accent)}
+:root .desk .proxy-node-card.picked{background:color-mix(in srgb,var(--client-accent) 9%,var(--client-surface));border:2px solid color-mix(in srgb,var(--client-accent) 45%,var(--client-surface));box-shadow:inset 4px 0 0 color-mix(in srgb,var(--client-accent) 60%,transparent);outline:none}
 :root .desk .setting-row,:root .desk .geo-file-list article,:root .desk .editor-node-row{border-color:var(--client-border)}
 :root .desk .match-row,:root .desk .match-row:hover,:root .desk .match-row:focus-within{background:transparent}
 .glass-select-menu{background:var(--client-surface);color:var(--client-text);border-color:var(--client-border)}

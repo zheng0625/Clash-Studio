@@ -33,7 +33,7 @@ with tempfile.TemporaryDirectory(prefix='clash-linux-verify-') as temporary:
             try:info=call('/api/client/info');break
             except httpx.HTTPError:time.sleep(.1)
         else:raise RuntimeError('Packaged backend failed to start')
-        assert info['version']=='0.5.17' and info['platform']=='linux-x64' and info['paths']['data']==str(data)
+        assert info['version']=='1.0.0' and info['platform']=='linux-x64' and info['paths']['data']==str(data)
         profile=call('/api/subscriptions','POST',{'source_type':'file','title':'Linux package local test','yaml':'proxies: []\nproxy-groups: []\nrules: ["MATCH,DIRECT"]\n'})
         workspace=call('/api/client/workspace')
         call('/api/client/settings','PUT',{'mixed_port': mixed})
