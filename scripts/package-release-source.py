@@ -15,7 +15,7 @@ DIRECTORIES = [
 ]
 FILES = [
     'run.py', 'requirements.txt', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.md',
-    'README.en.md', 'BUILDING.md', 'RELEASE.md', '1.2发布说明.md', 'dev-env.ps1',
+    'README.en.md', 'BUILDING.md', 'CHANGELOG.md', 'AGENTS.md', 'dev-env.ps1',
     'build-tauri.ps1', 'frontend/package.json', 'frontend/pnpm-lock.yaml',
     'frontend/index.html', 'frontend/ui-preview.html', 'frontend/ui-editor.html',
     'frontend/ui-android.html', 'frontend/tsconfig.json', 'frontend/vite.config.ts',

@@ -1,7 +1,7 @@
 <p align="center"><img src="frontend/src/assets/brand.svg" width="84" alt="Clash Studio"></p>
 <h1 align="center">Clash Studio</h1>
 <p align="center">Precise routing. Thoughtful desktop design.</p>
-<p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/V1.1">Download for Windows / Linux / Android</a> · <a href="README.md">简体中文</a> · <a href="LICENSE">GPL-3.0</a></p>
+<p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/V1.1">Download for Windows / Linux / Android</a> · <a href="README.md">简体中文</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="LICENSE">GPL-3.0</a></p>
 
 **Clash Studio is a Windows / Linux Mihomo desktop client focused on visual subscription editing, reusable routing modules and precise routing, with a customizable desktop interface.**
 

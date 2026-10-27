@@ -1,7 +1,7 @@
 <p align="center"><img src="frontend/src/assets/brand.svg" width="84" alt="Clash Studio"></p>
 <h1 align="center">Clash Studio</h1>
 <p align="center">定义新时代 Clash 客户端，让流量分配更精准，让日常使用更舒适。</p>
-<p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/V1.1">下载 Windows / Linux / Android 版</a> · <a href="README.en.md">English</a> · <a href="docs/project-statement.md">项目声明</a> · <a href="LICENSE">GPL-3.0</a></p>
+<p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/V1.1">下载 Windows / Linux / Android 版</a> · <a href="README.en.md">English</a> · <a href="docs/project-statement.md">项目声明</a> · <a href="CHANGELOG.md">更新日志</a> · <a href="LICENSE">GPL-3.0</a></p>
 
 **Clash Studio 是一款以可视化订阅编辑、模块化管理和精准分流为核心，兼顾界面设计与日常操作体验的 Windows / Linux Mihomo 桌面客户端。**
 

@@ -28,7 +28,7 @@ def main():
     if RELEASE.exists():
         raise SystemExit("Public release output already exists; refusing to overwrite.")
     shutil.copytree(original, OUT)
-    for name in ["README.md", "README.en.md", "BUILDING.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "RELEASE.md"]:
+    for name in ["README.md", "README.en.md", "BUILDING.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "CHANGELOG.md"]:
         shutil.copy2(SOURCE / name, OUT / name)
     shutil.copytree(SOURCE / "licenses", OUT / "licenses", dirs_exist_ok=True)
     shutil.copy2(SOURCE / "bin/geodata/source.json", OUT / "bin/geodata/source.json")

@@ -59,6 +59,10 @@ Linux `pydantic_core` 等带平台二进制的依赖必须安装为 Linux 对应
 
 公开发行时附带本项目对应源码、Mihomo 对应版本上游源码、许可声明及校验文件。构建通过和设备实际使用验证分别记录，见 [0.5.17 验证说明](docs/validation-0.5.17.md)。
 
+## 更新日志维护
+
+每次更新都在 [CHANGELOG.md](CHANGELOG.md) 的“未发布”部分记录内容；发布时整理到对应版本。不要新增独立发布说明文件。源码、Windows 和 Linux 发行包统一附带更新日志。
+
 ## English
 
 Build the Vue frontend and the Rust desktop binary, then assemble a platform-specific package using the matching Python environment. Windows uses Python 3.12 and MSVC; Linux packages use an Ubuntu 22.04 x64 / Python 3.10 baseline. Copy the matching release's `bin/` resources and retain provenance and license files. Keep personal data and development toolchains out of source and release archives.

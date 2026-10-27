@@ -21,7 +21,7 @@ OUT.mkdir(parents=True)
 shutil.copy2(ROOT/'src-tauri/target/release/clash-studio',OUT/'ClashStudio')
 for folder in ['server','vendor/app','vendor/examples','frontend/dist','licenses','docs']:
     shutil.copytree(ROOT/folder,OUT/folder,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
-for name in ['run.py','LICENSE','THIRD_PARTY_NOTICES.md']:
+for name in ['run.py','LICENSE','THIRD_PARTY_NOTICES.md','CHANGELOG.md']:
     shutil.copy2(ROOT/name,OUT/name)
 shutil.copytree(ROOT/'src-tauri/icons',OUT/'icons')
 (OUT/'bin').mkdir()
@@ -62,7 +62,7 @@ with zipfile.ZipFile(source,'w',zipfile.ZIP_DEFLATED) as archive:
     for folder in ['server','vendor/app','vendor/examples','frontend/src','frontend/public','src-tauri/src','src-tauri/capabilities','src-tauri/icons','scripts','tests','docs']:
         for path in (ROOT/folder).rglob('*'):
             if path.is_file() and '__pycache__' not in path.parts and path.suffix!='.pyc':archive.write(path,path.relative_to(ROOT))
-    for name in ['run.py','src-tauri/Cargo.toml','src-tauri/Cargo.lock','src-tauri/tauri.conf.json','src-tauri/build.rs','frontend/package.json','frontend/pnpm-lock.yaml','frontend/index.html','frontend/tsconfig.json','frontend/vite.config.ts','LICENSE']:
+    for name in ['run.py','src-tauri/Cargo.toml','src-tauri/Cargo.lock','src-tauri/tauri.conf.json','src-tauri/build.rs','frontend/package.json','frontend/pnpm-lock.yaml','frontend/index.html','frontend/tsconfig.json','frontend/vite.config.ts','LICENSE','CHANGELOG.md','AGENTS.md']:
         archive.write(ROOT/name,name)
 entries=[{'path':str(p.relative_to(OUT)),'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in sorted(OUT.rglob('*')) if p.is_file()]
 (OUT/'manifest.json').write_text(json.dumps({'version':'1.2.0','files':entries,'platform':'linux-x64','baseline':'Ubuntu 22.04'},indent=2)+'\n')
