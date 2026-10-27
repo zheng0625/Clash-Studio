@@ -10,4 +10,4 @@
 
 1.2 版本产物的实际构建、回归、签名、包内容和校验结果以 `BUILD-REPORT-1.2.json` 为准。不把用户验收声明写成自动化或额外设备实测。
 
-Android 使用与 1.1 本地发布包一致的 Android 开发密钥，Release 包关闭调试标志及验收故障读取；Windows EXE 未签名。此次本地构建不执行上传发布或覆盖安装。
+Android 使用与 1.1 本地发布包一致的 Android 开发密钥，Release 包关闭调试标志及验收故障读取；Windows EXE 未签名。发行包和对应源码通过 GitHub Release 提供；发布过程不覆盖用户安装。
