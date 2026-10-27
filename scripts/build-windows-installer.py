@@ -9,7 +9,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '1.1'
+VERSION = '1.2'
 RELEASES = ROOT / 'artifacts/releases'
 PAYLOAD = RELEASES / f'ClashStudio-{VERSION}-portable-windows-x64'
 OUTPUT = RELEASES / f'ClashStudio-{VERSION}-setup-windows-x64.exe'

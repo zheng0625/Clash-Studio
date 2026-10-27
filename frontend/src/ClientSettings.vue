@@ -13,7 +13,7 @@ type DNSOverride={enabled:boolean;mode:'fake-ip'|'redir-host'}&Record<DNSListKey
 const dnsFields=computed<{key:DNSListKey;label:string;hint:string}[]>(()=>[{key:'nameserver',label:t("主 DNS"),hint:t("IP、IP:端口，或 https:// / tls:// / tcp:// / udp:// / quic:// 地址")},{key:'bootstrap',label:t("引导 DNS"),hint:t("填写纯 IPv4 / IPv6 地址，用于解析加密 DNS 服务的域名")},{key:'fallback',label:t("备用 DNS（可选）"),hint:t("留空不启用，非空时遵循 Mihomo 的默认 fallback 规则")},{key:'proxy_nameserver',label:t("节点域名 DNS（可选）"),hint:t("留空跟随主 DNS")},{key:'fake_ip_filter',label:t("Fake-IP 排除域名"),hint:t("例如 *.lan、*.local；这些域名返回真实地址")}])
 const dnsLines=ref<Record<DNSListKey,string>>({nameserver:'',fallback:'',bootstrap:'',proxy_nameserver:'',fake_ip_filter:''})
 const dnsDialog=ref<InstanceType<typeof SettingsDialog>|null>(null)
-type Preferences={allow_lan:boolean;ipv6:boolean;lan_auth:boolean;mixed_port:number|null;dns_override:DNSOverride;lan_username:string;lan_password:string}
+type Preferences={allow_lan:boolean;ipv6:boolean;tun_strict_route:boolean;dns_leak_prevention:boolean;lan_auth:boolean;mixed_port:number|null;dns_override:DNSOverride;lan_username:string;lan_password:string}
 type Geo={busy:boolean;phase:string;completed:number;total:number;file:string;message:string;files:{name:string;installed:boolean;bytes:number;updated_at:string}[]}
 type Payload={settings:Preferences;lan_addresses:string[];core_version:string;geodata:Geo}
 const lanDialog=ref<InstanceType<typeof SettingsDialog>|null>(null)
@@ -24,7 +24,7 @@ const settingsQuery=ref(props.viewQuery||'')
 watch(settingsQuery,value=>emit('viewQuery',value),{flush:'sync'})
 const settingGroups=computed(()=>[
  {id:'connection',label:t('连接与代理'),keywords:[t('代理端口'),t('接管方式'),'HTTP SOCKS TUN VPN proxy port']},
- {id:'network',label:t('DNS 与局域网'),keywords:[t('允许局域网连接'),t('代理认证'),t('IPv6 支持'),'DNS LAN nameserver fallback']},
+ {id:'network',label:t('DNS 与局域网'),keywords:[t('允许局域网连接'),t('代理认证'),t('IPv6 支持'),t('TUN 严格模式'),t('DNS 防泄漏'),'DNS LAN nameserver fallback strict route leak prevention']},
  {id:'appearance',label:t('外观与语言'),keywords:[t('主题'),t('照片背景'),t('界面语言'),'theme background language']},
  ...(props.android||isDesktop?[{id:'behavior',label:t('应用行为'),keywords:[t('后台驻留'),t('开机自启'),t('权限'),'autostart resident permissions']}]:[]),
  {id:'core',label:t('内核与诊断'),keywords:[t('运行日志'),t('规则数据'),t('连接诊断'),'Mihomo GeoData logs diagnostics']},
@@ -68,8 +68,10 @@ onUnmounted(()=>{disposed=true;clearInterval(timer);clearTimeout(copyTimer)})
       <div class="section-head"><div><h2>{{ t("DNS 与局域网") }}</h2><p class="small-explanation">{{ t('修改后需保存；运行中将保存并应用网络设置。') }}</p></div><Network :size="22"/></div>
       <div class="setting-row"><div><strong>{{ t("允许局域网连接") }}</strong><small>{{ t("向同网段设备提供 HTTP / SOCKS 代理。") }}</small></div><div class="setting-row-actions"><button type="button" class="desk-icon-btn" :aria-label="t('局域网详细设置')" :title="t('局域网详细设置')" @click="lanDialog?.open()"><Settings2 :size="17"/></button><button type="button" :class="['desk-switch',{on:form.allow_lan}]" role="switch" :aria-checked="form.allow_lan" :aria-label="t('允许局域网连接')" @click="form.allow_lan=!form.allow_lan"><span></span></button></div></div>
       <div class="setting-row"><div><strong>{{ t("IPv6 支持") }}</strong></div><div class="setting-row-actions"><button type="button" class="desk-icon-btn" :aria-label="t('IPv6 详细设置')" :title="t('IPv6 详细设置')" @click="ipv6Dialog?.open()"><Settings2 :size="17"/></button><button type="button" :class="['desk-switch',{on:form.ipv6}]" role="switch" :aria-checked="form.ipv6" :aria-label="t('IPv6 支持')" @click="form.ipv6=!form.ipv6"><span></span></button></div></div>
+      <div v-if="!props.android" class="setting-row"><div><strong>{{ t("TUN 严格模式") }}</strong><small>{{ t("强制全部 DNS 与连接经 TUN，防止绕过隧道泄漏；虚拟机或企业 VPN 异常时可尝试关闭。") }}</small></div><div class="setting-row-actions"><button type="button" :class="['desk-switch',{on:form.tun_strict_route}]" role="switch" :aria-checked="form.tun_strict_route" :aria-label="t('TUN 严格模式')" @click="form.tun_strict_route=!form.tun_strict_route"><span></span></button></div></div>
 
       <div class="setting-row"><div><strong>{{ t("DNS 覆写") }}</strong><small>{{ form.dns_override.enabled?t("使用自定义 DNS 配置"):t("沿用订阅 DNS 配置") }}</small></div><div class="setting-row-actions"><button type="button" class="desk-icon-btn" :aria-label="t('DNS 覆写设置')" :title="t('DNS 覆写设置')" @click="dnsDialog?.open()"><Settings2 :size="17"/></button><button type="button" :class="['desk-switch',{on:form.dns_override.enabled}]" role="switch" :aria-checked="form.dns_override.enabled" :aria-label="t('DNS 覆写')" @click="form.dns_override.enabled=!form.dns_override.enabled"><span></span></button></div></div>
+      <div class="setting-row"><div><strong>{{ t("DNS 防泄漏") }}</strong><small>{{ t("接管订阅和覆写 DNS：主解析经专用代理组使用境外加密 DNS，节点不可用时解析失败；节点域名和直连出口仍使用国内 DNS。仅保护内核处理的 DNS。") }}</small></div><div class="setting-row-actions"><button type="button" :class="['desk-switch',{on:form.dns_leak_prevention}]" role="switch" :aria-checked="form.dns_leak_prevention" :aria-label="t('DNS 防泄漏')" @click="form.dns_leak_prevention=!form.dns_leak_prevention"><span></span></button></div></div>
 
       <Teleport to=".desk" defer><div v-if="dirty" class="settings-save-bar" role="status"><span>{{ t('有未保存的网络设置') }}</span><button type="button" class="desk-btn primary" :disabled="props.validation||saving||geo?.busy" @click="save"><Loader2 v-if="saving" class="rotate" :size="14"/><Save v-else :size="14"/>{{ saving?t("正在保存…"):props.running&&!props.android?t("保存并应用"):t("保存设置") }}</button></div></Teleport>
     </form>

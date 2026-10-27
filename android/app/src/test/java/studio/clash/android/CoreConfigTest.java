@@ -5,6 +5,33 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class CoreConfigTest {
+    @Test public void protectedDnsReplacesPoliciesAndCannotFallBackToDirect() throws Exception {
+        JSONObject dns = new JSONObject().put("nameserver-policy", new JSONObject().put("+.example", "udp://127.0.0.1:5353#DIRECT"))
+            .put("fallback", new JSONArray().put("system")).put("fallback-filter", new JSONObject())
+            .put("proxy-server-nameserver-policy", new JSONObject()).put("prefer-h3", true)
+            .put("proxy-server-nameserver", new JSONArray()).put("default-nameserver", new JSONArray()).put("direct-nameserver", new JSONArray());
+        JSONObject source = new JSONObject().put("dns", dns).put("proxy-groups", new JSONArray().put(new JSONObject().put("name", "ClashStudio-DNS")));
+        String original = source.toString();
+        for (boolean override : new boolean[]{false, true}) {
+            JSONObject settings = ProfileStore.defaults().put("dns_leak_prevention", true);
+            settings.getJSONObject("dns_override").put("enabled", override);
+            JSONObject config = CoreConfig.prepare(source, settings, 17890), protectedDns = config.getJSONObject("dns");
+            assertEquals(original, source.toString());
+            for (String key : new String[]{"nameserver-policy", "fallback", "fallback-filter", "proxy-server-nameserver-policy", "prefer-h3"}) assertFalse(protectedDns.has(key));
+            JSONObject group = config.getJSONArray("proxy-groups").getJSONObject(1);
+            assertEquals("ClashStudio-DNS-protected", group.getString("name"));
+            assertTrue(group.getBoolean("include-all")); assertEquals("REJECT", group.getString("empty-fallback"));
+            assertTrue(group.getString("exclude-type").contains("Direct"));
+            assertTrue(protectedDns.getJSONArray("nameserver").getString(0).endsWith("#ClashStudio-DNS-protected"));
+            assertTrue(protectedDns.getBoolean("enable")); assertTrue(protectedDns.getBoolean("respect-rules"));
+            assertFalse(protectedDns.getBoolean("direct-nameserver-follow-policy"));
+            for (String key : new String[]{"proxy-server-nameserver", "default-nameserver", "direct-nameserver"}) assertTrue(protectedDns.getJSONArray(key).length() > 0);
+        }
+        JSONObject restored = CoreConfig.prepare(source, ProfileStore.defaults(), 17890);
+        assertEquals(1, restored.getJSONArray("proxy-groups").length());
+        assertTrue(restored.getJSONObject("dns").has("nameserver-policy"));
+        assertTrue(restored.getJSONObject("dns").has("fallback"));
+    }
     @Test public void importedListenersCannotOpenPublicPortsOrDesktopTun() throws Exception {
         JSONObject source = new JSONObject("{\"external-controller\":\"0.0.0.0:9090\",\"allow-lan\":true,\"mixed-port\":80,\"port\":8000,\"tun\":{\"enable\":true},\"listeners\":[{\"port\":9000}],\"mode\":\"global\"}");
         JSONObject config = CoreConfig.prepare(source, ProfileStore.defaults(), 17890);

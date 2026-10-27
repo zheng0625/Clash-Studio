@@ -5,7 +5,7 @@ from pathlib import Path
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '1.1'
+VERSION = '1.2'
 OUTPUT = ROOT / 'artifacts/releases' / f'ClashStudio-{VERSION}-source.zip'
 DIRECTORIES = [
     'server', 'vendor/app', 'vendor/examples', 'frontend/src', 'frontend/public',
@@ -15,7 +15,7 @@ DIRECTORIES = [
 ]
 FILES = [
     'run.py', 'requirements.txt', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.md',
-    'README.en.md', 'BUILDING.md', 'RELEASE.md', '1.1发布说明.md', 'dev-env.ps1',
+    'README.en.md', 'BUILDING.md', 'RELEASE.md', '1.2发布说明.md', 'dev-env.ps1',
     'build-tauri.ps1', 'frontend/package.json', 'frontend/pnpm-lock.yaml',
     'frontend/index.html', 'frontend/ui-preview.html', 'frontend/ui-editor.html',
     'frontend/ui-android.html', 'frontend/tsconfig.json', 'frontend/vite.config.ts',
@@ -43,9 +43,9 @@ def main():
             if path.suffix in {'.pyc', '.jks', '.keystore', '.p12', '.key', '.exe', '.dll', '.aar'} or path.name.startswith('.env') or path.name == 'local.properties':
                 continue
             data = path.read_bytes()
-            archive.writestr('ClashStudio-1.1/' + relative.as_posix(), data)
+            archive.writestr('ClashStudio-1.2/' + relative.as_posix(), data)
             entries.append({'path': relative.as_posix(), 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()})
-        archive.writestr('ClashStudio-1.1/SOURCE-MANIFEST.json', json.dumps({'version': '1.1.0', 'files': entries}, ensure_ascii=False, indent=2))
+        archive.writestr('ClashStudio-1.2/SOURCE-MANIFEST.json', json.dumps({'version': '1.2.0', 'files': entries}, ensure_ascii=False, indent=2))
     with zipfile.ZipFile(OUTPUT) as archive:
         if archive.testzip() is not None:
             raise SystemExit('Source archive integrity check failed')

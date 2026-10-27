@@ -23,6 +23,7 @@ from .paths import AppPaths
 from .platforms import PlatformServices, core_binary, is_admin, other_cores
 from .geodata import seed_databases, validation_message
 from .settings import SettingsStore, lan_ipv6_networks
+from .dns_protection import protect_dns
 from .selections import SelectionStore
 from .atomic import atomic_text
 from .operations import operation_id, cancelled
@@ -337,6 +338,8 @@ class Runtime:
         dns = preferences.dns_override.config() if preferences.dns_override.enabled else dict(config.get("dns", {}))
         dns.pop("listen", None)
         dns["ipv6"] = preferences.ipv6
+        if preferences.dns_leak_prevention:
+            protect_dns(config, dns)
         config["dns"] = dns
         config.update({"mixed-port": port, "bind-address": "*" if preferences.allow_lan else "127.0.0.1", "allow-lan": preferences.allow_lan,
                        "geo-auto-update": False,
@@ -356,7 +359,7 @@ class Runtime:
                 config["lan-allowed-ips"] += lan_ipv6_networks()
         if tun:
             config["tun"] = {"enable": True, "device": "ClashStudio", "stack": tun_stack,
-                             "auto-route": True, "strict-route": True, "auto-detect-interface": True,
+                             "auto-route": True, "strict-route": bool(preferences.tun_strict_route), "auto-detect-interface": True,
                              "dns-hijack": ["any:53", "tcp://any:53"]}
             if self.platform.info['os'] == 'linux':
                 config['tun']['auto-redirect'] = True

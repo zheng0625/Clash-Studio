@@ -2,7 +2,7 @@ import { androidRequest } from './android'
 export const isDesktop = '__TAURI_INTERNALS__' in window && !/Android/i.test(navigator.userAgent)
 export async function desktopInfo():Promise<{backend_base:string;version:string;desktop:boolean}> {
   if(isDesktop){const {invoke}=await import('@tauri-apps/api/core');return invoke('desktop_info')}
-  return {backend_base:location.origin,version:'1.1.0',desktop:false}
+  return {backend_base:location.origin,version:'1.2.0',desktop:false}
 }
 export async function restartElevated(){const {invoke}=await import('@tauri-apps/api/core');return invoke('restart_elevated')}
 export async function quitDesktop(){const {invoke}=await import('@tauri-apps/api/core');return invoke('quit_app')}

@@ -38,7 +38,7 @@ final class ProfileStore {
         pruneHot();
     }
     static JSONObject defaults() throws Exception {
-        return new JSONObject("{\"allow_lan\":false,\"ipv6\":true,\"lan_auth\":false,\"mixed_port\":17890,\"lan_username\":\"\",\"lan_password\":\"\",\"dns_override\":{\"enabled\":false,\"mode\":\"fake-ip\",\"nameserver\":[],\"fallback\":[],\"bootstrap\":[],\"proxy_nameserver\":[],\"fake_ip_filter\":[]}}");
+        return new JSONObject("{\"allow_lan\":false,\"ipv6\":true,\"dns_leak_prevention\":false,\"lan_auth\":false,\"mixed_port\":17890,\"lan_username\":\"\",\"lan_password\":\"\",\"dns_override\":{\"enabled\":false,\"mode\":\"fake-ip\",\"nameserver\":[],\"fallback\":[],\"bootstrap\":[],\"proxy_nameserver\":[],\"fake_ip_filter\":[]}}");
     }
     private JSONObject hotState() throws Exception {
         JSONObject choices = new JSONObject();

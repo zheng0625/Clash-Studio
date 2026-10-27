@@ -63,7 +63,7 @@ with tempfile.TemporaryDirectory(prefix='clash-selection-') as temporary:
                 time.sleep(.1)
         else:
             raise AssertionError('Bundled backend did not start')
-        assert info['version'] == '1.1.0'
+        assert info['version'] == '1.2.0'
         profile = call('/api/subscriptions', 'POST', {'title': 'Packaged offline selector', 'source_type': 'file',
                        'yaml': 'proxy-groups:\n  - {name: Manual, type: select, proxies: [REJECT, DIRECT]}\nrules: ["MATCH,Manual"]\n'})
         catalog = call('/api/client/proxy-catalog?profile_id=' + profile['id'])

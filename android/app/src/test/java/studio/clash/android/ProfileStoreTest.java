@@ -95,6 +95,13 @@ public class ProfileStoreTest {
         settings.put("mixed_port", 80); failure(422, () -> store.saveSettings(settings));
         assertEquals(19090, store.settings().getInt("mixed_port"));
     }
+    @Test public void dnsProtectionPersistsWhenEnabledAndDisabled() throws Exception {
+        assertFalse(store.settings().optBoolean("dns_leak_prevention", false));
+        for (boolean enabled : new boolean[]{true, false}) {
+            store.saveSettings(store.settings().put("dns_leak_prevention", enabled));
+            assertEquals(enabled, new ProfileStore(directory).settings().getBoolean("dns_leak_prevention"));
+        }
+    }
     @Test public void concurrentChangesCannotLoseUpdates() throws Exception {
         String id = create().getString("id"); ExecutorService pool = Executors.newFixedThreadPool(2);
         try {

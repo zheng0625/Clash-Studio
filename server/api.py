@@ -291,7 +291,7 @@ def build_app(home: Path, data_dir: Path | None = None):
     @app.get("/api/client/info")
     def info():
         identity = str(home.resolve()) if paths.data == home.resolve() / 'data' else str(home.resolve()) + '|' + str(paths.data)
-        return {"app": "clash-studio", "version": "1.1.0", "platform": runtime.platform.info['id'], "desktop": bool(desktop_token),
+        return {"app": "clash-studio", "version": "1.2.0", "platform": runtime.platform.info['id'], "desktop": bool(desktop_token),
                 "platform_info": runtime.platform.info, "paths": paths.describe(),
                 "instance": hashlib.sha256((identity.casefold() if os.name == 'nt' else identity).encode()).hexdigest()[:16]}
 

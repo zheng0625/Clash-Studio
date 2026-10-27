@@ -44,7 +44,7 @@ Windows supports system proxy and TUN with an on-demand administrator helper. Li
 
 ## Download 1.1
 
-Current release: **1.1** (application version `1.1.0`). See [build validation](docs/validation-1.1.md).
+Current local build: **1.2** (application version `1.2.0`), with TUN strict mode and DNS leak prevention. See [build notes](docs/validation-1.2.md). Published 1.1 download links are retained below.
 
 | Package | Download | Application data |
 | --- | --- | --- |

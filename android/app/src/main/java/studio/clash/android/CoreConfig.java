@@ -27,6 +27,9 @@ final class CoreConfig {
             String[][] fields = {{"nameserver","nameserver"},{"fallback","fallback"},{"bootstrap","default-nameserver"},{"proxy_nameserver","proxy-server-nameserver"},{"fake_ip_filter","fake-ip-filter"}};
             for (String[] pair : fields) dns.put(pair[1], override.getJSONArray(pair[0]));
         }
+        if (settings.optBoolean("dns_leak_prevention", false)) {
+            protectDns(config, dns);
+        }
         config.put("dns", dns);
         // Prevent profile paths from escaping the private core directory.
         for (String field : Arrays.asList("proxy-providers", "rule-providers")) {
@@ -38,5 +41,27 @@ final class CoreConfig {
             }
         }
         return config;
+    }
+    private static void protectDns(JSONObject config, JSONObject dns) throws Exception {
+        JSONArray groups = config.optJSONArray("proxy-groups");
+        if (groups == null) groups = new JSONArray();
+        Set<String> names = new HashSet<>();
+        for (String key : Arrays.asList("proxy-groups", "proxies")) {
+            JSONArray values = config.optJSONArray(key);
+            if (values != null) for (int i = 0; i < values.length(); i++) names.add(values.getJSONObject(i).getString("name"));
+        }
+        String name = "ClashStudio-DNS";
+        while (names.contains(name)) name += "-protected";
+        groups.put(new JSONObject().put("name", name).put("type", "url-test").put("include-all", true)
+            .put("url", "https://www.gstatic.com/generate_204").put("interval", 300).put("lazy", true)
+            .put("exclude-type", "Direct|Compatible|Pass|PassRule|Rematch|Dns").put("empty-fallback", "REJECT"));
+        config.put("proxy-groups", groups);
+        for (String key : Arrays.asList("nameserver-policy", "fallback", "fallback-filter", "proxy-server-nameserver-policy", "prefer-h3")) dns.remove(key);
+        dns.put("enable", true).put("respect-rules", true)
+            .put("nameserver", new JSONArray().put("https://1.1.1.1/dns-query#" + name).put("https://8.8.8.8/dns-query#" + name))
+            .put("default-nameserver", new JSONArray().put("223.5.5.5"))
+            .put("proxy-server-nameserver", new JSONArray().put("https://223.5.5.5/dns-query#DIRECT"))
+            .put("direct-nameserver", new JSONArray().put("https://223.5.5.5/dns-query#DIRECT"))
+            .put("direct-nameserver-follow-policy", false);
     }
 }

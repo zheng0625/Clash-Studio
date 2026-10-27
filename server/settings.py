@@ -85,6 +85,12 @@ class DNSOverride(Strict):
 class ClientSettings(Strict):
     allow_lan: bool = False
     ipv6: bool = False
+    # TUN strict-route blocks non-TUN DNS paths (Windows WFP rules) to prevent
+    # Smart Multi-Homed Name Resolution leaks; off may be needed for VM/VPN coexistence.
+    tun_strict_route: bool = True
+    # Protected upstreams use a proxy-only group. Direct and node-domain
+    # resolution remain explicit exceptions to this policy.
+    dns_leak_prevention: bool = False
     lan_auth: bool = False
     mixed_port: int | None = Field(default=None, ge=1024, le=65535)
     dns_override: DNSOverride = Field(default_factory=DNSOverride)
