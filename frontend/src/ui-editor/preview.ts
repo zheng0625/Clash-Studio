@@ -24,6 +24,9 @@ window.fetch = async (input, init) => {
   else if (p === '/api/client/proxy-catalog') value = { proxies, key: 'preview', live: true, has_providers: false, profile_revision: 1, workspace_revision: 1 }
   else if (p === '/api/client/runtime/connections') value = { connections: ['example.com','cdn.example.com','api.example.com'].map((host,i) => ({ id: String(i), metadata: { host, destinationIP: '192.0.2.' + (i+1), destinationPort: '443', process: 'browser.exe', network: 'tcp' }, rule: 'DomainSuffix', rulePayload: 'example.com', chains: ['自动选择', nodes[0]!.name], upload: 1048576, download: 8388608 })), uploadTotal: 3145728, downloadTotal: 25165824 }
   else if (p === '/api/client/workspace') value = { revision: 1, modules: [{ id: 'demo', name: 'AI 服务专线', target: '自动选择', strict: true, matches: [{ kind: 'DOMAIN-SUFFIX', value: 'example.com' }] }], plans: { 'ui-preview': { module_ids: ['demo'], default_target: '自动选择' } } }
+  else if (p === '/api/android/routing') value = { revision: 1, targets: ['DIRECT', 'REJECT', '自动选择'], rules: Array.from({ length: 24 }, (_, i) => ({ kind: i % 5 === 0 ? 'PROCESS-NAME' : 'DOMAIN-SUFFIX', value: i % 5 === 0 ? 'com.example.app' + i : 'service-' + (i + 1) + '.example.invalid', target: i % 3 === 0 ? 'DIRECT' : '自动选择', enabled: i % 7 !== 0 })) }
+  else if (p === '/api/android/permissions') value = { camera: false, notifications: false, vpn: false }
+  else if (p === '/api/android/apps') value = [{ package: 'com.example.app0', label: '示例浏览器' }, { package: 'com.example.app5', label: '示例音乐' }, { package: 'com.example.app10', label: 'Example Video' }]
   else if (p === '/api/client/settings') value = settings
   else if (p === '/api/client/runtime') value = runtime
   else if (p === '/api/client/tray') value = { context_configured: false, proxy_mode: 'system', tun_stack: 'mixed', profile_id: '' }

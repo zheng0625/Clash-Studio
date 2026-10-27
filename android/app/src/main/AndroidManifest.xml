@@ -14,7 +14,7 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
     </queries>
-    <application android:allowBackup="false" android:label="Clash Studio"
+    <application android:allowBackup="false" android:label="${appLabel}"
         android:icon="@drawable/ic_launcher" android:theme="@style/AppTheme"
         android:usesCleartextTraffic="false" android:supportsRtl="true">
         <!-- Prepared VPN apps qualify for systemExempted without exact-alarm permission.

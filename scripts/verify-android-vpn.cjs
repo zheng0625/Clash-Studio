@@ -2,6 +2,8 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{execFileSync}=require('node:child_process');
 const net=require('node:net');
 const adb=process.env.ADB||'adb',serial=process.env.ANDROID_SERIAL;
+const packageName=process.env.ANDROID_PACKAGE||'studio.clash.android.validation';
+const component=packageName+'/studio.clash.android.MainActivity';
 if(!serial)throw Error('Set ANDROID_SERIAL to the wireless or USB test device');
 const command=(...args)=>execFileSync(adb,['-s',serial,...args],{encoding:'utf8',timeout:30000});
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -9,8 +11,8 @@ function listenerResponds(){return new Promise(resolve=>{const socket=net.connec
 const output=path.resolve(process.env.ANDROID_TEST_OUTPUT||'artifacts/android-vpn');fs.mkdirSync(output,{recursive:true});
 let ws,sequence=0;const calls=new Map();
 async function connect(){
- command('shell','am','start','-W','-n','studio.clash.android.validation/studio.clash.android.MainActivity');
- const pid=command('shell','pidof','studio.clash.android.validation').trim();
+ command('shell','am','start','-W','-n',component);
+ const pid=command('shell','pidof',packageName).trim();
  command('forward','tcp:9223',`localabstract:webview_devtools_remote_${pid}`);
  let target;for(let i=0;i<60;i++){try{target=(await(await fetch('http://127.0.0.1:9223/json/list')).json()).find(t=>t.url.includes('appassets.androidplatform.net'));if(target)break}catch{}await sleep(100)}
  assert.ok(target,'WebView debugging target');ws=new WebSocket(target.webSocketDebuggerUrl);
@@ -32,7 +34,7 @@ async function probe(){
  command('shell','run-as','studio.clash.vpnprobe','rm','-f','files/result.json');
  command('shell','am','start','-W','-n','studio.clash.vpnprobe/.ProbeActivity');
  let result;for(let i=0;i<100;i++){try{result=JSON.parse(command('shell','run-as','studio.clash.vpnprobe','cat','files/result.json'));break}catch{}await sleep(500)}
- command('shell','am','start','-W','-n','studio.clash.android.validation/studio.clash.android.MainActivity');
+ command('shell','am','start','-W','-n',component);
  assert.ok(result,'Separate UID probe completed');return result;
 }
 (async()=>{
@@ -57,7 +59,7 @@ async function probe(){
   await pick('VPN-Test','DIRECT');await api('/api/client/runtime/routing-mode','PUT',{mode:'rule'});
   assert.equal((await api('/api/client/runtime/apply','POST',payload)).running,true);
   check=await probe();assert.equal(check.https,true);pass('reapply-keeps-foreground-vpn');
-  assert.match(command('shell','dumpsys','activity','services','studio.clash.android.validation'),/isForeground=true foregroundId=27/);pass('foreground-service');
+  assert.match(command('shell','dumpsys','activity','services',packageName),/isForeground=true foregroundId=27/);pass('foreground-service');
   const connections=await api('/api/client/runtime/connections');assert.ok(Object.hasOwn(connections,'uploadTotal'));pass('native-connections-snapshot');
   await evaluate(`localStorage.setItem('clash-desk-profile',${JSON.stringify(profile.id)});location.reload();true`);ws.close();await sleep(500);await connect();
   for(let i=0;i<100;i++){if(await evaluate("document.querySelector('.kernel-summary')?.innerText.includes('Android VPN')"))break;await sleep(100)}
@@ -69,8 +71,8 @@ async function probe(){
   for(let i=0;i<100;i++){if(!(await api('/api/client/runtime')).running)break;await sleep(100)}
   assert.equal((await api('/api/client/runtime')).running,false);pass('ui-stop-closes-vpn');
   command('forward','tcp:17893','tcp:17890');assert.equal(await listenerResponds(),false);pass('stop-releases-mixed-listener');
-  for(let i=0;i<100;i++){if(await evaluate("!document.querySelector('.kernel-actions .primary').disabled"))break;await sleep(100)}
-  await evaluate("document.querySelector('.kernel-actions .primary').click();true");
+  for(let i=0;i<100;i++){if(await evaluate("document.querySelector('.kernel-actions>button:first-child')?.disabled===false"))break;await sleep(100)}
+  await evaluate("document.querySelector('.kernel-actions>button:first-child').click();true");
   for(let i=0;i<100;i++){if((await api('/api/client/runtime')).running)break;await sleep(100)}
   assert.equal((await api('/api/client/runtime')).vpn.enabled,true);pass('ui-restart');
  }finally{

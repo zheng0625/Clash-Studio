@@ -183,12 +183,24 @@ def create_app(data_dir: Path | None = None):
             raise HTTPException(404, "订阅不存在")
         return row
 
+    from collections import OrderedDict
+    import threading
+    summary_counts, summary_lock = OrderedDict(), threading.Lock()
+
     def summarize(row):
-        source = parse_config(row["source"])
+        key = (row['id'], row['revision'])
+        with summary_lock:
+            counts = summary_counts.get(key)
+            if counts is None:
+                parsed = parse_config(row['source'])
+                counts = tuple(len(parsed.get(field, [])) for field in ('proxies', 'proxy-groups', 'rules'))
+                summary_counts[key] = counts
+                while len(summary_counts) > 128:
+                    summary_counts.popitem(last=False)
         return {key: row[key] for key in ("id", "title", "source_type", "revision", "enabled", "interval_minutes", "created_at", "updated_at", "refreshed_at", "last_error")} | {
             "usage": subscription_usage(row["source_headers"]),
             "source_host": urlsplit(row["source_url"]).hostname if row["source_url"] else "本地 YAML",
-            "proxy_count": len(source.get("proxies", [])), "group_count": len(source.get("proxy-groups", [])), "rule_count": len(source.get("rules", []))}
+            "proxy_count": counts[0], "group_count": counts[1], "rule_count": counts[2]}
 
     def detail(row):
         edits = json.loads(row["edits"])

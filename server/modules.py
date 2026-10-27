@@ -90,10 +90,14 @@ def compose(published: str, profile_id: str, workspace: Workspace):
     valid = set(groups) | set(proxies) | {"DIRECT", "REJECT", "REJECT-DROP"}
     errors, warnings, rules, origins = [], [], [], []
 
+    inspected = {}
+
     def inspect(target, visited=None):
         visited = set() if visited is None else visited
         if target in visited:
             return ["策略组循环引用"]
+        if target in inspected:
+            return list(inspected[target])
         if target in ("REJECT", "REJECT-DROP"):
             return []
         if target not in groups and target not in proxies:
@@ -110,7 +114,10 @@ def compose(published: str, profile_id: str, workspace: Workspace):
         members = group.get("proxies", [])
         if not members:
             return [f"组 {target} 没有可审查的成员"]
-        return [reason for member in members for reason in inspect(member, visited)]
+        reasons = [reason for member in members for reason in inspect(member, visited)]
+        if '策略组循环引用' not in reasons:
+            inspected[target] = tuple(dict.fromkeys(reasons))
+        return reasons
 
     seen = {}
     for module_id in plan.module_ids:

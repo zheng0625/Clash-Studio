@@ -1,7 +1,7 @@
 <p align="center"><img src="frontend/src/assets/brand.svg" width="84" alt="Clash Studio"></p>
 <h1 align="center">Clash Studio</h1>
 <p align="center">Precise routing. Thoughtful desktop design.</p>
-<p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/v1.0">Download for Windows / Linux / Android</a> · <a href="README.md">简体中文</a> · <a href="LICENSE">GPL-3.0</a></p>
+<p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/V1.1">Download for Windows / Linux / Android</a> · <a href="README.md">简体中文</a> · <a href="LICENSE">GPL-3.0</a></p>
 
 **Clash Studio is a Windows / Linux Mihomo desktop client focused on visual subscription editing, reusable routing modules and precise routing, with a customizable desktop interface.**
 
@@ -42,20 +42,22 @@ The workflow is draft → preview → save and publish → apply to the core. Ma
 
 Windows supports system proxy and TUN with an on-demand administrator helper. Linux supports GNOME system proxy and TUN with graphical authorization for the bundled core. Both include tray integration, desktop startup preferences, HTTP delay testing, traffic and connections, LAN proxy settings, IPv6, DNS overrides and GeoData updates. Login startup launches the application without automatically starting a subscription core.
 
-## Download 1.0
+## Download 1.1
+
+Current release: **1.1** (application version `1.1.0`). See [build validation](docs/validation-1.1.md).
 
 | Package | Download | Application data |
 | --- | --- | --- |
-| Windows x64 portable | [ZIP](https://github.com/zheng0625/Clash-Studio/releases/download/v1.0/ClashStudio-1.0-portable-windows-x64.zip) | Adjacent `data/` |
-| Windows x64 installer | [EXE](https://github.com/zheng0625/Clash-Studio/releases/download/v1.0/ClashStudio-1.0-setup-windows-x64.exe) | `%LOCALAPPDATA%\ClashStudio` |
-| Android arm64-v8a | [APK](https://github.com/zheng0625/Clash-Studio/releases/download/v1.0/ClashStudio-1.0-android-arm64-v8a.apk) | App private storage; export settings and uninstall the old debug build first |
-| Linux x64 | [tar.gz](https://github.com/zheng0625/Clash-Studio/releases/download/v1.0/ClashStudio-1.0-linux-x64.tar.gz) | Adjacent `data/`, or `--data-dir` |
+| Windows x64 portable | [ZIP](https://github.com/zheng0625/Clash-Studio/releases/download/V1.1/ClashStudio-1.1-portable-windows-x64.zip) | Adjacent `data/` |
+| Windows x64 installer | [EXE](https://github.com/zheng0625/Clash-Studio/releases/download/V1.1/ClashStudio-1.1-setup-windows-x64.exe) | `%LOCALAPPDATA%\ClashStudio` |
+| Android arm64-v8a | [APK](https://github.com/zheng0625/Clash-Studio/releases/download/V1.1/ClashStudio-1.1-android-arm64-v8a.apk) | App private storage; export settings and uninstall the old debug build first |
+| Linux x64 | [tar.gz](https://github.com/zheng0625/Clash-Studio/releases/download/V1.1/ClashStudio-1.1-linux-x64.tar.gz) | Adjacent `data/`, or `--data-dir` |
 
 Extract the entire Windows ZIP and run `ClashStudio.exe`, or use the installer. On Linux, extract and run `./Start.sh`. The Linux package uses an Ubuntu 22.04 x64 baseline . See the [Linux guide](docs/linux-preview.md).
 
 Python, Mihomo v1.19.33 and four base databases are bundled; Windows also includes Wintun. Windows requires system WebView2; Linux requires desktop GTK / WebKit libraries. No development tools are required. Remote providers / rule sets referenced by subscriptions still need network access. No proxy service or usable subscription is provided.
 
-Version 1.0 includes Windows, Linux and Android packages. Automated checks and their scope are in [validation notes](docs/validation-1.0.md). Validation on these devices does not cover every system and network. Windows packages are unsigned. Exit the old version and back up data before upgrading; portable and installed data locations differ.
+Version 1.1 includes Windows, Linux and Android packages. Automated checks and their scope are in [validation notes](docs/validation-1.1.md). Validation on these devices does not cover every system and network. Windows packages are unsigned. Exit the old version and back up data before upgrading; portable and installed data locations differ.
 
 ## Source and license
 

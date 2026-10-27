@@ -110,7 +110,7 @@ def test_restore_only_still_valid_manual_groups(tmp_path, monkeypatch):
     writes = []
     def request(method, path, **kwargs):
         if method == 'GET':
-            return {'proxies': {'Work / 工作': {'type': 'Selector', 'all': ['B']},
+            return {'proxies': {'Work / 工作': {'type': 'Selector', 'all': ['B'], 'now': 'B'},
                                 'Automatic': {'type': 'URLTest', 'all': ['A']},
                                 'Changed': {'type': 'Selector', 'all': ['C']}}}
         writes.append((path, kwargs['json']))

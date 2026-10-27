@@ -27,8 +27,9 @@ android {
         applicationId = "studio.clash.android.validation"
         minSdk = 26
         targetSdk = 37
-        versionCode = 5
-        versionName = "1.0.0"
+        versionCode = 6
+        versionName = "1.1.0"
+        manifestPlaceholders["appLabel"] = "Clash Studio"
         ndk { abiFilters += "arm64-v8a" }
     }
     signingConfigs {
@@ -43,6 +44,12 @@ android {
         }
     }
     buildTypes {
+        getByName("debug") {
+            if (providers.gradleProperty("acceptanceBuild").orNull == "true") {
+                applicationIdSuffix = ".acceptance"
+                manifestPlaceholders["appLabel"] = "Clash Studio · 验收"
+            }
+        }
         getByName("release") {
             isDebuggable = false
             if (providers.environmentVariable("CLASHSTUDIO_KEYSTORE").isPresent) {
@@ -50,6 +57,7 @@ android {
             }
         }
     }
+    sourceSets.getByName("test").resources.srcDir("../../tests/fixtures")
     buildFeatures { buildConfig = true }
     packaging { jniLibs { useLegacyPackaging = true } }
     compileOptions {

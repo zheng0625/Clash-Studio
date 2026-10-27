@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { t, message, locale } from './i18n'
 
-import { computed, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { Copy, Search, Trash2 } from 'lucide-vue-next'
-const props=defineProps<{events:{time:string;message:string}[]}>()
-const emit=defineEmits<{notice:[message:string,error?:boolean]}>()
-const query=ref(''),level=ref('all'),hidden=ref(new Set<string>())
+const props=defineProps<{events:{time:string;message:string}[];viewState?:{query:string;level:string;hidden:string[]}}>()
+const emit=defineEmits<{notice:[message:string,error?:boolean];ready:[];viewState:[value:{query:string;level:string;hidden:string[]}]}>()
+const query=ref(props.viewState?.query||''),level=ref(props.viewState?.level||'all'),hidden=ref(new Set<string>(props.viewState?.hidden||[]))
+watch([query,level,hidden],()=>emit('viewState',{query:query.value,level:level.value,hidden:Array.from(hidden.value)}),{flush:'sync'})
+onMounted(async()=>{await nextTick();emit('ready')})
 const key=(event:{time:string;message:string})=>event.time+'\n'+event.message
 function category(message:string){return /失败|异常|错误|未确认/.test(message)?'error':/冲突|缺少|警告/.test(message)?'warning':'info'}
 const visible=computed(()=>[...props.events].reverse().filter(e=>!hidden.value.has(key(e))&&(level.value==='all'||category(e.message)===level.value)&&`${e.time} ${e.message} ${message(e.message)}`.toLowerCase().includes(query.value.toLowerCase())))

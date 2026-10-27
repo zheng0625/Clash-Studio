@@ -1,3 +1,4 @@
+from conftest import free_mixed_port
 import os
 import shutil
 from pathlib import Path
@@ -27,9 +28,7 @@ def test_real_core_lifecycle_dispatch_and_revision(tmp_path):
     source = core_binary(Path(__file__).resolve().parents[1])
     (tmp_path / "bin").mkdir()
     shutil.copy2(source, tmp_path / "bin" / source.name)
-    with socket.socket() as probe:
-        probe.bind(("127.0.0.1", 0))
-        proxy_port = probe.getsockname()[1]
+    proxy_port = free_mixed_port()
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):

@@ -45,6 +45,26 @@ public class MainActivity extends ComponentActivity {
     private String vpnId;
     private JSONObject vpnBody;
     private final ExecutorService requests = new ThreadPoolExecutor(2, 2, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(16));
+    private final ExecutorService controlRequests = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(2));
+    private final ExecutorService statusRequests = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(8));
+    private final ExecutorService lifecycleRequests = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(2));
+    private final ExecutorService downloadRequests = new ThreadPoolExecutor(2, 2, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(4));
+    private final ExecutorService probeRequests = new ThreadPoolExecutor(4, 4, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(8));
+    private static boolean cancellableCoreWork(String path) {
+        String route = path.split("\\?", 2)[0];
+        return route.equals("/api/client/runtime/apply") || route.equals("/api/client/runtime/delay") || route.startsWith("/api/client/probe/");
+    }
+    private ExecutorService queue(String path, String method) {
+        path = path.split("\\?", 2)[0];
+        if (path.equals("/api/client/runtime/stop")) { CoreRuntime.INSTANCE.cancelStart(); return controlRequests; }
+        if (path.equals("/api/client/runtime") || path.equals("/api/client/platform")) return statusRequests;
+        if (path.equals("/api/client/runtime/apply")) return lifecycleRequests;
+        if (path.contains("/delay") || path.contains("/probe/")) return probeRequests;
+        if (path.equals("/api/subscriptions") && method.equals("POST") || path.endsWith("/refresh") || path.equals("/api/client/network/ip")) return downloadRequests;
+        return requests;
+    }
+    private void closeQueues() { requests.shutdownNow(); controlRequests.shutdownNow(); statusRequests.shutdownNow(); lifecycleRequests.shutdownNow(); downloadRequests.shutdownNow(); probeRequests.shutdownNow(); }
+
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         CoreRuntime.INSTANCE.attach(this);
@@ -133,6 +153,10 @@ public class MainActivity extends ComponentActivity {
                     applyChrome(body.getBoolean("dark"), body.getString("background"));
                     postReply(reply, new JSONObject().put("id", id).put("status", 200).put("data", new JSONObject()).toString()); return;
                 }
+                if (path.equals("/api/client/runtime/stop") && method.equals("POST") && vpnReply != null) {
+                    replyError(vpnReply, vpnId, 409, "VPN 启动已取消");
+                    vpnReply = null; vpnId = null; vpnBody = null;
+                }
                 if (path.equals("/api/client/runtime/apply") && method.equals("POST")) {
                     Intent consent = android.net.VpnService.prepare(this);
                     if (consent != null) {
@@ -150,7 +174,12 @@ public class MainActivity extends ComponentActivity {
                     catch (android.content.ActivityNotFoundException error) { replyError(reply, id, 501, "系统文件保存器不可用"); clearExport(); }
                     return;
                 }
-                requests.execute(() -> {
+                long startEpoch = CoreRuntime.INSTANCE.startEpoch();
+                queue(path, method).execute(() -> {
+                    if (cancellableCoreWork(path) && startEpoch != CoreRuntime.INSTANCE.startEpoch()) {
+                        if (!isDestroyed()) runOnUiThread(() -> replyError(reply, requestId, 409, "排队中的内核操作已取消"));
+                        return;
+                    }
                     NativeApi.Response response = nativeApi == null ? null : nativeApi.request(path, method, body);
                     if (!isDestroyed()) runOnUiThread(() -> {
                         if (isDestroyed() || webView != view) return;
@@ -193,7 +222,7 @@ public class MainActivity extends ComponentActivity {
                 // Reclaimed renderers resume the page; crashes deliberately start at the overview.
                 resetUiAfterRendererCrash = detail.didCrash();
                 subscriptionQr.close();
-                requests.shutdownNow();
+                closeQueues();
                 clearExport();
                 vpnReply = null; vpnId = null; vpnBody = null;
                 if (fileCallback != null) { fileCallback.onReceiveValue(null); fileCallback = null; }
@@ -237,10 +266,17 @@ public class MainActivity extends ComponentActivity {
             JavaScriptReplyProxy reply = vpnReply; String id = vpnId; JSONObject body = vpnBody;
             vpnReply = null; vpnId = null; vpnBody = null;
             if (resultCode != RESULT_OK) { replyError(reply, id, 403, "VPN 授权已取消，未接管网络"); return; }
-            requests.execute(() -> {
-                NativeApi.Response result = nativeApi.request("/api/client/runtime/apply", "POST", body);
-                runOnUiThread(() -> { if (!isDestroyed()) try { postReply(reply, result.envelope(id).toString()); } catch (Exception ignored) { } });
-            });
+            long startEpoch = CoreRuntime.INSTANCE.startEpoch();
+            try {
+                lifecycleRequests.execute(() -> {
+                    if (startEpoch != CoreRuntime.INSTANCE.startEpoch()) {
+                        runOnUiThread(() -> { if (!isDestroyed()) replyError(reply, id, 409, "VPN 启动已取消"); });
+                        return;
+                    }
+                    NativeApi.Response result = nativeApi.request("/api/client/runtime/apply", "POST", body);
+                    runOnUiThread(() -> { if (!isDestroyed()) try { postReply(reply, result.envelope(id).toString()); } catch (Exception ignored) { } });
+                });
+            } catch (RejectedExecutionException error) { replyError(reply, id, 429, "操作过多，请稍后重试"); }
             return;
         }
         if (requestCode == 100 && fileCallback != null) {
@@ -327,9 +363,11 @@ public class MainActivity extends ComponentActivity {
         old.destroy();
     }
     @Override protected void onDestroy() {
+        CoreRuntime.INSTANCE.cancelStart();
+        vpnReply = null; vpnId = null; vpnBody = null;
         clearExport();
         if (subscriptionQr != null) subscriptionQr.close();
-        requests.shutdownNow();
+        closeQueues();
         if (fileCallback != null) { fileCallback.onReceiveValue(null); fileCallback = null; }
         disposeWebView();
         super.onDestroy();
@@ -338,7 +376,7 @@ public class MainActivity extends ComponentActivity {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) reply.postMessage(message);
     }
     private static void replyError(JavaScriptReplyProxy reply, String id, int status, String detail) {
-        try { postReply(reply, new JSONObject().put("id", id).put("status", status).put("data", new JSONObject().put("detail", detail)).toString()); }
+        try { postReply(reply, new JSONObject().put("id", id).put("status", status).put("data", new JSONObject().put("detail", detail).put("error", ErrorContract.error(status, ErrorContract.code(status), detail).put("operation_id", id))).toString()); }
         catch (Exception ignored) { }
     }
     static WebResourceResponse json(int status, String body) {

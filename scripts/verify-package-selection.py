@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import socket
+import secrets
 import subprocess
 import sys
 import tempfile
@@ -16,9 +17,16 @@ python = package / ('runtime/python/python.exe' if os.name == 'nt' else 'runtime
 
 
 def free_port():
-    with socket.socket() as address:
-        address.bind(('127.0.0.1', 0))
-        return address.getsockname()[1]
+    for _ in range(1000):
+        number = 20000 + secrets.randbelow(29000)
+        with socket.socket() as tcp, socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp:
+            try:
+                tcp.bind(('127.0.0.1', number))
+                udp.bind(('127.0.0.1', number))
+                return number
+            except OSError:
+                continue
+    raise RuntimeError('No free loopback TCP/UDP port')
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -55,7 +63,7 @@ with tempfile.TemporaryDirectory(prefix='clash-selection-') as temporary:
                 time.sleep(.1)
         else:
             raise AssertionError('Bundled backend did not start')
-        assert info['version'] == '1.0.0'
+        assert info['version'] == '1.1.0'
         profile = call('/api/subscriptions', 'POST', {'title': 'Packaged offline selector', 'source_type': 'file',
                        'yaml': 'proxy-groups:\n  - {name: Manual, type: select, proxies: [REJECT, DIRECT]}\nrules: ["MATCH,Manual"]\n'})
         catalog = call('/api/client/proxy-catalog?profile_id=' + profile['id'])

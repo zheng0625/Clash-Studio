@@ -22,31 +22,41 @@ final class NativeApi {
     static class Response {
         final int status; final Object data;
         Response(int status, Object data) { this.status = status; this.data = data; }
-        JSONObject envelope(String id) throws Exception { return new JSONObject().put("id", id).put("status", status).put("data", data); }
+        JSONObject envelope(String id) throws Exception { if (status >= 400 && data instanceof JSONObject && ((JSONObject)data).has("error")) ((JSONObject)data).getJSONObject("error").put("operation_id", id); return new JSONObject().put("id", id).put("status", status).put("data", data); }
     }
     NativeApi(File directory) throws Exception { store = new ProfileStore(directory); routing = new AndroidRouting(directory); }
-    JSONObject preview(String id) throws Exception {
+    private final LinkedHashMap<String, JSONObject> previews = new LinkedHashMap<>(16, .75f, true);
+    synchronized JSONObject preview(String id) throws Exception {
         JSONObject profile = store.get(id), preview = profile.getJSONObject("preview");
         synchronized (routing) {
+            String key = id + ":" + profile.getInt("revision") + ":" + routing.revision();
+            JSONObject cached = previews.get(key);
+            if (cached != null) return ConfigEngine.copy(cached);
             preview.put("config", routing.overlay(id, preview.getJSONObject("config")));
             preview.put("yaml", ConfigEngine.dump(preview.getJSONObject("config")));
-            return preview.put("profile_revision", profile.getInt("revision")).put("workspace_revision", routing.revision())
+            preview.put("profile_revision", profile.getInt("revision")).put("workspace_revision", routing.revision())
                 .put("module_rules", new JSONArray()).put("published_conflict", false);
+            previews.put(key, ConfigEngine.copy(preview));
+            while (previews.size() > 8) previews.remove(previews.keySet().iterator().next());
+            return preview;
         }
     }
     Response request(String path, String method, JSONObject body) {
         try { return new Response(200, route(path, method.equals("DEL") ? "DELETE" : method, body == null ? new JSONObject() : body)); }
-        catch (ProfileStore.Failure error) { return error(error.status, error.getMessage()); }
+        catch (java.util.concurrent.RejectedExecutionException error) { return error(429, "操作队列已满，请稍后重试"); }
+        catch (java.util.concurrent.CancellationException error) { return error(409, "操作已取消", "OPERATION_CANCELLED"); }
+        catch (ProfileStore.Failure error) { return error(error.status, error.getMessage(), error.code); }
         catch (IllegalArgumentException | org.json.JSONException error) { return error(422, "配置或参数无效：" + error.getMessage()); }
         catch (org.yaml.snakeyaml.error.YAMLException error) { return error(422, "YAML 格式无效，请检查缩进、字段与重复键"); }
         catch (Exception error) {
             Throwable cause = error instanceof java.util.concurrent.ExecutionException ? error.getCause() : error;
-            if (cause instanceof ProfileStore.Failure) return error(((ProfileStore.Failure)cause).status, cause.getMessage());
+            if (cause instanceof ProfileStore.Failure) return error(((ProfileStore.Failure)cause).status, cause.getMessage(), ((ProfileStore.Failure)cause).code);
             return error(500, "操作未完成，请检查网络或本地存储后重试");
         }
     }
-    private static Response error(int status, String detail) {
-        try { return new Response(status, new JSONObject().put("detail", detail)); }
+    private static Response error(int status, String detail) { return error(status, detail, ErrorContract.code(status)); }
+    private static Response error(int status, String detail, String code) {
+        try { return new Response(status, new JSONObject().put("detail", detail).put("error", ErrorContract.error(status, code, detail))); }
         catch (Exception impossible) { throw new IllegalStateException(impossible); }
     }
     private Object route(String path, String method, JSONObject body) throws Exception {
@@ -57,6 +67,11 @@ final class NativeApi {
         if (uri.getRawQuery() != null) for (String item : uri.getRawQuery().split("&")) {
             String[] pair = item.split("=", 2);
             query.put(URLDecoder.decode(pair[0], "UTF-8"), pair.length > 1 ? URLDecoder.decode(pair[1], "UTF-8") : "");
+        }
+        if (route.equals("/api/client/diagnostics") && method.equals("GET")) {
+            JSONObject status = CoreRuntime.INSTANCE.status();
+            return new JSONObject().put("schema_version", 1).put("sampled_at", java.time.Instant.now().toString())
+                .put("operation", status.opt("operation")).put("lifecycle_queued", status.optInt("lifecycle_queued")).put("storage_cleanup_pending", store.hotCleanupPending());
         }
         if (route.equals("/api/subscriptions")) {
             if (method.equals("GET")) return store.list();

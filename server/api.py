@@ -6,13 +6,15 @@ import json
 import os
 import secrets
 import threading
+import time
+from collections import deque
 from typing import Literal
 from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import Field
@@ -26,6 +28,13 @@ from .probe import ProbeManager
 from .geo_update import GeoUpdater
 from .settings import ClientSettings, lan_addresses
 from .paths import AppPaths
+from .cache import RevisionCache
+from .operations import Operations, operation_id
+from .contracts import envelope
+from starlette.concurrency import run_in_threadpool
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exceptions import RequestValidationError
+from app.store import StaleRevision
 
 
 class Apply(Strict):
@@ -101,6 +110,10 @@ def build_app(home: Path, data_dir: Path | None = None):
     probe, geodata = ProbeManager(runtime), GeoUpdater(runtime)
     app.state.runtime = runtime
     app.state.workspace = workspace
+    compositions = RevisionCache(16)
+    operations = Operations()
+    app.state.compositions = compositions
+    app.state.operations = operations
     closing = threading.Event()
     cleaned = threading.Event()
     def cleanup():
@@ -108,6 +121,7 @@ def build_app(home: Path, data_dir: Path | None = None):
             return
         cleaned.set()
         closing.set()
+        operations.close()
         # Restore owned WinINET settings before downloads or core cleanup can wait.
         try:
             runtime.proxy.restore()
@@ -134,16 +148,45 @@ def build_app(home: Path, data_dir: Path | None = None):
 
     app.router.lifespan_context = lifespan
 
+    @app.exception_handler(StarletteHTTPException)
+    async def http_failure(request, error):
+        return JSONResponse(envelope(error.status_code, error.detail, operation_id.get()), status_code=error.status_code, headers=error.headers)
+
+    @app.exception_handler(StaleRevision)
+    async def stale_failure(request, error):
+        return JSONResponse(envelope(409, '配置版本已改变，请刷新后重试', operation_id.get()), status_code=409)
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid_request(request, error):
+        detail = [{key: item[key] for key in ('loc', 'msg', 'type')} for item in error.errors()]
+        return JSONResponse(envelope(422, detail, operation_id.get()), status_code=422)
+
+    @app.exception_handler(Exception)
+    async def unexpected_failure(request, error):
+        return JSONResponse(envelope(500, '操作未完成，请查看运行诊断后重试', operation_id.get() or getattr(request.state, 'operation_id', None)), status_code=500)
+
     desktop_token = os.environ.get("CLASH_STUDIO_DESKTOP_TOKEN", "")
+
+    request_metrics = {name: deque(maxlen=256) for name in ("status", "control", "other")}
 
     @app.middleware("http")
     async def desktop_guard(request, call_next):
         if desktop_token and request.url.path.startswith("/api/"):
             if not secrets.compare_digest(request.headers.get("X-Clash-Desktop-Token", ""), desktop_token):
-                return JSONResponse({"detail": "此配置服务由 Tauri 桌面程序独占管理"}, status_code=403)
+                return JSONResponse(envelope(403, "此配置服务由 Tauri 桌面程序独占管理", secrets.token_hex(12)), status_code=403)
         if closing.is_set() and request.method not in ('GET', 'HEAD') and request.url.path not in ('/api/shutdown', '/api/client/prepare-exit'):
-            return JSONResponse({'detail':'软件正在退出'}, status_code=503)
-        return await call_next(request)
+            return JSONResponse(envelope(503, '软件正在退出', secrets.token_hex(12)), status_code=503)
+        started = time.perf_counter()
+        request.state.operation_id = secrets.token_hex(12)
+        token = operation_id.set(request.state.operation_id)
+        try:
+            response = await call_next(request)
+            response.headers['X-Operation-Id'] = operation_id.get()
+            category = 'status' if request.url.path == '/api/client/runtime' else 'control' if request.url.path.startswith('/api/client/runtime/') and request.method != 'GET' else 'other'
+            request_metrics[category].append((time.perf_counter() - started) * 1000)
+            return response
+        finally:
+            operation_id.reset(token)
 
     @app.post('/api/client/prepare-exit')
     def prepare_exit():
@@ -159,7 +202,7 @@ def build_app(home: Path, data_dir: Path | None = None):
     def profile_config(profile_id):
         profile = row(profile_id)
         state = workspace.load()
-        result = compose(profile["published"], profile_id, state)
+        result = compositions.get((profile_id, profile["revision"], state.revision), lambda: compose(profile["published"], profile_id, state))
         return profile, result
 
     def settings_payload():
@@ -173,7 +216,7 @@ def build_app(home: Path, data_dir: Path | None = None):
     @app.put("/api/client/settings")
     def save_settings(body: ClientSettings):
         probe.stop()
-        with runtime.lock:
+        with runtime.lifecycle_lock:
             previous = runtime.settings.load()
             runtime.settings.save(body)
             try:
@@ -211,7 +254,7 @@ def build_app(home: Path, data_dir: Path | None = None):
 
     @app.put('/api/client/proxy-selection')
     def save_selection(body: Selection):
-        with runtime.lock:
+        with runtime.lifecycle_lock:
             profile, composed = profile_config(body.profile_id)
             if profile['revision'] != body.profile_revision or composed['workspace_revision'] != body.workspace_revision:
                 raise HTTPException(409, '配置已变更，请刷新节点列表后重试')
@@ -230,6 +273,8 @@ def build_app(home: Path, data_dir: Path | None = None):
                 if live and group.get('now'):
                     runtime.request('PUT', '/proxies/' + quote(body.group, safe=''), json={'name': group['now']})
                 raise HTTPException(503, '节点选择保存失败，请检查数据目录权限') from None
+            if live:
+                runtime.invalidate_egress()
             return {'selected': True, 'live': live, 'group': body.group, 'name': body.name}
 
     @app.post("/api/client/probe/prepare")
@@ -246,7 +291,7 @@ def build_app(home: Path, data_dir: Path | None = None):
     @app.get("/api/client/info")
     def info():
         identity = str(home.resolve()) if paths.data == home.resolve() / 'data' else str(home.resolve()) + '|' + str(paths.data)
-        return {"app": "clash-studio", "version": "1.0.0", "platform": runtime.platform.info['id'], "desktop": bool(desktop_token),
+        return {"app": "clash-studio", "version": "1.1.0", "platform": runtime.platform.info['id'], "desktop": bool(desktop_token),
                 "platform_info": runtime.platform.info, "paths": paths.describe(),
                 "instance": hashlib.sha256((identity.casefold() if os.name == 'nt' else identity).encode()).hexdigest()[:16]}
 
@@ -265,12 +310,12 @@ def build_app(home: Path, data_dir: Path | None = None):
     @app.get("/api/client/preview/{profile_id}")
     def preview(profile_id: str):
         profile = row(profile_id)
-        result = compose(profile["published"], profile_id, workspace.load())
+        _, result = profile_config(profile_id)
         result.update(profile_revision=profile["revision"], published_conflict=bool(profile["last_error"]))
         return result
 
     @app.get("/api/client/runtime")
-    def get_runtime():
+    async def get_runtime():
         return runtime.status()
 
     @app.get("/api/client/network/ip")
@@ -288,7 +333,16 @@ def build_app(home: Path, data_dir: Path | None = None):
         return runtime.status()
 
     @app.post("/api/client/runtime/apply")
-    def apply(body: Apply):
+    async def request_apply(body: Apply, background: bool = False):
+        if background:
+            return JSONResponse(operations.submit('apply', lambda: apply(body, False), runtime.request_cancel), status_code=202)
+        return await run_in_threadpool(apply, body, False)
+
+    def apply(body: Apply, background: bool = False):
+        if background:
+            return JSONResponse(operations.submit('apply', lambda: apply(body, False), runtime.request_cancel), status_code=202)
+        with runtime.lock:
+            epoch = runtime._cancel_epoch
         probe.stop()
         if geodata.busy():
             raise HTTPException(409, "GeoData 更新中，请等待完成或取消后再启动内核")
@@ -297,19 +351,17 @@ def build_app(home: Path, data_dir: Path | None = None):
             raise HTTPException(409, "预览后配置发生变化，请重新预览后再应用")
         if profile["last_error"]:
             raise HTTPException(422, "订阅存在未处理的更新冲突，请在配置编辑器中处理后再应用")
-        with runtime.lock:
+        tun = body.proxy_mode == "tun" if body.proxy_mode is not None else body.tun
+        def revalidate():
             if geodata.busy():
-                raise HTTPException(409, "GeoData 更新中，请等待完成或取消后再启动内核")
-            tun = body.proxy_mode == "tun" if body.proxy_mode is not None else body.tun
-            result = runtime.apply(compose(profile["published"], body.profile_id, state), profile, body.mixed_port, tun, body.tun_stack)
-            mode = body.proxy_mode
-            # Linux desktop starts capture by default, including older callers
-            # which omit proxy_mode. Explicit manual remains available for diagnostics.
-            if mode is None and not tun and runtime.platform.info['os'] == 'linux' and runtime.platform.info['capabilities']['system_proxy']:
-                mode = 'system'
-            if mode is not None:
-                return runtime.change_mode(mode, body.tun_stack)
-            return result
+                raise HTTPException(409, 'GeoData 更新中，请等待完成或取消后再启动内核')
+            if row(body.profile_id)['revision'] != body.profile_revision or workspace.load().revision != body.workspace_revision:
+                raise HTTPException(409, '应用准备期间配置发生变化，请重新预览')
+        composed = compositions.get((body.profile_id, profile['revision'], state.revision), lambda: compose(profile['published'], body.profile_id, state))
+        mode = body.proxy_mode
+        if mode is None and not tun and runtime.platform.info['os'] == 'linux' and runtime.platform.info['capabilities']['system_proxy']:
+            mode = 'system'
+        return runtime.apply(composed, profile, body.mixed_port, tun, body.tun_stack, validator=revalidate, capture_mode=mode, expected_epoch=epoch)
 
     @app.put("/api/client/runtime/mode")
     def change_mode(body: ModeChange):
@@ -394,13 +446,24 @@ def build_app(home: Path, data_dir: Path | None = None):
         return runtime.change_tun(body.enabled, body.stack)
 
     @app.post("/api/client/runtime/stop")
-    def stop():
+    async def request_stop(background: bool = False):
+        runtime.request_cancel()
+        operations.cancel_applies()
+        if background:
+            return JSONResponse(operations.submit('stop', lambda: stop(False)), status_code=202)
+        return await run_in_threadpool(stop, False)
+
+    def stop(background: bool = False):
+        runtime.request_cancel()
+        operations.cancel_applies()
+        if background:
+            return JSONResponse(operations.submit('stop', lambda: stop(False)), status_code=202)
         probe.stop()
         return runtime.stop()
 
     @app.put("/api/client/runtime/system-proxy")
     def system_proxy(body: ProxyChange):
-        with runtime.lock:
+        with runtime.lifecycle_lock:
             if body.enabled:
                 if not runtime.alive() or runtime.active is None:
                     raise HTTPException(409, "请先启动内核")
@@ -411,15 +474,16 @@ def build_app(home: Path, data_dir: Path | None = None):
                 if not result["restored"] and runtime.proxy.path.exists():
                     raise HTTPException(409, result["reason"])
                 runtime.event("已恢复系统代理")
+        runtime.refresh_proxy_status()
         return runtime.status()
 
     @app.get("/api/client/runtime/proxies")
     def proxies():
-        return runtime.request("GET", "/proxies")
+        return runtime.proxies()
 
     @app.put("/api/client/runtime/proxies/{group:path}")
     def select_proxy(group: str, body: Select):
-        with runtime.lock:
+        with runtime.lifecycle_lock:
             if not runtime.alive() or not runtime.active:
                 raise HTTPException(409, '内核未启动')
             return save_selection(Selection(**body.model_dump(), group=group, profile_id=runtime.active['profile_id'],
@@ -427,12 +491,29 @@ def build_app(home: Path, data_dir: Path | None = None):
 
     @app.get("/api/client/runtime/connections")
     def connections():
-        return runtime.request("GET", "/connections")
+        return Response(runtime.connection_json(), media_type="application/json")
 
     @app.delete("/api/client/runtime/connections/{connection_id}")
     def close_connection(connection_id: str):
         runtime.request("DELETE", "/connections/" + quote(connection_id, safe=""))
+        runtime._connection_at = 0
         return {"closed": True}
+
+    @app.get('/api/client/operations/{key}')
+    async def operation_status(key: str):
+        return operations.get(key)
+
+    @app.delete('/api/client/operations/{key}')
+    async def cancel_operation(key: str):
+        return operations.cancel(key)
+
+    @app.get('/api/client/diagnostics')
+    async def diagnostics():
+        samples = {name: sorted(list(values)) for name, values in request_metrics.items()}
+        samples['state_lock_wait'] = sorted(list(runtime._status_lock_wait))
+        latency = {name: {'count': len(values), 'p50': round(values[int((len(values)-1)*.5)], 2) if values else None, 'p95': round(values[int((len(values)-1)*.95)], 2) if values else None} for name, values in samples.items()}
+        return {'schema_version': 1, 'sampled_at': __import__('time').time(),
+                'operation': runtime.status()['operation'], 'composition_cache': compositions.stats(), 'operations': operations.stats(), 'request_ms': latency}
 
     # Replace only the original static frontend with the production build.
     app.router.routes = [route for route in app.router.routes if getattr(route, "name", "") not in ("index", "assets")]

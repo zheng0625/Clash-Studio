@@ -1,3 +1,4 @@
+from conftest import free_mixed_port
 import socket
 import time
 from pathlib import Path
@@ -25,8 +26,7 @@ def test_fast_exit_stops_real_core_without_network_sampling(tmp_path,monkeypatch
     runtime=Runtime(tmp_path,root)
     composed={'config':{'proxies':[],'proxy-groups':[],'rules':['MATCH,DIRECT']},'errors':[],'workspace_revision':1}
     row={'id':'shutdown','title':'shutdown','enabled':True,'revision':1}
-    with socket.socket() as sock:
-        sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
+    port=free_mixed_port()
     try:
         runtime.apply(composed,row,port,False,'mixed')
         process=runtime.process

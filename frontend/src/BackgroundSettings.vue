@@ -17,6 +17,9 @@ const crop=computed(()=>{const width=1/geometry.value.width,height=1/(aspect.val
 const imageStyle=computed(()=>({width:`${100/crop.value.width}%`,height:`${100/crop.value.height}%`,left:`${-crop.value.x/crop.value.width*100}%`,top:`${-crop.value.y/crop.value.height*100}%`}))
 const palette=computed(()=>adapt.value?{...(size.value.dark?darkTheme:lightTheme),accent:currentTheme.value.accent}:currentTheme.value)
 const previewStyle=computed(()=>({'--photo-surface':palette.value.surface,'--photo-text':palette.value.text,'--photo-side':palette.value.sidebar,'--photo-side-text':palette.value.sidebarText,'--photo-accent':palette.value.accent,'--photo-bg':palette.value.background,'--photo-panel':Math.max(readableCoverage(palette.value.surface,palette.value.text,panel.value),readableCoverage(palette.value.surface,secondaryColor(palette.value,adapt.value),panel.value))+'%','--photo-chrome':readableCoverage(palette.value.sidebar,palette.value.sidebarText,Math.max(80,panel.value-8))+'%','--photo-shade':shade.value+'%','--photo-blur':blur.value+'px',aspectRatio:String(aspect.value)}))
+const savedSignature=ref('')
+const photoSignature=computed(()=>JSON.stringify({source:sourceUrl.value,shade:shade.value,blur:blur.value,panel:panel.value,adapt:adapt.value,crop:crop.value,ratio:ratio.value}))
+const photoDirty=computed(()=>!!source.value&&photoSignature.value!==savedSignature.value)
 function reset(){zoom.value=1;cx.value=cy.value=.5}
 async function install(blob:Blob,label:string,saved:Wallpaper|undefined,ticket:number){
   const info=await photoInfo(blob);if(disposed||ticket!==sequence)return
@@ -27,7 +30,7 @@ async function install(blob:Blob,label:string,saved:Wallpaper|undefined,ticket:n
 async function open(){
   const ticket=++sequence;windowRatio.value=window.innerWidth/window.innerHeight;source.value=null;name.value='';if(sourceUrl.value)URL.revokeObjectURL(sourceUrl.value);sourceUrl.value='';error.value='';busy.value=true
   const current=backgroundState.value;shade.value=current.shade;blur.value=current.blur;panel.value=current.panel;adapt.value=current.adapt;dialog.value?.open()
-  try{const saved=await readBackground();if(saved)await install(saved.blob,saved.name,saved,ticket)}catch(e){error.value=(e as Error).message}finally{if(ticket===sequence)busy.value=false}
+  try{const saved=await readBackground();if(saved)await install(saved.blob,saved.name,saved,ticket)}catch(e){error.value=(e as Error).message}finally{if(ticket===sequence){savedSignature.value=photoSignature.value;busy.value=false}}
 }
 async function select(event:Event){
   const input=event.target as HTMLInputElement,file=input.files?.[0];input.value='';if(!file)return
@@ -37,13 +40,13 @@ async function select(event:Event){
 function pointerDown(event:PointerEvent){if(busy.value||!source.value)return;drag={id:event.pointerId,x:event.clientX,y:event.clientY};stage.value?.setPointerCapture(event.pointerId)}
 function pointerMove(event:PointerEvent){if(!drag||drag.id!==event.pointerId||!stage.value)return;const width=stage.value.clientWidth;cx.value=crop.value.x+crop.value.width/2-(event.clientX-drag.x)/(width*geometry.value.width);cy.value=crop.value.y+crop.value.height/2-(event.clientY-drag.y)/(width*geometry.value.height);drag.x=event.clientX;drag.y=event.clientY}
 function keyMove(event:KeyboardEvent){if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();const step=event.shiftKey?.05:.01;cx.value=crop.value.x+crop.value.width/2+(event.key==='ArrowLeft'?-step:event.key==='ArrowRight'?step:0);cy.value=crop.value.y+crop.value.height/2+(event.key==='ArrowUp'?-step:event.key==='ArrowDown'?step:0)}
-async function save(){if(busy.value||!source.value)return;busy.value=true;error.value='';try{await saveBackground({blob:source.value,name:name.value,shade:shade.value,blur:blur.value,panel:panel.value,adapt:adapt.value,dark:size.value.dark,crop:crop.value,ratio:ratio.value});emit('notice',t("照片裁切、配色与背景效果已保存"))}catch(e){error.value=(e as Error).message}finally{busy.value=false}}
+async function save(){if(busy.value||!source.value)return;busy.value=true;error.value='';try{await saveBackground({blob:source.value,name:name.value,shade:shade.value,blur:blur.value,panel:panel.value,adapt:adapt.value,dark:size.value.dark,crop:crop.value,ratio:ratio.value});savedSignature.value=photoSignature.value;emit('notice',t("照片裁切、配色与背景效果已保存"))}catch(e){error.value=(e as Error).message}finally{busy.value=false}}
 async function clear(){if(busy.value)return;busy.value=true;try{await clearBackground();++sequence;source.value=null;if(sourceUrl.value)URL.revokeObjectURL(sourceUrl.value);sourceUrl.value='';error.value='';emit('notice',t("已清除照片，恢复原配色"))}catch(e){error.value=(e as Error).message}finally{busy.value=false}}
 onUnmounted(()=>{disposed=true;++sequence;if(sourceUrl.value)URL.revokeObjectURL(sourceUrl.value)})
 </script>
 <template>
   <section class="desk-card appearance-entry"><div><ImagePlus :size="22"/><div><h2>{{ t("背景图片") }}</h2><p>{{ backgroundState.hasImage?backgroundState.name:t("全窗口照片背景 · 预览与裁切") }}</p></div></div><button class="desk-btn" @click="open">{{ t("设置背景 →") }}</button></section>
-  <SettingsDialog ref="dialog" :title="t('照片背景与裁切')" :description="t('拖动照片选择区域，支持缩放和方向键微调；保存前不会改变当前背景。')">
+  <SettingsDialog ref="dialog" :dirty="photoDirty" :busy="busy" :title="t('照片背景与裁切')" :description="t('拖动照片选择区域，支持缩放和方向键微调；保存前不会改变当前背景。')">
     <label class="desk-field photo-file">{{ t("选择本地照片") }}<input type="file" accept="image/jpeg,image/png,image/webp" :disabled="busy" @change="select"/></label>
     <p class="small-explanation">{{ name||t("支持 JPEG / PNG / WebP，最大 15 MB；仅本机保存，不修改原照片。") }}</p>
     <template v-if="sourceUrl">
@@ -55,6 +58,6 @@ onUnmounted(()=>{disposed=true;++sequence;if(sourceUrl.value)URL.revokeObjectURL
       <p class="small-explanation">{{ t("自动模式不覆盖已保存的配色。面板至少保留 75% 覆盖，实际应用时会按正文及辅助文字对比度提高覆盖，避免照片明暗影响阅读。") }}</p>
     </template>
     <p v-else class="page-caption">{{ t("选择照片后即可预览和裁切。") }}</p><p v-if="error" class="desk-alert error" role="status">{{ message(error) }}</p>
-    <div class="config-actions"><button class="desk-btn primary" :disabled="busy||!source" @click="save"><Save :size="15"/>{{ busy?t("处理中…"):t("保存并应用") }}</button><button class="desk-btn" :disabled="busy||!backgroundState.hasImage" @click="clear"><Trash2 :size="15"/>{{ t("清除背景") }}</button></div>
-  </SettingsDialog>
+
+  <template #footer><div class="config-actions"><button class="desk-btn primary" :disabled="busy||!source" @click="save"><Save :size="15"/>{{ busy?t("处理中…"):t("保存并应用") }}</button><button class="desk-btn" :disabled="busy||!backgroundState.hasImage" @click="clear"><Trash2 :size="15"/>{{ t("清除背景") }}</button></div></template></SettingsDialog>
 </template>

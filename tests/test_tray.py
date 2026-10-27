@@ -33,9 +33,13 @@ def test_tray_toggle_and_live_mode_rollback(tmp_path, monkeypatch):
     monkeypatch.setattr(runtime, 'status', lambda: {
         'running': running['value'], 'proxy': {'owned': running['owned']},
         'tun': {'enabled': running['tun']}, 'routing_mode': 'rule'})
-    def apply(composed, profile, port, tun, stack):
+    def apply(composed, profile, port, tun, stack, validator=None, capture_mode=None, expected_epoch=None):
+        if validator:
+            validator()
         calls.append((profile['id'], port, tun, stack))
         running['value'] = True
+        if capture_mode is not None:
+            return mode(capture_mode, stack)
         return runtime.status()
     def mode(value, stack):
         if value == 'tun':

@@ -1,36 +1,12 @@
 <script setup lang="ts">
-import { t, message, locale } from './i18n'
-
-import { onMounted, onUnmounted, ref } from 'vue'
-import { X } from 'lucide-vue-next'
-
-defineProps<{title:string;description:string;confirmText:string;danger:boolean}>()
+import { onMounted, ref } from 'vue'
+import AppDialog from './AppDialog.vue'
+import { t, message } from './i18n'
+const props=defineProps<{title:string;description:string;confirmText:string;danger:boolean}>()
 const emit=defineEmits<{result:[value:boolean]}>()
-const panel=ref<HTMLElement|null>(null), cancel=ref<HTMLButtonElement|null>(null)
-function keyboard(event:KeyboardEvent){
-  if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();emit('result',false)}
-  if(event.key==='Tab'){
-    const buttons=panel.value?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
-    if(!buttons?.length)return
-    const first=buttons[0]!,last=buttons[buttons.length-1]!
-    if(event.shiftKey&&(document.activeElement===first||!panel.value?.contains(document.activeElement))){event.preventDefault();last.focus()}
-    else if(!event.shiftKey&&(document.activeElement===last||!panel.value?.contains(document.activeElement))){event.preventDefault();first.focus()}
-  }
-}
-onMounted(()=>{cancel.value?.focus();document.addEventListener('keydown',keyboard,true)})
-onUnmounted(()=>document.removeEventListener('keydown',keyboard,true))
+const panel=ref<InstanceType<typeof AppDialog>|null>(null)
+let settled=false
+function finish(value:boolean){if(settled)return;settled=true;panel.value?.close();emit('result',value)}
+onMounted(()=>{void panel.value?.open()})
 </script>
-
-<template>
-  <div class="desk-backdrop confirm-backdrop" @click.self="emit('result',false)">
-    <section ref="panel" class="desk-modal confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirmation-title" aria-describedby="confirmation-description">
-      <button class="modal-x desk-icon-btn" :aria-label="t('取消')" @click="emit('result',false)"><X :size="20"/></button>
-      <h2 id="confirmation-title">{{ t(title) }}</h2>
-      <p id="confirmation-description">{{ message(description) }}</p>
-      <div class="modal-actions">
-        <button ref="cancel" class="desk-btn" @click="emit('result',false)">{{ t("取消") }}</button>
-        <button class="desk-btn" :class="danger?'danger':'primary'" @click="emit('result',true)">{{ t(confirmText) }}</button>
-      </div>
-    </section>
-  </div>
-</template>
+<template><AppDialog ref="panel" class="confirm-dialog" role="alertdialog" :title="t(props.title)" :description="message(props.description)" close-label="取消" initial-focus="[data-confirm-cancel]" @closed="finish(false)"><template #footer><div class="modal-actions"><button type="button" class="desk-btn" data-confirm-cancel @click="finish(false)">{{ t('取消') }}</button><button type="button" class="desk-btn" :class="danger?'danger':'primary'" @click="finish(true)">{{ t(confirmText) }}</button></div></template></AppDialog></template>

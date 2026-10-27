@@ -11,6 +11,7 @@ const emit=defineEmits<{notice:[message:string,error?:boolean]}>()
 const draft=ref<ClientTheme>({...currentTheme.value}), error=ref('')
 const dialog=ref<InstanceType<typeof SettingsDialog>|null>(null)
 function open(){draft.value={...effectiveTheme()};error.value='';dialog.value?.open()}
+const appearanceDirty=computed(()=>JSON.stringify(draft.value)!==JSON.stringify(effectiveTheme()))
 const validation=computed(()=>themeError(draft.value))
 const activePreset=computed(()=>themePresets.find(p=>themeFields.every(f=>p.colors[f.key].toLowerCase()===draft.value[f.key].toLowerCase()))?.name)
 const modeOptions:{id:Exclude<ThemeMode,'custom'>;label:string}[]=[{id:'system',label:'跟随系统'},{id:'light',label:'浅色'},{id:'dark',label:'深色'}]
@@ -32,7 +33,7 @@ function ratio(value:number){return Number.isFinite(value)?value.toFixed(2):'—
 
 <template>
   <section class="desk-card appearance-entry"><div><Palette :size="22"/><div><h2>{{ t("外观与配色") }}</h2><p>{{ t("选择配色预设，定制你喜欢的界面。") }}</p></div></div><button class="desk-btn" @click="open">{{ t("自定义配色 →") }}</button></section>
-  <SettingsDialog ref="dialog" :title="t('自定义配色')" :description="t('选择预设或调整颜色，保存后全局生效并在下次启动时恢复。')">
+  <SettingsDialog ref="dialog" :dirty="appearanceDirty" :title="t('自定义配色')" :description="t('选择预设或调整颜色，保存后全局生效并在下次启动时恢复。')">
     <div class="appearance-mode" role="radiogroup" :aria-label="t('主题模式')">
       <button v-for="option in modeOptions" :key="option.id" type="button" role="radio" :aria-checked="themeMode===option.id" @click="chooseMode(option.id)">{{ t(option.label) }}</button>
     </div>
@@ -52,6 +53,6 @@ function ratio(value:number){return Number.isFinite(value)?value.toFixed(2):'—
     </div>
     <p class="small-explanation">{{ t("正文对比度：{0}:1 · 侧栏：{1}:1。保存要求至少 4.5:1，辅助文字及按钮文字自动适配。", [ratio(Math.min(contrast(draft.text,draft.surface),contrast(draft.text,draft.background))), ratio(contrast(draft.sidebarText,draft.sidebar))]) }}</p>
     <p v-if="validation||error" class="desk-alert error" role="status">{{ message(error||validation) }}</p>
-    <div class="config-actions"><button type="button" class="desk-btn primary" :disabled="!!validation" @click="save"><Save :size="15"/>{{ t("保存配色") }}</button><button type="button" class="desk-btn" @click="reset"><RotateCcw :size="15"/>{{ t("恢复默认") }}</button><span class="small-explanation">{{ t("只影响界面外观，无需重启内核。") }}</span></div>
-  </SettingsDialog>
+
+  <template #footer><div class="config-actions"><button type="button" class="desk-btn primary" :disabled="!!validation" @click="save"><Save :size="15"/>{{ t("保存配色") }}</button><button type="button" class="desk-btn" @click="reset"><RotateCcw :size="15"/>{{ t("恢复默认") }}</button><span class="small-explanation">{{ t("只影响界面外观，无需重启内核。") }}</span></div></template></SettingsDialog>
 </template>

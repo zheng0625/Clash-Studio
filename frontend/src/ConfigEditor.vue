@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import { t, message, locale } from './i18n'
 
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { ArrowDown, ArrowUp, Check, Code2, Copy, Download, FileUp, FolderClock, Globe2, Layers3, ListFilter, Loader2, Plus, RefreshCw, RotateCcw, Save, Search, Settings2, ShieldCheck, Sparkles, Trash2, X } from 'lucide-vue-next'
 import { confirmDialog } from './confirm'
 import { api } from './api'
 import { saveTextFile } from './android'
 import type { AICatalogue, Edits, Group, History, NetworkStatus, Preview, Subscription } from './types'
 
-const props=defineProps<{subscription:Subscription;backendBase:string;desktopFeatures?:boolean}>()
-const emit=defineEmits<{saved:[value:Subscription];dirty:[value:boolean];notice:[text:string,error?:boolean]}>()
+const props=defineProps<{subscription:Subscription;backendBase:string;desktopFeatures?:boolean;viewState?:{tab:string;search:string;groupKey:string;memberSearch:string;raw:boolean;searches:Record<string,string>}}>()
+const emit=defineEmits<{saved:[value:Subscription];dirty:[value:boolean];notice:[text:string,error?:boolean];ready:[];viewState:[value:{tab:string;search:string;groupKey:string;memberSearch:string;raw:boolean;searches:Record<string,string>}]}>()
 const clone=<T,>(v:T):T=>JSON.parse(JSON.stringify(v))
 const current=ref(clone(props.subscription)), edits=ref<Edits>(clone(props.subscription.edits)), preview=ref<Preview>(clone(props.subscription.preview))
-const tab=ref('nodes'), busy=ref(false), checking=ref(false), error=ref(''), search=ref(''), groupKey=ref(''), raw=ref(false)
-const newGroup=ref(''), newType=ref('select'), groupDialog=ref(false), memberSearch=ref(''), advanced=ref(false), advancedRule=ref('')
+const tab=ref(props.viewState?.tab||'nodes'), busy=ref(false), checking=ref(false), error=ref(''), search=ref(props.viewState?.search||''), groupKey=ref(props.viewState?.groupKey||''), raw=ref(props.viewState?.raw||false)
+const newGroup=ref(''), newType=ref('select'), groupDialog=ref(false), memberSearch=ref(props.viewState?.memberSearch||''), advanced=ref(false), advancedRule=ref('')
+const tabSearches=ref<Record<string,string>>({...props.viewState?.searches})
+watch([tab,search,groupKey,memberSearch,raw],()=>{tabSearches.value[tab.value]=search.value;emit('viewState',{tab:tab.value,search:search.value,groupKey:groupKey.value,memberSearch:memberSearch.value,raw:raw.value,searches:{...tabSearches.value}})},{flush:'post'})
 const rule=ref({kind:'DOMAIN-SUFFIX',value:'',target:'DIRECT',noResolve:false,position:'top'})
 const history=ref<History[]>([]), historical=ref<{yaml:string;label:string;id:number}|null>(null)
 const meta=ref({title:current.value.title,enabled:!!current.value.enabled,interval_minutes:current.value.interval_minutes})
@@ -47,7 +49,7 @@ const modifiedCount=computed(()=>Object.keys(edits.value.proxy_renames).length+e
 function adopt(value:Subscription){current.value=clone(value);edits.value=clone(value.edits);preview.value=clone(value.preview);meta.value={title:value.title,enabled:!!value.enabled,interval_minutes:value.interval_minutes};error.value='';emit('saved',value)}
 watch(()=>props.subscription,(value)=>{if(!dirty.value&&(value.id!==current.value.id||value.revision!==current.value.revision)){current.value=clone(value);edits.value=clone(value.edits);preview.value=clone(value.preview);meta.value={title:value.title,enabled:!!value.enabled,interval_minutes:value.interval_minutes}}})
 watch(dirty,value=>emit('dirty',value),{immediate:true})
-watch(tab,async value=>{search.value='';if(value==='history')await loadHistory();if(value==='groups'&&!chosen.value)groupKey.value=groups.value[0]?.key||''})
+watch(tab,async (value,previous)=>{tabSearches.value[previous]=search.value;search.value=tabSearches.value[value]||'';if(value==='history')await loadHistory();if(value==='groups'&&!chosen.value)groupKey.value=groups.value[0]?.key||''})
 watch(edits,()=>{clearTimeout(timer);sequence++;if(dirty.value){checking.value=true;timer=setTimeout(()=>checkDraft(),300)}else{checking.value=false;preview.value=clone(current.value.preview)}},{deep:true})
 async function action(fn:()=>Promise<void>){if(busy.value)return;busy.value=true;try{await fn()}catch(e){error.value=(e as Error).message;emit('notice',error.value,true)}finally{busy.value=false}}
 async function checkDraft(){const seq=++sequence;checking.value=true;try{const result=await api<Preview>(`/api/subscriptions/${current.value.id}/preview`,'POST',{revision:current.value.revision,edits:edits.value});if(seq===sequence){preview.value=result;error.value=''}}catch(e){if(seq===sequence)error.value=(e as Error).message}finally{if(seq===sequence)checking.value=false}}
@@ -80,7 +82,7 @@ async function loadNetwork(){network.value=await api<NetworkStatus>('/api/networ
 async function saveNetwork(){await action(async()=>{network.value=await api<NetworkStatus>('/api/network','PUT',networkForm.value);emit('notice',network.value.running?t("局域网只读订阅共享已开启"):t("局域网共享已关闭"))})}
 async function copy(value:string){try{await navigator.clipboard.writeText(value);emit('notice',t("已复制"))}catch{emit('notice',t("复制失败，请手动复制"),true)}}
 async function download(){if(preview.value.errors.length)return;await action(async()=>{await saveTextFile(current.value.title+'.yaml',preview.value.yaml)})}
-onMounted(async()=>{groupKey.value=groups.value[0]?.key||'';try{catalogue.value=await api<AICatalogue>('/api/presets/ai');aiOutlet.value=policies.value.find(p=>!['DIRECT','REJECT',catalogue.value?.group_name].includes(p.value))?.value||'';await loadNetwork()}catch(e){emit('notice',(e as Error).message,true)}})
+onMounted(async()=>{if(!chosen.value)groupKey.value=groups.value[0]?.key||'';try{catalogue.value=await api<AICatalogue>('/api/presets/ai');aiOutlet.value=policies.value.find(p=>!['DIRECT','REJECT',catalogue.value?.group_name].includes(p.value))?.value||'';await loadNetwork();if(tab.value==='history')await loadHistory()}catch(e){emit('notice',(e as Error).message,true)}finally{await nextTick();emit('ready')}})
 onUnmounted(()=>{clearTimeout(timer);emit('dirty',false)})
 </script>
 

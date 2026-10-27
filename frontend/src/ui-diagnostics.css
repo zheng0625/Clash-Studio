@@ -1,0 +1,100 @@
+/* Shared native modal, connection inspection and five-item mobile navigation. */
+:root .app-dialog.app-dialog{position:fixed;inset:0;margin:auto;width:min(560px,calc(100vw - 32px));max-width:none;max-height:min(84dvh,850px);height:auto;padding:0;overflow:hidden;transform:none;border:1px solid var(--client-border);border-radius:20px;background:var(--client-surface);color:var(--client-text);box-shadow:0 20px 70px #0004}
+:root .app-dialog.app-dialog[open]{display:flex;flex-direction:column}
+:root .app-dialog.app-dialog.wide{width:min(760px,calc(100vw - 32px))}
+:root .app-dialog.app-dialog::backdrop{background:#0008;backdrop-filter:blur(4px)}
+:root .app-dialog .app-dialog-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--client-border);flex-shrink:0}
+:root .app-dialog .app-dialog-heading>div{min-width:0}
+:root .app-dialog .app-dialog-heading h2{font-size:18px;line-height:1.5;margin:6px 0;color:var(--client-text)}
+:root .app-dialog .app-dialog-heading p{font-size:13px;line-height:1.7;margin:4px 0 0;color:var(--client-secondary);white-space:pre-line}
+:root .app-dialog .app-dialog-body{flex:1;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain;padding:20px}
+:root .app-dialog .app-dialog-body:empty{display:none}
+:root .app-dialog .app-dialog-footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px;flex-shrink:0;padding:12px 20px;border-top:1px solid var(--client-border)}
+:root .app-dialog .app-dialog-footer>p,:root .app-dialog .app-dialog-footer>small{flex-basis:100%;font-size:13px;line-height:1.7;margin:0;color:var(--client-secondary)}
+:root .app-dialog .app-dialog-footer .modal-actions{width:100%;margin:0;gap:12px;flex-wrap:wrap}
+:root .app-dialog .app-dialog-footer .small-explanation{font-size:12px;line-height:1.6;flex:1;min-width:160px}
+:root .app-dialog .app-dialog-footer .config-actions{margin:0;padding:0;border:0;width:100%;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px}
+:root .app-dialog :is(.desk-btn,.desk-icon-btn){min-height:44px}
+:root .app-dialog .desk-icon-btn{min-width:44px;flex-shrink:0}
+:root .app-dialog :is(input,select,textarea){max-width:100%;box-sizing:border-box}
+:root .app-dialog.routing-editor .app-dialog-body{padding:0}
+:root .app-dialog.routing-editor .routing-editor-fields{overflow:visible}
+:root .app-dialog.confirm-dialog{max-width:480px}
+:root .app-dialog.confirm-dialog .app-dialog-heading p{font-size:14px;line-height:1.8}
+.desk .network-count-button{padding:0;border:0;background:none;text-align:left;color:var(--client-text);min-height:44px;cursor:pointer;border-radius:8px}
+.desk .network-count-button:hover{text-decoration:underline;text-underline-offset:4px}
+.desk .home-plan-selection{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin:12px 0}
+.desk .home-plan-selection.has-strategy{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.desk .home-plan-selection .launch-profile{margin:0;min-width:0}
+.desk .primary-strategy{display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:0;min-height:44px;padding:8px 10px;border:1px solid var(--client-border);border-radius:12px;text-align:left;background:var(--client-surface);color:var(--client-text)}
+.desk .primary-strategy:hover{background:var(--client-selected)}
+.desk .primary-strategy small{font-size:11px;line-height:1.4;color:var(--client-secondary)}
+.desk .primary-strategy strong{font-size:14px;line-height:1.4;color:var(--client-text)}
+.desk .primary-strategy span{font-size:12px;line-height:1.4;color:var(--client-secondary)}
+.desk .primary-strategy :is(small,strong,span){max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:root .desk .routing-drag-handle{touch-action:none;cursor:grab;user-select:none}
+.desk .routing-drag-handle:active{cursor:grabbing}
+.desk .routing-summary.dragging{opacity:.6}
+.desk .routing-summary.drop-before{border-top:3px solid var(--client-accent)}
+.desk .routing-summary.drop-after{border-bottom:3px solid var(--client-accent)}
+.desk .routing-drag-notice{font-size:12px;line-height:1.6;color:var(--client-secondary)}
+.desk .routing-app-list .routing-app-icon,.desk .routing-app-list .routing-app-badge{width:32px;height:32px;border-radius:9px;flex:0 0 32px;object-fit:contain}
+.desk .routing-app-list .routing-app-badge{display:grid;place-items:center;font-size:16px;background:var(--client-selected);color:var(--client-accent)}
+.desk .connection-controls{display:grid;grid-template-columns:minmax(180px,1.4fr) repeat(3,minmax(110px,.8fr)) auto;gap:10px;align-items:center;padding:16px}
+.desk .connection-controls .desk-search{margin:0;display:flex;align-items:center;min-width:0;padding:0 10px;gap:8px}
+.desk .connection-controls input{width:100%;min-width:0;min-height:42px;border:0;background:transparent;font-size:14px}
+.desk .connection-controls select{width:100%;min-width:0;min-height:42px;font-size:13px}
+.desk .connection-sample{font-size:12px;line-height:1.7;margin:12px 0;color:var(--client-secondary)}
+.desk .connection-list{padding:0;overflow:hidden}
+.desk .connection-list-heading,.desk .connection-inspect{display:grid;grid-template-columns:minmax(160px,1.4fr) minmax(120px,1fr) minmax(120px,1fr) minmax(95px,.6fr);gap:16px;align-items:center}
+.desk .connection-list-heading{padding:14px 68px 14px 16px;font-size:12px;color:var(--client-secondary);border-bottom:1px solid var(--client-border)}
+.desk .connection-item{display:flex;align-items:center;gap:8px;padding-right:8px;border-bottom:1px solid var(--client-border)}
+.desk .connection-item:last-child{border-bottom:0}
+.desk .connection-inspect{flex:1;min-width:0;width:100%;min-height:78px;padding:14px 16px;border:0;background:transparent;color:var(--client-text);text-align:left;font-size:13px}
+.desk .connection-inspect:hover{background:var(--client-selected)}
+.desk .connection-inspect>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.desk .connection-inspect strong{font-size:14px;overflow:hidden;text-overflow:ellipsis;display:block;white-space:nowrap;color:var(--client-text)}
+.desk .connection-inspect small{display:block;font-size:12px;color:var(--client-secondary);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.desk .connection-item>.desk-icon-btn{flex-shrink:0;min-height:44px;min-width:44px}
+:root .app-dialog.app-dialog.connection-detail{width:min(520px,calc(100vw - 32px));max-height:calc(100dvh - 32px);height:calc(100dvh - 32px);margin:16px 16px 16px auto}
+.connection-detail-status{font-size:13px;line-height:1.7;color:var(--client-secondary);margin:0 0 16px}
+.connection-detail-fields{margin:0;display:flex;flex-direction:column;gap:18px}
+.connection-detail-fields dt{font-size:12px;color:var(--client-secondary);margin-bottom:6px}
+.connection-detail-fields dd{position:relative;font-size:14px;color:var(--client-text);line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;margin:0;padding-right:48px;min-height:44px}
+.connection-detail-fields dd>.desk-icon-btn{position:absolute;right:0;top:0}
+.desk .diagnostic-back{margin:0 0 12px}
+@media(max-width:1050px){.desk .connection-controls{grid-template-columns:repeat(3,minmax(0,1fr))}.desk .connection-controls .desk-search{grid-column:1/3}}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .app-dialog.app-dialog{width:calc(100vw - 16px);max-height:calc(100dvh - var(--mobile-top) - var(--mobile-bottom) - 16px);border-radius:20px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .app-dialog .app-dialog-heading,:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .app-dialog .app-dialog-body{padding:16px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .app-dialog .app-dialog-footer{padding:12px 16px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .app-dialog :is(input:not([type=checkbox]):not([type=color]),select,textarea){font-size:16px;min-height:44px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .app-dialog.app-dialog.connection-detail{height:auto;margin:auto}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-controls .desk-search{grid-column:1/-1}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-list-heading{display:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-inspect{grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:12px;min-height:82px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-inspect>span:nth-child(2),:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .connection-inspect>span:nth-child(3){display:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=connections] .desk-page-heading p{display:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=connections] .desk-page-heading{margin-bottom:12px;gap:8px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=connections] .heading-buttons{display:none}
+:root[lang=en]:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-navigation>button{font-size:clamp(10.5px,2.8vw,11px)}
+:root:where([data-mobile-tier=compact]) .desk .mobile-navigation{height:auto;min-height:var(--nav-height,68px)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-navigation>button{padding:4px 0;gap:1px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-navigation>button>span:last-child{max-width:100%;overflow-wrap:anywhere;line-height:1.2;text-align:center}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-nav-icon{height:22px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .proxy-tools{grid-template-columns:minmax(0,1fr) minmax(128px,max-content)}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=proxies]:has(.delay-fab) .desk-content{margin-bottom:calc(var(--mobile-nav-height) + var(--mobile-bottom) + 84px);padding-bottom:16px;scroll-padding-bottom:16px}
+@media(max-height:500px) and (min-aspect-ratio:1.4){
+ :root:where([data-mobile-tier=compact]) .desk .desk-topbar{height:48px;min-height:48px;padding-right:104px}
+ :root:where([data-mobile-tier=compact]) .desk .shell-brand{top:6px}
+ :root:where([data-mobile-tier=compact]) .desk .desk-content{padding-top:8px;padding-right:104px;padding-bottom:16px;scroll-padding-bottom:16px}
+ :root:where([data-mobile-tier=compact]) .desk .mobile-navigation{top:12px;bottom:12px;right:12px;left:auto;width:76px;height:calc(100dvh - 24px);min-height:0;max-width:none;margin:0;grid-template-columns:minmax(0,1fr);grid-template-rows:repeat(var(--nav-count,5),minmax(0,1fr));border-radius:24px}
+ :root:where([data-mobile-tier=compact]) .desk .mobile-nav-thumb{right:var(--nav-item-pad);bottom:auto;width:auto;height:calc((100% - var(--nav-item-pad)*2 - var(--nav-item-gap)*(var(--nav-count,5) - 1))/var(--nav-count,5));transform:translateY(calc(var(--nav-index,0)*(100% + var(--nav-item-gap))))}
+ :root:where([data-mobile-tier=compact]) .desk .delay-fab{right:104px;bottom:16px}
+ :root:where([data-mobile-tier=compact]) .desk :is(.routing-save-bar,.settings-save-bar){bottom:12px;left:calc((100vw - 92px)/2);width:calc(100vw - 124px)}
+ :root:where([data-mobile-tier=compact]) .desk .desk-page-heading{margin-bottom:8px}
+ :root:where([data-mobile-tier=compact]) .desk[data-ui-page=connections] .configuration-status{padding:6px 12px;margin-bottom:8px}
+ :root:where([data-mobile-tier=compact]) .desk[data-ui-page=connections] .configuration-status>span{display:none}
+ :root:where([data-mobile-tier=compact]) .desk .connection-controls{grid-template-columns:repeat(4,minmax(0,1fr))}
+ :root:where([data-mobile-tier=compact]) .desk .connection-controls .desk-search{grid-column:1/3}
+}

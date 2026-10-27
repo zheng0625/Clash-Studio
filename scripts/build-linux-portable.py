@@ -13,7 +13,7 @@ import zipfile
 from packaging.requirements import Requirement
 
 ROOT=Path(__file__).resolve().parents[1]
-NAME='ClashStudio-1.0-linux-x64'
+NAME='ClashStudio-1.1-linux-x64'
 OUT=ROOT/'artifacts/releases'/NAME
 if sys.platform!='linux' or OUT.exists():
     raise SystemExit('Build on Linux with a new output path')
@@ -53,7 +53,7 @@ while todo:
         target=site/relative;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
 subprocess.run([str(python),'-I','-c','import fastapi,uvicorn,httpx,ruamel.yaml,ssl,sqlite3;print("Bundled Python imports passed")'],check=True)
 (OUT/'requirements.lock.txt').write_text('\n'.join(sorted(versions))+'\n')
-(OUT/'portable.json').write_text(json.dumps({'version':'1.0.0','architecture':'linux-x64','data':'data'},indent=2)+'\n')
+(OUT/'portable.json').write_text(json.dumps({'version':'1.1.0','architecture':'linux-x64','data':'data'},indent=2)+'\n')
 for name,body in [('Start.sh','exec "$root/ClashStudio" "$@"'),('Stop.sh','exec "$root/ClashStudio" --quit "$@"')]:
     (OUT/name).write_text('#!/bin/sh\nset -eu\nroot=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\n'+body+'\n');(OUT/name).chmod(0o755)
 shutil.copy2(ROOT/'docs/linux-preview.md',OUT/'Linux测试说明.md')
@@ -65,7 +65,7 @@ with zipfile.ZipFile(source,'w',zipfile.ZIP_DEFLATED) as archive:
     for name in ['run.py','src-tauri/Cargo.toml','src-tauri/Cargo.lock','src-tauri/tauri.conf.json','src-tauri/build.rs','frontend/package.json','frontend/pnpm-lock.yaml','frontend/index.html','frontend/tsconfig.json','frontend/vite.config.ts','LICENSE']:
         archive.write(ROOT/name,name)
 entries=[{'path':str(p.relative_to(OUT)),'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in sorted(OUT.rglob('*')) if p.is_file()]
-(OUT/'manifest.json').write_text(json.dumps({'files':entries,'platform':'linux-x64','baseline':'Ubuntu 22.04'},indent=2)+'\n')
+(OUT/'manifest.json').write_text(json.dumps({'version':'1.1.0','files':entries,'platform':'linux-x64','baseline':'Ubuntu 22.04'},indent=2)+'\n')
 archive=OUT.parent/(NAME+'.tar.gz')
 with tarfile.open(archive,'w:gz') as tar:tar.add(OUT,arcname=NAME)
 digest=hashlib.sha256(archive.read_bytes()).hexdigest()

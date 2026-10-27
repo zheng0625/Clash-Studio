@@ -1,6 +1,6 @@
 # 从源码构建 / Building from source
 
-Android 开发版已建立独立的 Android Studio 工程，可构建订阅管理与配置编辑功能：见 [Android 工程](android/README.md) 和 [验证记录](docs/android-features.md)。Android 代理内核和 VPN 尚未接入。
+Android 已接入 ARM64 代理内核和 VPN，使用独立 Android Studio 工程构建。见 [Android 工程](android/README.md) 和 [真机验收](docs/Android真机后端验收-2026-10-26.md)。
 
 目标为 Windows x64 与 Linux x64。依赖锁文件见 `frontend/pnpm-lock.yaml`、`src-tauri/Cargo.lock`、`requirements.txt`。
 
@@ -55,7 +55,7 @@ Linux `pydantic_core` 等带平台二进制的依赖必须安装为 Linux 对应
 
 ## 数据与发行
 
-可使用 `--data-dir` 或 `CLASH_STUDIO_DATA` 指定开发数据目录。打包脚本拒绝覆盖已有发行目录；不要复制开发数据、订阅、控制密钥、日志、WebView 缓存或本机工具链。当前打包脚本产品版本为 1.0，构建版本为 1.0.0，后续版本需要同步更新。
+可使用 `--data-dir` 或 `CLASH_STUDIO_DATA` 指定开发数据目录。打包脚本拒绝覆盖已有发行目录；不要复制开发数据、订阅、控制密钥、日志、WebView 缓存或本机工具链。当前打包脚本产品版本为 1.1，构建版本为 1.1.0，后续版本需要同步更新。
 
 公开发行时附带本项目对应源码、Mihomo 对应版本上游源码、许可声明及校验文件。构建通过和设备实际使用验证分别记录，见 [0.5.17 验证说明](docs/validation-0.5.17.md)。
 

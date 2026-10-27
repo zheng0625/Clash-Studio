@@ -194,10 +194,12 @@ def compile_config(source: str, edits: dict):
     original_rules = config.get("rules", [])
     removed = set(edits["removed_rules"])
     available = [r for r in original_rules if r not in removed] + edits["added_rules"]
-    ordered = [r for r in edits["rule_order"] if r in available]
+    available_set = set(available)
+    ordered = [r for r in edits["rule_order"] if r in available_set]
     # Newly arriving upstream rules must stay before the final catch-all.
     rules = list(dict.fromkeys(ordered))
-    remaining = [r for r in available if r not in rules]
+    ordered_set = set(rules)
+    remaining = [r for r in available if r not in ordered_set]
     if rules:
         final = next((i for i, r in enumerate(rules) if split_rule(r)[0].upper() in ("MATCH", "FINAL")), len(rules))
         rules[final:final] = remaining

@@ -12,23 +12,55 @@ import java.util.*;
 /** App-private, atomic storage. Revisions reject stale edits rather than overwrite them. */
 final class ProfileStore {
     private final Path file;
+    private final Path hotFile;
+    private boolean hotCleanupPending;
     private JSONObject state;
+    private final LinkedHashMap<String, JSONObject> hydrated = new LinkedHashMap<>(16, .75f, true);
     static class Failure extends Exception {
-        final int status;
-        Failure(int status, String message) { super(message); this.status = status; }
+        final int status; final String code;
+        Failure(int status, String message) { this(status, message, ErrorContract.code(status)); }
+        Failure(int status, String message, String code) { super(message); this.status = status; this.code = code; }
     }
     ProfileStore(File directory) throws Exception {
-        Files.createDirectories(directory.toPath()); file = directory.toPath().resolve("profiles-v1.json");
+        Files.createDirectories(directory.toPath()); file = directory.toPath().resolve("profiles-v1.json"); hotFile = directory.toPath().resolve("client-state-v2.json");
         if (Files.exists(file)) {
             if (Files.size(file) > 64L * 1024 * 1024) throw new IOException("本地数据文件过大，请先备份检查");
             state = new JSONObject(new String(Files.readAllBytes(file), java.nio.charset.StandardCharsets.UTF_8));
             if (state.getInt("version") != 1) throw new IOException("不支持的本地数据版本");
             state.getJSONObject("profiles"); state.getJSONObject("selections"); state.getJSONObject("settings");
         } else state = new JSONObject().put("version", 1).put("profiles", new JSONObject()).put("selections", new JSONObject()).put("settings", defaults());
+        if (Files.exists(hotFile)) {
+            if (Files.size(hotFile) > 4L * 1024 * 1024) throw new IOException("高频状态文件过大");
+            JSONObject hot = new JSONObject(new String(Files.readAllBytes(hotFile), java.nio.charset.StandardCharsets.UTF_8));
+            if (hot.getInt("version") != 2) throw new IOException("不支持的高频状态版本");
+            state.put("selections", hot.getJSONObject("selections")).put("settings", hot.getJSONObject("settings"));
+        } else commitHot(hotState()); // The untouched v1 document remains the migration backup.
+        pruneHot();
     }
     static JSONObject defaults() throws Exception {
         return new JSONObject("{\"allow_lan\":false,\"ipv6\":true,\"lan_auth\":false,\"mixed_port\":17890,\"lan_username\":\"\",\"lan_password\":\"\",\"dns_override\":{\"enabled\":false,\"mode\":\"fake-ip\",\"nameserver\":[],\"fallback\":[],\"bootstrap\":[],\"proxy_nameserver\":[],\"fake_ip_filter\":[]}}");
     }
+    private JSONObject hotState() throws Exception {
+        JSONObject choices = new JSONObject();
+        for (String id : ConfigEngine.keys(state.getJSONObject("selections"))) if (state.getJSONObject("profiles").has(id)) choices.put(id, state.getJSONObject("selections").getJSONObject(id));
+        return new JSONObject().put("version", 2).put("settings", ConfigEngine.copy(state.getJSONObject("settings"))).put("selections", ConfigEngine.copy(choices));
+    }
+    private void commitHot(JSONObject hot) throws Exception {
+        if (hot.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 4 * 1024 * 1024) throw new Failure(413, "节点选择及设置数据过大");
+        AtomicDocument.write(hotFile, hot.toString());
+        state.put("settings", hot.getJSONObject("settings")).put("selections", hot.getJSONObject("selections"));
+        hotCleanupPending = false;
+    }
+    private JSONObject cleanedHotState() throws Exception {
+        JSONObject hot = hotState(), choices = hot.getJSONObject("selections");
+        for (String id : ConfigEngine.keys(choices)) choices.put(id, selections(id));
+        return hot;
+    }
+    private void pruneHot() throws Exception {
+        JSONObject hot = cleanedHotState();
+        if (!hot.getJSONObject("selections").toString().equals(state.getJSONObject("selections").toString())) commitHot(hot);
+    }
+    synchronized boolean hotCleanupPending() { return hotCleanupPending; }
     private void commit(JSONObject next) throws Exception {
         byte[] bytes = next.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
         if (bytes.length > 64 * 1024 * 1024) throw new Failure(413, "本地数据超过 64 MB，请减少订阅内容或删除不再需要的订阅");
@@ -41,6 +73,7 @@ final class ProfileStore {
             }
             Files.move(temporary, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             state = next;
+            try { commitHot(cleanedHotState()); } catch (IOException error) { hotCleanupPending = true; }
         } finally { Files.deleteIfExists(temporary); }
     }
     private JSONObject record(String id) throws Exception {
@@ -67,10 +100,15 @@ final class ProfileStore {
     }
     private JSONObject preview(JSONObject record, JSONObject edits) throws Exception { return ConfigEngine.preview(record.getJSONObject("source"), edits); }
     private JSONObject hydrate(JSONObject record) throws Exception {
+        String key = record.getString("id") + ":" + record.getInt("revision");
+        JSONObject cached = hydrated.get(key);
+        if (cached != null) return ConfigEngine.copy(cached);
         JSONObject result = ConfigEngine.copy(record), preview = preview(record, record.getJSONObject("edits"));
         JSONObject config = preview.getJSONObject("config");
         result.remove("history");
         result.put("preview", preview).put("proxy_count", config.getJSONArray("proxies").length()).put("group_count", config.getJSONArray("proxy-groups").length()).put("rule_count", config.getJSONArray("rules").length());
+        hydrated.put(key, ConfigEngine.copy(result));
+        while (hydrated.size() > 8) hydrated.remove(hydrated.keySet().iterator().next());
         return result;
     }
     synchronized JSONArray list() throws Exception {
@@ -175,13 +213,20 @@ final class ProfileStore {
     synchronized void select(JSONObject body, JSONObject live) throws Exception {
         validateSelection(body, live);
         String id = body.getString("profile_id"), group = body.getString("group"), name = body.getString("name");
-        JSONObject next = ConfigEngine.copy(state), selections = next.getJSONObject("selections");
+        JSONObject next = hotState(), selections = next.getJSONObject("selections");
         JSONObject profile = selections.optJSONObject(id); if (profile == null) { profile = new JSONObject(); selections.put(id, profile); }
-        profile.put(group, name); commit(next);
+        profile.put(group, name); commitHot(next);
     }
     synchronized JSONObject selections(String id) throws Exception {
-        JSONObject selections = state.getJSONObject("selections").optJSONObject(id);
-        return selections == null ? new JSONObject() : ConfigEngine.copy(selections);
+        record(id);
+        JSONObject selections = state.getJSONObject("selections").optJSONObject(id), result = new JSONObject();
+        if (selections == null) return result;
+        JSONObject catalog = catalog(id).getJSONObject("proxies");
+        for (String name : ConfigEngine.keys(selections)) {
+            JSONObject group = catalog.optJSONObject(name); String selected = selections.optString(name);
+            if (name.equals("GLOBAL") ? catalog.has(selected) : group != null && group.optString("type").equals("Selector") && ConfigEngine.strings(group.getJSONArray("all")).contains(selected)) result.put(name, selected);
+        }
+        return result;
     }
     synchronized JSONObject settings() throws Exception { return ConfigEngine.copy(state.getJSONObject("settings")); }
     synchronized void saveSettings(JSONObject body) throws Exception {
@@ -193,6 +238,6 @@ final class ProfileStore {
         for (String key : Arrays.asList("nameserver", "fallback", "bootstrap", "proxy_nameserver", "fake_ip_filter")) ConfigEngine.strings(dns.getJSONArray(key));
         if (dns.getBoolean("enabled") && (dns.getJSONArray("nameserver").length() == 0 || dns.getJSONArray("bootstrap").length() == 0)) throw new Failure(422, "开启 DNS 覆写时请填写主 DNS 和引导 DNS");
         if (nextSettings.getBoolean("lan_auth") && (!nextSettings.getString("lan_username").matches("[A-Za-z0-9_-]{1,64}") || nextSettings.getString("lan_password").length() < 8)) throw new Failure(422, "请填写有效用户名及至少 8 位密码");
-        JSONObject next = ConfigEngine.copy(state); next.put("settings", nextSettings); commit(next);
+        JSONObject next = hotState(); next.put("settings", nextSettings); commitHot(next);
     }
 }

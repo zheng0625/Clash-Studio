@@ -1,0 +1,100 @@
+/* First UI pass: runtime clarity, connection overview and readable node lists. */
+.desk .configuration-status{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding:10px 14px;margin-bottom:16px;border:1px solid var(--client-border);border-radius:12px;background:var(--client-surface);font-size:13px;color:var(--client-secondary);overflow-wrap:anywhere}
+.desk .configuration-status strong{margin-left:auto;color:var(--client-text);font-size:13px}
+.desk .configuration-status .pending{color:var(--client-accent)}
+.desk[data-ui-page=home] .desk-page-heading p,.desk[data-ui-page=home] .desk-page-heading .desk-eyebrow{display:none}
+.desk[data-ui-page=home] .desk-page-heading{margin-bottom:16px;align-items:center}
+.desk[data-ui-page=home] .desk-page-heading h1{margin:0}
+.desk .network-expanded{margin-top:16px;font-size:12px;color:var(--client-secondary)}
+.desk .network-expanded summary{cursor:pointer;padding:4px 0}
+.desk .settings-save-bar{position:fixed;z-index:80;bottom:var(--notice-dock-offset,110px);left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:space-between;gap:16px;width:max-content;max-width:calc(100vw - 32px);box-sizing:border-box;padding:10px 14px;border:1px solid var(--client-accent);border-radius:14px;background:var(--client-surface);color:var(--client-text);box-shadow:0 8px 30px #0002;font-size:13px}
+.desk:has(.settings-save-bar) .desk-content{padding-bottom:200px}
+.desk .home-primary{display:grid;grid-template-columns:minmax(340px,1fr) minmax(0,1.25fr);gap:18px;align-items:start;margin-bottom:18px}
+.desk .home-primary .launch-overview{display:block;margin:0}
+.desk .home-primary .kernel-launch-card{padding:20px}
+.desk .home-primary .kernel-summary{margin:14px 0}
+.desk .kernel-summary strong{font-size:16px;white-space:normal;overflow-wrap:anywhere}
+.desk .launch-profile{margin:12px 0}
+.desk .launch-profile select{width:100%;min-width:0}
+.desk .mode-label{font-size:13px;color:var(--client-secondary);margin:14px 0 8px}
+.desk .kernel-launch-card .routing-mode-card{padding:12px 0;margin:12px 0 0;border:0;border-top:1px solid var(--client-border);border-radius:0;background:none;box-shadow:none;gap:10px;flex-wrap:wrap}
+.desk .kernel-launch-card .routing-mode-card h2{font-size:13px;margin:0}
+.desk .kernel-launch-card .routing-mode-card p{flex-basis:100%;font-size:12px;line-height:1.6;margin:0}
+.desk .android-network-help{font-size:12px;line-height:1.6;color:var(--client-secondary);margin-top:8px}
+.desk .home-primary .network-dashboard{grid-template-columns:minmax(0,1fr);margin:0;gap:14px}
+.desk .home-primary .network-card-heading .desk-eyebrow{display:none}
+.desk .home-primary .network-card-heading h2{margin:0}
+.desk .home-primary .bandwidth-card,.desk .home-primary .ip-card{padding:18px}
+.desk .home-primary .bandwidth-plot{height:70px;margin-top:10px}
+.desk .home-primary .session-traffic{margin-top:12px;padding-top:12px}
+.desk .home-primary .ip-details{display:flex;flex-wrap:wrap;gap:8px 20px;margin:10px 0}
+.desk .home-primary .ip-details>div{display:flex;gap:8px;min-width:0}
+.desk .home-primary .ip-details dd{overflow-wrap:anywhere}
+.desk .home-primary .ip-address>strong{font-size:22px;overflow-wrap:anywhere}
+.desk .home-primary .ip-card-bottom{margin-top:6px}
+.desk .home-shortcuts{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 18px}
+.desk .proxy-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px}
+.desk .node-search{flex:1;min-width:160px;margin:0;display:flex;align-items:center;gap:8px;padding:0 12px}
+.desk .node-search input{width:100%;min-width:0;border:0;background:transparent;min-height:40px;outline-offset:-2px;font-size:14px}
+.desk .proxy-tools select{min-height:40px;max-width:100%;font-size:13px}
+.desk .available-filter{display:flex;align-items:center;gap:6px;font-size:13px;min-height:40px}
+.desk .available-filter input{width:16px;height:16px;accent-color:var(--client-accent)}
+.desk .benchmark-help{font-size:12px;color:var(--client-secondary);margin:10px 0}
+.desk .benchmark-help summary{cursor:pointer;line-height:1.6}
+.desk .delay-toolbar{padding:12px 16px;gap:12px}
+.desk .delay-toolbar .desk-eyebrow,.desk .delay-toolbar h2{display:none}
+.desk .delay-toolbar p{margin:0;line-height:1.6}
+.desk .delay-controls{align-items:center}
+.desk .delay-controls>label{flex-direction:row;align-items:center}
+.desk .node-choice strong{font-size:14px;color:var(--client-text);line-height:1.5;white-space:normal;overflow-wrap:anywhere}
+.desk .node-choice small,.desk .delay-time,.desk .node-delay{font-size:12px}
+.desk .node-choice>svg,.desk .node-dot{flex-shrink:0}
+.desk .compact-nodes .node-grid{grid-template-columns:minmax(0,1fr);gap:6px}
+.desk .compact-nodes .proxy-node-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch}
+.desk .compact-nodes .node-choice{min-height:68px;padding:10px 12px}
+.desk .compact-nodes .node-measure-row{border:0;flex-direction:column-reverse;justify-content:center;align-items:flex-end;gap:4px;max-width:160px}
+.desk .compact-nodes .node-delay{min-height:32px}
+
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .home-primary{grid-template-columns:minmax(0,1fr);gap:14px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .settings-save-bar{bottom:calc(var(--mobile-nav-height) + var(--mobile-bottom) + 14px);width:calc(100vw - 32px);gap:8px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .configuration-status{gap:4px 12px;font-size:12px;margin-bottom:12px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .configuration-status strong{margin-left:0;font-size:12px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk:is([data-ui-page=home],[data-ui-page=proxies]) .desk-page-heading{flex-direction:row;align-items:center;margin-bottom:12px;gap:8px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk:is([data-ui-page=home],[data-ui-page=proxies]) .desk-page-heading h1{font-size:23px!important;margin:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk:is([data-ui-page=home],[data-ui-page=proxies]) .desk-page-heading p{display:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk:is([data-ui-page=home],[data-ui-page=proxies]) .heading-buttons{margin-left:auto;align-self:auto;flex-wrap:nowrap}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=proxies] .heading-buttons{display:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .home-primary .kernel-summary{margin:12px 0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .home-primary .kernel-summary strong{font-size:17px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .kernel-actions{margin-top:12px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .kernel-actions>.desk-text-btn{width:auto;margin-left:auto}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .proxy-tools{display:grid;grid-template-columns:minmax(0,1fr) 128px;gap:6px;margin-bottom:4px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .node-search{flex-basis:55%;min-width:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .proxy-tools select{flex:1;min-width:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .available-filter{min-width:0;font-size:12px;min-height:44px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=proxies] .configuration-status>span{display:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=proxies] .configuration-status{padding:6px 12px;margin-bottom:8px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=proxies] .section-toolbar{display:flex;flex-wrap:nowrap;margin:0 0 6px;gap:8px;align-items:center}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=proxies] .section-toolbar .inline-select{flex:1;min-width:0;gap:0;font-size:0}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=proxies] .section-toolbar select{width:100%;min-width:0;font-size:16px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=proxies] .section-toolbar>.desk-text-btn{font-size:0;gap:0;min-width:44px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .group-fold-toolbar{gap:8px;margin:0;min-height:44px;justify-content:flex-end}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .group-fold-toolbar>span{margin-right:auto}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .node-view-toggle{display:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-toolbar.benchmark-open{display:flex;padding:12px;gap:8px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-toolbar.benchmark-open>div:first-child{display:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-controls{width:100%;align-items:stretch;flex-direction:column}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-controls>label{display:flex;flex-direction:column;align-items:stretch}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .proxy-group{padding:10px;margin-top:6px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .proxy-group .section-head{margin-bottom:6px;flex-wrap:nowrap;gap:6px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .group-actions .small-badge{display:none}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .group-fold-toggle small{font-size:12px;overflow-wrap:anywhere}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .node-grid{grid-template-columns:minmax(0,1fr);gap:6px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .proxy-node-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .node-choice{padding:10px;min-height:70px;gap:7px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .node-choice strong{font-size:15px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .node-measure-row{border:0;flex-direction:column-reverse;justify-content:center;align-items:flex-end;gap:2px;padding:5px 8px;max-width:120px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .node-delay{min-height:44px;white-space:normal}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-fab{display:flex;justify-content:center;gap:6px;width:auto;min-width:96px;height:48px;padding:0 14px;border-radius:24px;font-size:14px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-fab .delay-fab-count{font-size:12px}
+@media(min-width:1800px){.desk .home-primary .network-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}}

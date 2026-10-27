@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { t, message, locale } from './i18n'
 
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Save } from 'lucide-vue-next'
 import { api } from './api'
 const props=defineProps<{running:boolean;port:number}>()
-const emit=defineEmits<{changed:[port:number];notice:[message:string,error?:boolean]}>()
+const emit=defineEmits<{changed:[port:number];notice:[message:string,error?:boolean];dirty:[value:boolean]}>()
 const port=ref(props.port),saving=ref(false),error=ref('')
-watch(()=>props.port,value=>{port.value=value})
+const savedPort=ref(props.port)
+const dirty=computed(()=>port.value!==savedPort.value)
+watch(dirty,value=>emit('dirty',value),{flush:'sync'})
+watch(()=>props.port,value=>{if(!dirty.value&&!saving.value){port.value=value;savedPort.value=value}})
 async function save(){
   if(saving.value||props.running)return
   if(!Number.isInteger(port.value)||port.value<1024||port.value>65535){error.value=t("端口必须为 1024–65535 之间的整数");return}
@@ -15,7 +18,7 @@ async function save(){
   try{
     const current=await api<{settings:Record<string,unknown>}>('/api/client/settings')
     const result=await api<{settings:{mixed_port:number}}>('/api/client/settings','PUT',{...current.settings,mixed_port:port.value})
-    emit('changed',result.settings.mixed_port);emit('notice',t("代理端口已保存，下次启动内核时生效"))
+    port.value=result.settings.mixed_port;savedPort.value=result.settings.mixed_port;emit('changed',result.settings.mixed_port);emit('notice',t("代理端口已保存，下次启动内核时生效"))
   }catch(e){error.value=(e as Error).message}finally{saving.value=false}
 }
 </script>

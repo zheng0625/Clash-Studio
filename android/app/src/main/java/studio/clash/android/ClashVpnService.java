@@ -52,7 +52,9 @@ public class ClashVpnService extends VpnService {
             .addAction(new Notification.Action.Builder(null, "停止", stop).build()).build();
     }
     void showRunning() { tickUp = 0; tickDown = 0; tickAt = 0; handler.removeCallbacks(ticker); handler.post(ticker); }
-    void establishTunnel(Clash core, boolean ipv6) throws Exception {
+    interface CancellationCheck { void check() throws Exception; }
+    void establishTunnel(Clash core, boolean ipv6, CancellationCheck cancellation) throws Exception {
+        cancellation.check();
         Builder builder = new Builder().setSession("Clash Studio").setMtu(1500).setBlocking(false)
             .addAddress("198.19.0.1", 30).addRoute("0.0.0.0", 0).addDnsServer("198.19.0.2");
         if (Build.VERSION.SDK_INT >= 29) builder.setMetered(false);
@@ -63,8 +65,10 @@ public class ClashVpnService extends VpnService {
             String[] parts = route.split("/");
             builder.excludeRoute(new IpPrefix(java.net.InetAddress.getByName(parts[0]), Integer.parseInt(parts[1])));
         }
+        cancellation.check();
         ParcelFileDescriptor descriptor = builder.establish();
         if (descriptor == null) throw new IOException("VPN permission revoked");
+        try { cancellation.check(); } catch (Exception error) { descriptor.close(); throw error; }
         core.startTUN(descriptor.detachFd(), new TunInterface() {
             @Override public void protect(int fd) { ClashVpnService.this.protect(fd); }
             // The bridge cannot read /proc on Android 10+, so uid arrives as -1; the public

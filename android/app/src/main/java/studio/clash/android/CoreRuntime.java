@@ -17,9 +17,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** A single serialized owner for the native core and VPN descriptor. */
 final class CoreRuntime {
     static final CoreRuntime INSTANCE = new CoreRuntime();
-    private final ExecutorService lifecycle = Executors.newSingleThreadExecutor();
+    private final ThreadPoolExecutor lifecycle = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(16), new ThreadPoolExecutor.AbortPolicy());
     private final ConcurrentHashMap<String, Pending> pending = new ConcurrentHashMap<>();
     private final AtomicBoolean applying = new AtomicBoolean();
+    private final java.util.concurrent.atomic.AtomicLong startEpoch = new java.util.concurrent.atomic.AtomicLong();
+    long startEpoch() { return startEpoch.get(); }
+    private volatile JSONObject lastOperation;
+    private volatile Pending currentApply;
+    private final ThreadLocal<Pending> activation = new ThreadLocal<>();
+    private final java.util.concurrent.atomic.AtomicLong egressVersion = new java.util.concurrent.atomic.AtomicLong();
+    private volatile String proxySignature = "";
+    private volatile JSONObject connectionSample;
+    private volatile long connectionAt;
+    private volatile String connectionSession = "";
     private volatile long lastUpload, lastDownload;
     private final ScheduledExecutorService idleStop = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r, "clash-probe-idle"); thread.setDaemon(true); return thread;
@@ -38,6 +48,8 @@ final class CoreRuntime {
     private final Clash core = Clash.INSTANCE;
     private static final class Pending {
         final JSONObject body; final CompletableFuture<JSONObject> result = new CompletableFuture<>();
+        final LifecycleOperation operation = new LifecycleOperation(UUID.randomUUID().toString(), TimeUnit.SECONDS.toNanos(90));
+        final AtomicBoolean accepted = new AtomicBoolean();
         Pending(JSONObject body) { this.body = body; }
     }
     void attach(Context context) { this.context = context.getApplicationContext(); }
@@ -57,10 +69,29 @@ final class CoreRuntime {
         });
         action("startLog", "");
     }
+    private void checkActivation() throws Exception {
+        Pending request = activation.get();
+        if (request != null) {
+            request.operation.check();
+            if (currentApply != request) throw new ProfileStore.Failure(409, "生命周期操作已被替换");
+        }
+    }
+    void cancelStart() {
+        startEpoch.incrementAndGet();
+        Pending request = currentApply;
+        if (request != null) { request.operation.cancel(); request.result.cancel(false); }
+    }
     Object action(String method, Object data) throws Exception {
+        checkActivation();
+        Pending ticket = activation.get();
+        if (ticket != null) ticket.operation.phase("native:" + method);
         CompletableFuture<String> reply = new CompletableFuture<>();
-        core.invokeAction(new JSONObject().put("id", UUID.randomUUID().toString()).put("method", method).put("data", data).toString(), (InvokeInterface) reply::complete);
-        JSONObject result = new JSONObject(reply.get(30, TimeUnit.SECONDS));
+        core.invokeAction(new JSONObject().put("id", UUID.randomUUID().toString()).put("method", method).put("data", data).toString(),
+            (InvokeInterface) raw -> { if (ticket == null) reply.complete(raw); else LifecycleFaults.deliver(context, "native:" + method, () -> reply.complete(raw)); });
+        JSONObject result;
+        try { result = new JSONObject(reply.get(30, TimeUnit.SECONDS)); }
+        catch (TimeoutException error) { throw new ProfileStore.Failure(504, "原生操作超时，结果未提交"); }
+        checkActivation();
         if (result.optInt("code", -1) != 0) throw new ProfileStore.Failure(422, "内核未接受此操作，请检查配置和节点");
         return result.opt("data");
     }
@@ -77,34 +108,54 @@ final class CoreRuntime {
         if (VpnService.prepare(context) != null) throw new ProfileStore.Failure(428, "请先确认 Android 系统 VPN 授权");
         Pending request = new Pending(ConfigEngine.copy(body)); String key = UUID.randomUUID().toString();
         if (!applying.compareAndSet(false, true)) throw new ProfileStore.Failure(409, "VPN 正在启动，请稍后重试");
+        currentApply = request;
         pending.put(key, request);
         try {
             context.startForegroundService(new Intent(context, ClashVpnService.class).putExtra("request", key));
             return request.result.get(90, TimeUnit.SECONDS);
         } catch (TimeoutException error) {
-            request.result.cancel(false);
+            request.operation.cancel(); request.result.cancel(false);
             throw new ProfileStore.Failure(504, "VPN 启动超时，请检查网络和配置后重试");
+        } catch (CancellationException error) {
+            throw new ProfileStore.Failure(409, "VPN 启动已取消，正在清理资源");
+        } catch (InterruptedException error) {
+            request.operation.cancel(); request.result.cancel(false); Thread.currentThread().interrupt();
+            throw new ProfileStore.Failure(409, "VPN 启动已取消");
         } catch (ExecutionException error) {
             if (error.getCause() instanceof Exception) throw (Exception)error.getCause();
             throw error;
-        } finally { pending.remove(key); applying.set(false); }
+        } finally {
+            pending.remove(key);
+            if (!request.accepted.get()) {
+                request.operation.cancel();
+                lifecycle.execute(() -> { if (currentApply == request) { currentApply = null; applying.set(false); } });
+            }
+        }
     }
     void accept(ClashVpnService owner, String key) {
         Pending request = key == null ? null : pending.get(key);
-        if (request == null) { owner.stopSelf(); return; }
+        if (request == null || !request.accepted.compareAndSet(false, true)) { owner.stopSelf(); return; }
         lifecycle.execute(() -> {
-            try { request.result.complete(activate(owner, request)); }
+            activation.set(request);
+            try { JSONObject result = activate(owner, request); checkActivation(); if (!request.result.complete(result)) throw new ProfileStore.Failure(409, "启动结果已过期"); }
             catch (Exception error) {
                 if (BuildConfig.DEBUG) android.util.Log.e("ClashStudioCore", error.getClass().getSimpleName() + " " + Arrays.toString(error.getStackTrace()));
                 lastError = error instanceof ProfileStore.Failure ? error.getMessage() : "VPN 启动失败，请检查网络和配置后重试";
+                activation.remove();
                 try { shutdown(owner); } catch (Exception ignored) { }
-                request.result.completeExceptionally(new ProfileStore.Failure(422, lastError));
+                request.result.completeExceptionally(new ProfileStore.Failure(error instanceof ProfileStore.Failure ? ((ProfileStore.Failure)error).status : 422, lastError));
+            } finally {
+                activation.remove();
+                request.operation.phase(request.result.isCancelled() ? "cancelled" : request.result.isCompletedExceptionally() ? "failed" : "succeeded");
+                try { lastOperation = request.operation.snapshot().put("profile_revision", request.body.optInt("profile_revision")).put("workspace_revision", request.body.optInt("workspace_revision")); } catch (Exception ignored) { }
+                if (currentApply == request) { currentApply = null; applying.set(false); }
             }
         });
     }
     private JSONObject activate(ClashVpnService owner, Pending request) throws Exception {
         JSONObject body = request.body;
-        if (request.result.isCancelled()) throw new ProfileStore.Failure(504, "VPN 启动已超时");
+        request.operation.phase("preparing");
+        checkActivation();
         NativeApi api = NativeApi.open(context.getNoBackupFilesDir());
         JSONObject profile = api.store.get(body.getString("profile_id"));
         JSONObject preview = api.preview(profile.getString("id"));
@@ -134,9 +185,13 @@ final class CoreRuntime {
         CompletableFuture<String> setup = new CompletableFuture<>();
         core.quickSetup(new JSONObject().put("home-dir", home.getAbsolutePath()).put("version", Build.VERSION.SDK_INT).toString(),
             new JSONObject().put("selected-map", selections).toString(), (InvokeInterface) setup::complete);
-        String failure = setup.get(30, TimeUnit.SECONDS);
+        String failure;
+        try { failure = setup.get(30, TimeUnit.SECONDS); }
+        catch (TimeoutException error) { throw new ProfileStore.Failure(504, "内核准备超时，结果未提交"); }
+        LifecycleFaults.pause(context, "after-quick-setup");
+        checkActivation();
         if (failure != null && !failure.isEmpty()) throw new ProfileStore.Failure(422, "Mihomo 校验未通过，请检查节点协议、规则或地理数据下载");
-        if (request.result.isCancelled()) throw new ProfileStore.Failure(504, "VPN 启动已超时");
+        checkActivation();
         JSONObject saved = api.store.selections(profile.getString("id"));
         JSONObject actual = objectAction("getProxies").getJSONObject("proxies");
         for (String name : ConfigEngine.keys(saved)) {
@@ -144,15 +199,26 @@ final class CoreRuntime {
             if (group != null && group.optString("type").equals("Selector") && ConfigEngine.strings(group.getJSONArray("all")).contains(saved.getString(name)))
                 checkedAction("changeProxy", new JSONObject().put("group-name", name).put("proxy-name", saved.getString(name)));
         }
+        LifecycleFaults.pause(context, "after-selector-restore");
+        checkActivation();
         // Confirm a listener exists: native configuration application can log a bind error.
         try (java.net.Socket probe = new java.net.Socket()) { probe.connect(new java.net.InetSocketAddress("127.0.0.1", port), 2000); }
         action("closeAllConnections", ""); action("resetTraffic", "");
-        owner.establishTunnel(core, settings.optBoolean("ipv6", true));
+        checkActivation();
+        request.operation.phase("establishing-vpn");
+        LifecycleFaults.pause(context, "before-tunnel");
+        checkActivation();
+        owner.establishTunnel(core, settings.optBoolean("ipv6", true), this::checkActivation);
+        checkActivation();
         if (!lastError.isEmpty()) throw new ProfileStore.Failure(422, lastError);
+        if (api.store.get(profile.getString("id")).getInt("revision") != profile.getInt("revision") || api.routing.revision() != preview.getInt("workspace_revision")) throw new ProfileStore.Failure(409, "启动期间配置已改变");
+        checkActivation();
+        request.operation.phase("committing");
         active = new JSONObject().put("profile_id", profile.getString("id")).put("title", profile.getString("title"))
             .put("revision", profile.getInt("revision")).put("workspace_revision", preview.getInt("workspace_revision")).put("mixed_port", port)
             .put("hash", UUID.randomUUID().toString()).put("tun", false).put("vpn", true);
         mode = config.getString("mode"); session = UUID.randomUUID().toString(); phase = "running";
+        checkActivation(); egressVersion.incrementAndGet(); connectionAt = 0;
         owner.showRunning(); return status();
     }
     private void shutdown(ClashVpnService owner) throws Exception {
@@ -163,55 +229,85 @@ final class CoreRuntime {
                 closeNativeListeners();
             }
         } finally {
-            abandonProbe(); active = null; phase = "stopped";
+            abandonProbe(); active = null; phase = "stopped"; egressVersion.incrementAndGet(); connectionAt = 0;
             ClashVpnService previous = service; service = null;
             if (owner != null) owner.finishService();
             if (previous != null && previous != owner) previous.finishService();
         }
     }
     JSONObject stop() throws Exception {
-        return lifecycle.submit(() -> { shutdown(service); lastError = ""; return status(); }).get(35, TimeUnit.SECONDS);
+        cancelStart();
+        java.util.List<Runnable> obsolete = new java.util.ArrayList<>();
+        lifecycle.getQueue().drainTo(obsolete);
+        for (Runnable task : obsolete) if (task instanceof Future<?>) ((Future<?>)task).cancel(false);
+        return lifecycle.submit(() -> { try { shutdown(service); lastError = ""; return status(); } finally { if (currentApply != null && !currentApply.operation.valid()) { currentApply = null; applying.set(false); } } }).get(35, TimeUnit.SECONDS);
     }
     private void closeNativeListeners() throws Exception {
         // Upstream stopListener only calls listener.Cleanup(), which closes TUN,
         // not the mixed listener. Reconcile zero ports before stopping it.
-        action("updateConfig", new JSONObject().put("mixed-port", 0).toString());
-        action("startListener", "");
-        core.stopTun();
-        action("closeAllConnections", "");
+        try {
+            action("updateConfig", new JSONObject().put("mixed-port", 0).toString());
+            action("startListener", "");
+        } finally {
+            try { core.stopTun(); }
+            finally { action("closeAllConnections", ""); }
+        }
     }
     void revoked(ClashVpnService owner) {
+        // finishService() schedules onDestroy after shutdown has relinquished
+        // ownership. That callback must not cancel this result or a newer start.
+        if (service != owner) return;
+        cancelStart();
         lifecycle.execute(() -> { if (service == owner) { try { shutdown(owner); } catch (Exception ignored) { } } });
     }
     boolean matches(String id, int revision) { JSONObject value = active; return value != null && value.optString("profile_id").equals(id) && value.optInt("revision") == revision; }
     boolean uses(String id) { JSONObject value = active; return value != null && value.optString("profile_id").equals(id); }
     JSONObject status() throws Exception {
         JSONObject value = active;
-        return new JSONObject().put("running", phase.equals("running")).put("installed", available()).put("active", value == null ? JSONObject.NULL : ConfigEngine.copy(value))
-            .put("phase", phase).put("routing_mode", mode).put("vpn", new JSONObject().put("supported", available()).put("enabled", phase.equals("running")).put("stack", "gvisor"))
+        Pending ticket = currentApply;
+        JSONObject operation = ticket == null ? lastOperation : ticket.operation.snapshot();
+        return new JSONObject().put("operation", operation == null ? JSONObject.NULL : ConfigEngine.copy(operation)).put("lifecycle_queued", lifecycle.getQueue().size()).put("running", phase.equals("running")).put("installed", available()).put("active", value == null ? JSONObject.NULL : ConfigEngine.copy(value))
+            .put("phase", phase).put("sampled_at", Instant.now().toString()).put("operation_id", currentApply == null ? JSONObject.NULL : currentApply.operation.id).put("cancel_requested", currentApply != null && !currentApply.operation.valid()).put("egress_version", egressVersion.get()).put("routing_mode", mode).put("vpn", new JSONObject().put("supported", available()).put("enabled", phase.equals("running")).put("stack", "gvisor"))
             .put("proxy", new JSONObject().put("supported", false).put("owned", false))
             .put("tun", new JSONObject().put("supported", false).put("enabled", false).put("admin", false).put("stack", "mixed").put("conflicts", new JSONArray()))
             .put("events", lastError.isEmpty() ? new JSONArray() : new JSONArray().put(new JSONObject().put("time", Instant.now().toString()).put("message", lastError)));
     }
-    JSONObject proxies() throws Exception { return active == null ? new JSONObject().put("proxies", new JSONObject()) : objectAction("getProxies"); }
-    JSONObject connections() throws Exception { return active == null ? new JSONObject().put("connections", new JSONArray()).put("uploadTotal", 0).put("downloadTotal", 0) : objectAction("getConnections"); }
+    JSONObject proxies() throws Exception {
+        if (active == null) return new JSONObject().put("proxies", new JSONObject());
+        JSONObject result = objectAction("getProxies");
+        JSONObject groups = result.getJSONObject("proxies"); java.util.List<String> selected = new java.util.ArrayList<>();
+        for (String name : ConfigEngine.keys(groups)) if (groups.getJSONObject(name).has("now")) selected.add(name + "=" + groups.getJSONObject(name).optString("now"));
+        java.util.Collections.sort(selected); String signature = selected.toString();
+        synchronized (this) { if (!proxySignature.isEmpty() && !proxySignature.equals(signature)) egressVersion.incrementAndGet(); proxySignature = signature; }
+        return result;
+    }
+    synchronized JSONObject connections() throws Exception {
+        if (active == null) return new JSONObject().put("connections", new JSONArray()).put("uploadTotal", 0).put("downloadTotal", 0).put("sampled_at", Instant.now().toString()).put("session", session);
+        String captured = session; long now = System.nanoTime();
+        if (connectionSample != null && connectionSession.equals(captured) && now - connectionAt < TimeUnit.MILLISECONDS.toNanos(900)) return ConfigEngine.copy(connectionSample);
+        JSONObject result = objectAction("getConnections");
+        if (!captured.equals(session) || active == null) throw new ProfileStore.Failure(409, "连接所属会话已结束");
+        result.put("sampled_at", Instant.now().toString()).put("session", captured).put("stale", false);
+        connectionSample = ConfigEngine.copy(result); connectionSession = captured; connectionAt = System.nanoTime(); return result;
+    }
     JSONObject traffic() throws Exception {
         JSONObject totals = loaded && active != null ? new JSONObject(core.getTotalTraffic()) : new JSONObject().put("up", lastUpload).put("down", lastDownload);
-        JSONArray entries = active == null ? null : connections().optJSONArray("connections");
+        JSONObject sample = active == null ? null : connections();
+        JSONArray entries = sample == null ? null : sample.optJSONArray("connections");
         return new JSONObject().put("running", phase.equals("running")).put("session", session).put("upload", totals.optLong("up")).put("download", totals.optLong("down"))
-            .put("connections", entries == null ? 0 : entries.length());
+            .put("connections", entries == null ? 0 : entries.length()).put("sampled_at", sample == null ? Instant.now().toString() : sample.get("sampled_at")).put("stale", false);
     }
     JSONObject routing(String next) throws Exception {
         if (!Arrays.asList("rule", "global", "direct").contains(next)) throw new ProfileStore.Failure(422, "分流模式无效");
-        return lifecycle.submit(() -> { if (active == null) throw new ProfileStore.Failure(409, "请先启动 VPN"); checkedAction("updateConfig", new JSONObject().put("mode", next)); mode = next; return status(); }).get(35, TimeUnit.SECONDS);
+        return lifecycle.submit(() -> { if (active == null) throw new ProfileStore.Failure(409, "请先启动 VPN"); checkedAction("updateConfig", new JSONObject().put("mode", next)); mode = next; egressVersion.incrementAndGet(); return status(); }).get(35, TimeUnit.SECONDS);
     }
     void select(JSONObject body) throws Exception {
         lifecycle.submit(() -> {
             if (!matches(body.getString("profile_id"), body.getInt("profile_revision"))) throw new ProfileStore.Failure(409, "运行配置已改变，请重新应用后选择节点");
-            checkedAction("changeProxy", new JSONObject().put("group-name", body.getString("group")).put("proxy-name", body.getString("name"))); return null;
+            checkedAction("changeProxy", new JSONObject().put("group-name", body.getString("group")).put("proxy-name", body.getString("name"))); egressVersion.incrementAndGet(); return null;
         }).get(35, TimeUnit.SECONDS);
     }
-    void close(String id) throws Exception { if (active != null) action("closeConnection", id); }
+    void close(String id) throws Exception { if (active != null) { action("closeConnection", id); connectionAt = 0; } }
 
     JSONObject prepareProbe(JSONObject body) throws Exception {
         if (!available()) throw new ProfileStore.Failure(503, "此构建需要 ARM64 安卓设备");
@@ -338,6 +434,8 @@ final class CoreRuntime {
         probeProfile = ""; probeRevision = 0;
         generation++;
     }
+    private final Object lookupLock = new Object();
+    private final Map<String, CompletableFuture<JSONObject>> lookups = new HashMap<>();
     private String lookupKey = "";
     private long lookupAt;
     private JSONObject lookupResult;
@@ -346,14 +444,31 @@ final class CoreRuntime {
         JSONObject running = active;
         if (route.equals("proxy") && running == null) throw new ProfileStore.Failure(409, "请先启动 VPN");
         String hash = running == null ? "" : running.optString("hash");
-        String identity = route + "|" + hash + "|" + session;
-        synchronized (this) {
+        if (active != null) proxies();
+        long capturedEgress = egressVersion.get();
+        String identity = route + "|" + hash + "|" + session + "|" + mode + "|" + capturedEgress;
+        CompletableFuture<JSONObject> future;
+        boolean owner;
+        synchronized (lookupLock) {
             if (lookupResult != null && lookupKey.equals(identity)) {
-                long age = System.currentTimeMillis() - lookupAt;
-                long limit = refresh ? 5000 : ("unavailable".equals(lookupResult.optString("status")) ? 10000 : 60000);
-                if (age >= 0 && age < limit) return new JSONObject(lookupResult.toString()).put("cached", true);
+                long age = (System.nanoTime() - lookupAt) / 1_000_000;
+                long limit = refresh ? 0 : ("unavailable".equals(lookupResult.optString("status")) ? 10000 : 60000);
+                if (age >= 0 && age < limit) return ConfigEngine.copy(lookupResult).put("cached", true);
             }
+            future = lookups.get(identity);
+            owner = future == null;
+            if (owner) { future = new CompletableFuture<>(); lookups.put(identity, future); }
         }
+        if (!owner) return ConfigEngine.copy(future.get(45, TimeUnit.SECONDS));
+        try {
+            JSONObject result = lookupExternal(route, running, hash, capturedEgress);
+            synchronized (lookupLock) { lookupKey = identity; lookupAt = System.nanoTime(); lookupResult = ConfigEngine.copy(result); }
+            future.complete(result);
+            return ConfigEngine.copy(result);
+        } catch (Exception error) { future.completeExceptionally(error); throw error; }
+        finally { synchronized (lookupLock) { lookups.remove(identity); } }
+    }
+    private JSONObject lookupExternal(String route, JSONObject running, String hash, long capturedEgress) throws Exception {
         java.net.Proxy proxy = route.equals("proxy") ? new java.net.Proxy(java.net.Proxy.Type.HTTP,
             new java.net.InetSocketAddress("127.0.0.1", running.getInt("mixed_port"))) : java.net.Proxy.NO_PROXY;
         long started = System.nanoTime();
@@ -386,11 +501,13 @@ final class CoreRuntime {
             } catch (Exception ignored) { }
         }
         result.put("elapsed_ms", (System.nanoTime() - started) / 1_000_000).put("checked_at", Instant.now().toString());
+        if (active != null) proxies();
+        if (capturedEgress != egressVersion.get()) throw new ProfileStore.Failure(409, "检测期间出口发生变化，请重新检测");
+        result.put("egress_version", capturedEgress);
         if (route.equals("proxy")) {
             JSONObject now = active;
             if (now == null || !hash.equals(now.optString("hash"))) throw new ProfileStore.Failure(409, "检测期间运行配置发生变化，请重新检测");
         }
-        synchronized (this) { lookupKey = identity; lookupAt = System.currentTimeMillis(); lookupResult = result; }
         return result;
     }
     private static JSONObject fetchLookup(String address, java.net.Proxy proxy) throws Exception {

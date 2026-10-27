@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "valid": [
+    {
+      "yaml": "proxies:\n - {name: A, type: socks5, server: example.invalid, port: 9}\nproxy-groups:\n - {name: Work, type: select, proxies: [A, DIRECT]}\nrules: ['DOMAIN,example.org,A', 'MATCH,Work']\n",
+      "nodes": 1,
+      "groups": 1,
+      "rules": [
+        "DOMAIN,example.org,A",
+        "MATCH,Work"
+      ]
+    }
+  ],
+  "invalid": [
+    "proxies: []\nproxies: []",
+    "!!java.net.URL [https://example.invalid]",
+    "proxies: ["
+  ],
+  "errors": [
+    {
+      "status": 409,
+      "code": "CONFLICT",
+      "retryable": true
+    },
+    {
+      "status": 422,
+      "code": "INVALID_REQUEST",
+      "retryable": false
+    },
+    {
+      "status": 429,
+      "code": "BUSY",
+      "retryable": true
+    },
+    {
+      "status": 504,
+      "code": "TIMEOUT",
+      "retryable": true
+    }
+  ],
+  "stale_revision": {
+    "saved": 2,
+    "request": 1,
+    "status": 409
+  }
+}

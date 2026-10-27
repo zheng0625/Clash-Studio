@@ -1,3 +1,4 @@
+from conftest import free_mixed_port
 import shutil
 import socket
 from pathlib import Path
@@ -38,9 +39,7 @@ def test_offline_choices_persist_restore_and_reject_stale(tmp_path):
     # Reload the complete backend, then start the real bundled core.
     with TestClient(build_app(tmp_path)) as client:
         assert client.get('/api/client/proxy-catalog', params={'profile_id': profile['id']}).json()['proxies']['手动 / Egress']['now'] == 'DIRECT'
-        with socket.socket() as address:
-            address.bind(('127.0.0.1', 0))
-            port = address.getsockname()[1]
+        port = free_mixed_port()
         apply = {k: body[k] for k in ('profile_id', 'profile_revision', 'workspace_revision')}
         apply.update(mixed_port=port, proxy_mode='manual')
         started = client.post('/api/client/runtime/apply', headers=HEADERS, json=apply)

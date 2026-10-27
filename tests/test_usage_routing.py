@@ -1,3 +1,4 @@
+from conftest import free_mixed_port
 import json
 import socket
 import threading
@@ -55,9 +56,7 @@ def test_real_core_routing_modes_and_persistence(tmp_path):
     runtime=Runtime(tmp_path,root)
     composed={'config':{'proxies':[],'proxy-groups':[{'name':'Work','type':'select','proxies':['DIRECT','REJECT']}], 'rules':['MATCH,REJECT']},'errors':[],'workspace_revision':1}
     row={'id':'routing-test','title':'routing-test','enabled':True,'revision':1}
-    with socket.socket() as port:
-        port.bind(('127.0.0.1',0))
-        mixed=port.getsockname()[1]
+    mixed=free_mixed_port()
     before=runtime.proxy.status()
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
