@@ -20,6 +20,30 @@ It connects source subscriptions, personal edits, routing modules and runtime co
 
 Precision applies to traffic captured by the core with identifiable matching conditions. Coverage depends on system proxy / TUN, process recognition and network conditions. Strict checks do not guarantee a fixed public IP. There is currently no firewall kill switch after the core exits.
 
+## On-device checks: routing and DNS leak prevention
+
+These three IPLeak screenshots were supplied by the user, who confirmed the test states. Images are cropped; opaque blocks cover IP addresses, DNS server addresses and mDNS host identifiers. Reported locations, providers and detection counts remain visible.
+
+| Test state | Public IP / WebRTC | DNS results |
+| --- | --- | --- |
+| Proxy off | China Unicom exit; IPv4 and IPv6 detected; WebRTC shows the local ISP public IP | Page reports 19 servers and 37 tests; visible entries are domestic ISP servers |
+| TUN on, DNS leak prevention off | Both show Singapore exits; IPv6 test unreachable | Page reports 23 servers and 5 tests; visible entries mix China Unicom and Singapore servers |
+| DNS leak prevention on / routing result example | Both show Singapore exits; IPv6 test unreachable | Page reports 12 servers and 7 tests; all listed DNS servers are labeled Singapore / Amazon |
+
+**Proxy off — local network baseline.** Public IP, WebRTC and visible DNS entries identify the local ISP.
+
+![Proxy off: local ISP public exit and DNS results; addresses redacted](docs/screenshots/ipleak-no-proxy.png)
+
+**TUN on, protection off — a proxy exit alone does not establish DNS protection.** Web access and WebRTC show Singapore, while the DNS list still includes China Unicom servers.
+
+![TUN on, DNS leak prevention off: Singapore exit with mixed domestic and overseas DNS entries; addresses redacted](docs/screenshots/ipleak-tun-dns-off.png)
+
+**Protection on — no local ISP DNS appears in this capture.** The tester also supplied this image as an exit result example for precise routing. Web access and WebRTC show Singapore; every listed DNS server is labeled Singapore / Amazon. Web access and WebRTC use different IP addresses. Verify the actual routing rule and chain in Clash Studio's connection view.
+
+![DNS leak prevention on and routing exit example: Singapore exits and DNS entries; addresses redacted](docs/screenshots/ipleak-tun-dns-on-routing.png)
+
+These are observations at capture time. Test counts differ, so server counts are not a performance metric. OS, application version and browser secure DNS settings were not supplied. An unreachable IPv6 test does not validate every IPv6 scenario. Protection covers DNS handled by the core, with explicit domestic DNS exceptions for node domains and direct exits; these captures do not establish leak prevention for every application or network.
+
 ## A considered desktop interface
 
 - Liquid Glass inspired layers, rounded cards and a floating Dock organize the workspace.
