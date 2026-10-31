@@ -1,0 +1,8 @@
+<script setup lang="ts">
+import {ArrowUpRight,Plus,FolderOpen} from 'lucide-vue-next'
+import {t} from './i18n'
+import type {Summary} from './types'
+defineProps<{current:Summary|null|undefined;bytes:(n:number)=>string;date:(value:string)=>string}>()
+const emit=defineEmits<{edit:[]}>()
+</script>
+<template><section class="desk-card config-card"><div class="section-head"><h2>{{ t('当前配置') }}</h2><button class="desk-text-btn" @click="emit('edit')">{{ current?t('编辑配置'):t('导入订阅') }}<ArrowUpRight v-if="current" :size="14"/><Plus v-else :size="14"/></button></div><div class="config-summary-main"><span class="config-summary-icon"><FolderOpen :size="20"/></span><div><h3>{{ current?.title||t('未导入订阅') }}</h3><small>{{ current?t('最近更新 {0}',[date(current.refreshed_at)]):t('添加订阅链接或 YAML 文件') }}</small></div><strong>{{ current?.usage?bytes(current.usage.used):'—' }}<small> / {{ current?.usage?.total!==null&& current?.usage?.total!==undefined?bytes(current.usage.total):'—' }}</small></strong></div><div class="config-usage-bar" aria-hidden="true"><span :style="{width:`${Math.max(0,Math.min(100,current?.usage?.percent||0))}%`}"></span></div><div class="config-summary-footer"><span>{{ !current?t('等待导入'):current.usage?.percent!==null&& current.usage?.percent!==undefined?t('已用 {0}%',[current.usage.percent.toFixed(1)]):t('未提供流量信息') }}</span><span>{{ t('{0} 个节点',[current?.proxy_count||0]) }} · {{ t('{0} 个策略组',[current?.group_count||0]) }}</span></div><p v-if="current?.source_type==='demo'" class="inline-note">{{ t('这是示例配置，节点不能提供实际代理服务。') }}</p><p v-if="current?.last_error" class="inline-note error">{{ current.last_error }}</p></section></template>

@@ -84,19 +84,28 @@ public class MainActivity extends ComponentActivity {
         subscriptionQr = new SubscriptionQr(this);
         container = new FrameLayout(this);
         container.addView(webView, new FrameLayout.LayoutParams(-1, -1));
+        if (Build.VERSION.SDK_INT >= 30) getWindow().setDecorFitsSystemWindows(false);
+        else getWindow().getDecorView().setSystemUiVisibility(
+            android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE | android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+        getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        if (Build.VERSION.SDK_INT >= 29) getWindow().setStatusBarContrastEnforced(false);
         setContentView(container);
         applyChrome(getPreferences(MODE_PRIVATE).getBoolean("darkChrome", false), getPreferences(MODE_PRIVATE).getString("chromeBackground", "#F5F7FA"));
-        // Keep status bar, cutouts and the IME outside the WebView, but let the page paint under
-        // the navigation bar: its inset is pushed to CSS so the themed background continues there.
+        // Let the page paint its actual gradient/photo under the status bar. CSS reserves
+        // the top safe area for content; the native container still handles the keyboard.
         container.setOnApplyWindowInsetsListener((view, insets) -> {
             if (Build.VERSION.SDK_INT >= 30) {
                 android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
                 android.graphics.Insets ime = insets.getInsets(WindowInsets.Type.ime());
-                view.setPadding(bars.left, bars.top, bars.right, ime.bottom);
+                view.setPadding(bars.left, 0, bars.right, ime.bottom);
+                statusInset = bars.top;
                 navInset = Math.max(bars.bottom, insets.getInsets(WindowInsets.Type.displayCutout()).bottom);
                 dispatchNavInset(false);
             } else {
-                view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+                view.setPadding(insets.getSystemWindowInsetLeft(), 0, insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+                statusInset = insets.getSystemWindowInsetTop();
+                navInset = 0; // Bottom/IME inset is handled by native padding on API 26–29.
+                dispatchNavInset(false);
             }
             return insets;
         });
@@ -338,12 +347,13 @@ public class MainActivity extends ComponentActivity {
             getWindow().getInsetsController().setSystemBarsAppearance(darkChrome ? 0 : light, light);
         }
     }
-    private int navInset = -1, pushedNavInset = -1;
+    private int navInset = -1, pushedNavInset = -1, statusInset = 0, pushedStatusInset = -1;
     private void dispatchNavInset(boolean force) {
-        if (webView == null || navInset < 0 || (!force && navInset == pushedNavInset)) return;
+        if (webView == null || navInset < 0 || (!force && navInset == pushedNavInset && statusInset == pushedStatusInset)) return;
         pushedNavInset = navInset;
-        webView.evaluateJavascript("(()=>{window.__clashAndroidNavInset=" + navInset + ";"
-            + "if(!window.__clashAndroidInsetSync){window.__clashAndroidInsetSync=()=>document.documentElement.style.setProperty('--android-nav-inset',(window.__clashAndroidNavInset/(window.devicePixelRatio||1))+'px');window.addEventListener('resize',window.__clashAndroidInsetSync);}"
+        pushedStatusInset = statusInset;
+        webView.evaluateJavascript("(()=>{window.__clashAndroidNavInset=" + navInset + ";window.__clashAndroidStatusInset=" + statusInset + ";"
+            + "if(!window.__clashAndroidInsetSync){window.__clashAndroidInsetSync=()=>{const s=document.documentElement.style,d=window.devicePixelRatio||1;s.setProperty('--android-nav-inset',(window.__clashAndroidNavInset/d)+'px');s.setProperty('--android-status-inset',(window.__clashAndroidStatusInset/d)+'px');};window.addEventListener('resize',window.__clashAndroidInsetSync);}"
             + "window.__clashAndroidInsetSync();})()", null);
     }
     @Override public void onWindowFocusChanged(boolean hasFocus) {

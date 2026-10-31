@@ -3,7 +3,7 @@ import { t, message, locale } from './i18n'
 
 import { computed, ref } from 'vue'
 import { Check, Palette, RotateCcw, Save } from 'lucide-vue-next'
-import { currentTheme, themeFields, themePresets, themeError, contrast, saveTheme, resetTheme, setThemeMode, themeMode, systemDark, effectiveTheme, type ClientTheme, type ThemeMode } from './theme'
+import { currentTheme, themeFields, themePresets, themeError, contrast, saveTheme, resetTheme, setThemeMode, themeMode, systemDark, effectiveTheme, softBackground, setSoftBackground, type ClientTheme, type ThemeMode } from './theme'
 import SettingsDialog from './SettingsDialog.vue'
 import { backgroundState } from './background'
 
@@ -33,6 +33,7 @@ function ratio(value:number){return Number.isFinite(value)?value.toFixed(2):'—
 
 <template>
   <section class="desk-card appearance-entry"><div><Palette :size="22"/><div><h2>{{ t("外观与配色") }}</h2><p>{{ t("选择配色预设，定制你喜欢的界面。") }}</p></div></div><button class="desk-btn" @click="open">{{ t("自定义配色 →") }}</button></section>
+  <section class="desk-card soft-background-entry"><div><h2>{{ t('柔和背景') }}</h2><p>{{ t('使用柔和渐变与半透明面板，照片背景优先显示。') }}</p></div><button type="button" role="switch" :aria-checked="softBackground" :aria-label="t('柔和背景')" :class="['desk-switch',{on:softBackground}]" @click="setSoftBackground(!softBackground)"><span/></button></section>
   <SettingsDialog ref="dialog" :dirty="appearanceDirty" :title="t('自定义配色')" :description="t('选择预设或调整颜色，保存后全局生效并在下次启动时恢复。')">
     <div class="appearance-mode" role="radiogroup" :aria-label="t('主题模式')">
       <button v-for="option in modeOptions" :key="option.id" type="button" role="radio" :aria-checked="themeMode===option.id" @click="chooseMode(option.id)">{{ t(option.label) }}</button>

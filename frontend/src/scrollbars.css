@@ -1,0 +1,11 @@
+/* Consistent, quiet scrollbars for the client and workshop, with visible hover. */
+:where(.desk,.desk *,.component-workshop,.lab-shell,.lab-shell *){scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--client-secondary,#7b8495) 45%,transparent) transparent}
+@supports selector(::-webkit-scrollbar){
+ :where(.desk,.desk *,.component-workshop,.lab-shell,.lab-shell *){scrollbar-width:auto;scrollbar-color:auto}
+ :where(.desk,.desk *,.component-workshop,.lab-shell,.lab-shell *)::-webkit-scrollbar{width:7px;height:7px}
+ :where(.desk,.desk *,.component-workshop,.lab-shell,.lab-shell *)::-webkit-scrollbar-track{background:transparent}
+ :where(.desk,.desk *,.component-workshop,.lab-shell,.lab-shell *)::-webkit-scrollbar-thumb{border:1px solid transparent;border-radius:99px;background:color-mix(in srgb,var(--client-secondary,#7b8495) 45%,transparent);background-clip:padding-box}
+ :where(.desk,.desk *,.component-workshop,.lab-shell,.lab-shell *)::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--client-secondary,#7b8495) 75%,transparent);background-clip:padding-box}
+ :where(.desk,.desk *,.component-workshop,.lab-shell,.lab-shell *)::-webkit-scrollbar-corner{background:transparent}
+}
+@media(forced-colors:active){:where(.desk,.desk *,.component-workshop,.lab-shell,.lab-shell *){scrollbar-color:auto}}

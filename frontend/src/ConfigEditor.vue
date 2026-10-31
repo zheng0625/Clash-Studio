@@ -1,17 +1,21 @@
 <script setup lang="ts">
 import { t, message, locale } from './i18n'
 
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { ArrowDown, ArrowUp, Check, Code2, Copy, Download, FileUp, FolderClock, Globe2, Layers3, ListFilter, Loader2, Plus, RefreshCw, RotateCcw, Save, Search, Settings2, ShieldCheck, Sparkles, Trash2, X } from 'lucide-vue-next'
 import { confirmDialog } from './confirm'
 import { api } from './api'
 import { saveTextFile } from './android'
+import { composeEditorRules } from './config-rules'
+import ListPagination from './ListPagination.vue'
 import type { AICatalogue, Edits, Group, History, NetworkStatus, Preview, Subscription } from './types'
 
 const props=defineProps<{subscription:Subscription;backendBase:string;desktopFeatures?:boolean;viewState?:{tab:string;search:string;groupKey:string;memberSearch:string;raw:boolean;searches:Record<string,string>}}>()
 const emit=defineEmits<{saved:[value:Subscription];dirty:[value:boolean];notice:[text:string,error?:boolean];ready:[];viewState:[value:{tab:string;search:string;groupKey:string;memberSearch:string;raw:boolean;searches:Record<string,string>}]}>()
 const clone=<T,>(v:T):T=>JSON.parse(JSON.stringify(v))
-const current=ref(clone(props.subscription)), edits=ref<Edits>(clone(props.subscription.edits)), preview=ref<Preview>(clone(props.subscription.preview))
+// The subscription and its preview are immutable snapshots owned by the parent;
+// only the editable draft needs a deep copy and deep reactivity.
+const current=shallowRef(props.subscription), edits=ref<Edits>(clone(props.subscription.edits)), preview=shallowRef(props.subscription.preview)
 const tab=ref(props.viewState?.tab||'nodes'), busy=ref(false), checking=ref(false), error=ref(''), search=ref(props.viewState?.search||''), groupKey=ref(props.viewState?.groupKey||''), raw=ref(props.viewState?.raw||false)
 const newGroup=ref(''), newType=ref('select'), groupDialog=ref(false), memberSearch=ref(props.viewState?.memberSearch||''), advanced=ref(false), advancedRule=ref('')
 const tabSearches=ref<Record<string,string>>({...props.viewState?.searches})
@@ -21,8 +25,12 @@ const history=ref<History[]>([]), historical=ref<{yaml:string;label:string;id:nu
 const meta=ref({title:current.value.title,enabled:!!current.value.enabled,interval_minutes:current.value.interval_minutes})
 const catalogue=ref<AICatalogue|null>(null), aiOutlet=ref(''), network=ref<NetworkStatus|null>(null), networkForm=ref({enabled:false,port:8767,selected_host:''})
 const fileInput=ref<HTMLInputElement|null>(null)
-let timer:ReturnType<typeof setTimeout>|undefined, sequence=0
+let timer:ReturnType<typeof setTimeout>|undefined, sequence=0, disposed=false
 const dirty=computed(()=>JSON.stringify(edits.value)!==JSON.stringify(current.value.edits))
+const metaDirty=computed(()=>JSON.stringify(meta.value)!==JSON.stringify({title:current.value.title,enabled:!!current.value.enabled,interval_minutes:current.value.interval_minutes}))
+const savedNetwork=ref('')
+const networkDirty=computed(()=>!!savedNetwork.value&&JSON.stringify(networkForm.value)!==savedNetwork.value)
+const unsaved=computed(()=>dirty.value||metaDirty.value||networkDirty.value)
 const sourceNodes=computed(()=>current.value.source.proxies||[])
 const nodes=computed(()=>sourceNodes.value.filter(n=>`${n.name} ${n.type} ${n.server} ${edits.value.proxy_renames[n.name]||''}`.toLowerCase().includes(search.value.toLowerCase())))
 const groups=computed(()=>[
@@ -35,26 +43,51 @@ const memberOptions=computed(()=>policies.value.filter(p=>p.value!==(chosen.valu
 const aiActive=computed(()=>!!edits.value.ai_routing&&edits.value.ai_routing.enabled!==false)
 function managed(raw:string){const [kind,domain]=raw.split(',').map(p=>p.trim());if(!domain||!['DOMAIN','DOMAIN-SUFFIX'].includes(kind))return false;return !!catalogue.value?.services.some(s=>s.rules.some(r=>r.type==='DOMAIN-SUFFIX'?(domain===r.domain||domain.endsWith('.'+r.domain)):(kind==='DOMAIN'&&domain===r.domain)))}
 const aiRules=computed(()=>aiActive.value&&catalogue.value?catalogue.value.services.flatMap(s=>s.rules.map(r=>`${r.type},${r.domain},${edits.value.ai_routing!.group}`)):[])
-const rules=computed(()=>{
-  const available=[...(current.value.source.rules||[]).filter(r=>!edits.value.removed_rules.includes(r)),...edits.value.added_rules]
-  const ordered=[...new Set(edits.value.rule_order.filter(r=>available.includes(r)))],rest=available.filter(r=>!ordered.includes(r))
-  if(!ordered.length)ordered.push(...rest);else{const final=ordered.findIndex(r=>/^(MATCH|FINAL),/i.test(r));ordered.splice(final<0?ordered.length:final,0,...rest)}
-  return [...aiRules.value,...new Set(ordered.filter(r=>!aiActive.value||!managed(r)))]
-})
+const rules=computed(()=>composeEditorRules(current.value.source.rules||[],edits.value,aiRules.value,r=>aiActive.value&&managed(r)))
 const visibleRules=computed(()=>rules.value.map((raw,index)=>({raw,index})).filter(r=>r.raw.toLowerCase().includes(search.value.toLowerCase())))
+const pageSize=100,nodePage=ref(0),rulePage=ref(0)
+const nodePages=computed(()=>Math.max(1,Math.ceil(nodes.value.length/pageSize)))
+const rulePages=computed(()=>Math.max(1,Math.ceil(visibleRules.value.length/pageSize)))
+const pagedNodes=computed(()=>nodes.value.slice(nodePage.value*pageSize,(nodePage.value+1)*pageSize))
+const pagedRules=computed(()=>visibleRules.value.slice(rulePage.value*pageSize,(rulePage.value+1)*pageSize))
+watch([search,tab],()=>{nodePage.value=0;rulePage.value=0})
+watch([nodePages,rulePages],()=>{nodePage.value=Math.min(nodePage.value,nodePages.value-1);rulePage.value=Math.min(rulePage.value,rulePages.value-1)},{flush:'sync'})
 const tabs=computed(()=>[{id:'nodes',name:t("代理节点"),icon:Globe2,count:sourceNodes.value.length},{id:'groups',name:t("策略组"),icon:Layers3,count:groups.value.length},{id:'rules',name:t("分流规则"),icon:ListFilter,count:rules.value.length},{id:'preview',name:t("YAML 预览"),icon:Code2},{id:'history',name:t("版本历史"),icon:FolderClock},{id:'settings',name:t("订阅设置"),icon:Settings2}])
 const outputUrl=computed(()=>props.backendBase+current.value.subscription_path)
 const lanUrl=computed(()=>network.value?.running&&network.value.base_url?network.value.base_url+current.value.subscription_path:'')
 const modifiedCount=computed(()=>Object.keys(edits.value.proxy_renames).length+edits.value.excluded_proxies.length+Object.keys(edits.value.group_overrides).length+edits.value.deleted_groups.length+edits.value.new_groups.length+edits.value.added_rules.length+edits.value.removed_rules.length+(edits.value.rule_order.length?1:0)+(edits.value.ai_routing?1:0))
-function adopt(value:Subscription){current.value=clone(value);edits.value=clone(value.edits);preview.value=clone(value.preview);meta.value={title:value.title,enabled:!!value.enabled,interval_minutes:value.interval_minutes};error.value='';emit('saved',value)}
-watch(()=>props.subscription,(value)=>{if(!dirty.value&&(value.id!==current.value.id||value.revision!==current.value.revision)){current.value=clone(value);edits.value=clone(value.edits);preview.value=clone(value.preview);meta.value={title:value.title,enabled:!!value.enabled,interval_minutes:value.interval_minutes}}})
-watch(dirty,value=>emit('dirty',value),{immediate:true})
+function adopt(value:Subscription,resetMeta=false){const preserveMeta=metaDirty.value&&!resetMeta;current.value=value;edits.value=clone(value.edits);preview.value=value.preview;if(!preserveMeta)meta.value={title:value.title,enabled:!!value.enabled,interval_minutes:value.interval_minutes};error.value='';emit('saved',value)}
+watch(()=>props.subscription,(value)=>{if(!unsaved.value&&!busy.value&&(value.id!==current.value.id||value.revision!==current.value.revision)){current.value=value;edits.value=clone(value.edits);preview.value=value.preview;meta.value={title:value.title,enabled:!!value.enabled,interval_minutes:value.interval_minutes}}})
+watch(unsaved,value=>emit('dirty',value),{immediate:true,flush:'sync'})
 watch(tab,async (value,previous)=>{tabSearches.value[previous]=search.value;search.value=tabSearches.value[value]||'';if(value==='history')await loadHistory();if(value==='groups'&&!chosen.value)groupKey.value=groups.value[0]?.key||''})
-watch(edits,()=>{clearTimeout(timer);sequence++;if(dirty.value){checking.value=true;timer=setTimeout(()=>checkDraft(),300)}else{checking.value=false;preview.value=clone(current.value.preview)}},{deep:true})
+watch(edits,()=>{clearTimeout(timer);sequence++;if(dirty.value){checking.value=true;timer=setTimeout(()=>checkDraft(),300)}else{checking.value=false;preview.value=current.value.preview}},{deep:true})
 async function action(fn:()=>Promise<void>){if(busy.value)return;busy.value=true;try{await fn()}catch(e){error.value=(e as Error).message;emit('notice',error.value,true)}finally{busy.value=false}}
-async function checkDraft(){const seq=++sequence;checking.value=true;try{const result=await api<Preview>(`/api/subscriptions/${current.value.id}/preview`,'POST',{revision:current.value.revision,edits:edits.value});if(seq===sequence){preview.value=result;error.value=''}}catch(e){if(seq===sequence)error.value=(e as Error).message}finally{if(seq===sequence)checking.value=false}}
-async function publish(){await action(async()=>{clearTimeout(timer);await checkDraft();if(error.value||preview.value.errors.length)throw new Error(error.value||preview.value.errors.join('；'));adopt(await api<Subscription>(`/api/subscriptions/${current.value.id}/edits`,'PUT',{revision:current.value.revision,edits:edits.value}));emit('notice',t("修改已保存发布；点击“应用配置”后改变本机运行版本"))})}
-async function discard(){if(dirty.value&&!await confirmDialog(t("撤销当前未保存的订阅修改？")))return;edits.value=clone(current.value.edits);preview.value=clone(current.value.preview);error.value=''}
+let previewInFlight=false, previewPending=false
+async function checkDraft(){
+  if(disposed)return
+  if(!dirty.value){checking.value=false;preview.value=current.value.preview;return}
+  if(previewInFlight){previewPending=true;return}
+  previewInFlight=true
+  const seq=++sequence;checking.value=true
+  try{const result=await api<Preview>(`/api/subscriptions/${current.value.id}/preview`,'POST',{revision:current.value.revision,edits:edits.value});if(!disposed&&seq===sequence){preview.value=result;error.value=''}}
+  catch(e){if(!disposed&&seq===sequence)error.value=(e as Error).message}
+  finally{previewInFlight=false;if(!disposed&&seq===sequence)checking.value=false;if(!disposed&&previewPending){previewPending=false;clearTimeout(timer);timer=setTimeout(()=>checkDraft(),0)}}}
+
+async function publish(){await action(async()=>{
+  clearTimeout(timer);++sequence
+  const id=current.value.id,revision=current.value.revision,snapshot=clone(edits.value),signature=JSON.stringify(snapshot)
+  checking.value=true
+  try{
+    const checked=await api<Preview>(`/api/subscriptions/${id}/preview`,'POST',{revision,edits:snapshot})
+    if(checked.errors.length)throw new Error(checked.errors.join('；'))
+    const value=await api<Subscription>(`/api/subscriptions/${id}/edits`,'PUT',{revision,edits:snapshot})
+    const later=JSON.stringify(edits.value)!==signature?clone(edits.value):null
+    adopt(value)
+    if(later)edits.value=later
+    emit('notice',t("修改已保存发布；点击“应用配置”后改变本机运行版本"))
+  }finally{checking.value=false}
+})}
+async function discard(){if(dirty.value&&!await confirmDialog(t("撤销当前未保存的订阅修改？")))return;edits.value=clone(current.value.edits);preview.value=current.value.preview;error.value=''}
 function renameNode(name:string,value:string){if(!value.trim()||value===name)delete edits.value.proxy_renames[name];else edits.value.proxy_renames[name]=value.trim()}
 function toggleNode(name:string){const list=edits.value.excluded_proxies;const i=list.indexOf(name);if(i<0)list.push(name);else list.splice(i,1)}
 function label(name:string){return edits.value.proxy_renames[name]||groups.value.find(g=>g.key===name)?.group.name||name}
@@ -74,20 +107,20 @@ async function applyAI(){if(!aiOutlet.value)return;await action(async()=>{const 
 async function loadHistory(){try{history.value=await api<History[]>(`/api/subscriptions/${current.value.id}/history`)}catch(e){emit('notice',(e as Error).message,true)}}
 async function viewHistory(item:History){await action(async()=>{historical.value=await api(`/api/subscriptions/${current.value.id}/history/${item.id}`)})}
 async function restore(item:History){if(!await confirmDialog(t("恢复此历史版本？当前草稿将被替换。")))return;await action(async()=>{adopt(await api<Subscription>(`/api/subscriptions/${current.value.id}/history/${item.id}/restore`,'POST',{revision:current.value.revision}));await loadHistory();emit('notice',t("历史版本已恢复；本机运行版本需要重新应用"))})}
-async function saveMeta(){if(dirty.value){emit('notice',t("请先保存或撤销配置草稿"),true);return}await action(async()=>{adopt(await api<Subscription>(`/api/subscriptions/${current.value.id}`,'PATCH',{revision:current.value.revision,...meta.value}));emit('notice',t("订阅设置已保存"))})}
+async function saveMeta(){if(dirty.value){emit('notice',t("请先保存或撤销配置草稿"),true);return}await action(async()=>{adopt(await api<Subscription>(`/api/subscriptions/${current.value.id}`,'PATCH',{revision:current.value.revision,...meta.value}),true);emit('notice',t("订阅设置已保存"))})}
 async function refresh(yaml?:string){if(dirty.value){emit('notice',t("请先保存或撤销草稿"),true);return}if(current.value.source_type==='file'&&yaml===undefined){fileInput.value?.click();return}await action(async()=>{const value=await api<Subscription>(`/api/subscriptions/${current.value.id}/refresh`,'POST',{revision:current.value.revision,...(yaml===undefined?{}:{yaml})});adopt(value);emit('notice',value.last_error||t("源订阅已刷新，修改记录已重新应用"),!!value.last_error)})}
 async function replaceFile(event:Event){const input=event.target as HTMLInputElement,f=input.files?.[0];if(f){if(f.size>8*1024*1024)emit('notice',t("文件不能超过 8 MB"),true);else await refresh(await f.text())}input.value=''}
 async function rotate(){if(dirty.value){emit('notice',t("请先保存或撤销草稿"),true);return}if(!await confirmDialog(t("重新生成地址后，旧订阅地址立即失效，是否继续？")))return;await action(async()=>{adopt(await api<Subscription>(`/api/subscriptions/${current.value.id}/rotate-token`,'POST',{revision:current.value.revision}));emit('notice',t("订阅地址已重新生成"))})}
-async function loadNetwork(){network.value=await api<NetworkStatus>('/api/network');networkForm.value={enabled:network.value.enabled,port:network.value.port,selected_host:network.value.selected_host}}
-async function saveNetwork(){await action(async()=>{network.value=await api<NetworkStatus>('/api/network','PUT',networkForm.value);emit('notice',network.value.running?t("局域网只读订阅共享已开启"):t("局域网共享已关闭"))})}
+async function loadNetwork(){network.value=await api<NetworkStatus>('/api/network');if(!networkDirty.value){networkForm.value={enabled:network.value.enabled,port:network.value.port,selected_host:network.value.selected_host};savedNetwork.value=JSON.stringify(networkForm.value)}}
+async function saveNetwork(){await action(async()=>{const snapshot=clone(networkForm.value);network.value=await api<NetworkStatus>('/api/network','PUT',snapshot);savedNetwork.value=JSON.stringify(snapshot);emit('notice',network.value.running?t("局域网只读订阅共享已开启"):t("局域网共享已关闭"))})}
 async function copy(value:string){try{await navigator.clipboard.writeText(value);emit('notice',t("已复制"))}catch{emit('notice',t("复制失败，请手动复制"),true)}}
 async function download(){if(preview.value.errors.length)return;await action(async()=>{await saveTextFile(current.value.title+'.yaml',preview.value.yaml)})}
 onMounted(async()=>{if(!chosen.value)groupKey.value=groups.value[0]?.key||'';try{catalogue.value=await api<AICatalogue>('/api/presets/ai');aiOutlet.value=policies.value.find(p=>!['DIRECT','REJECT',catalogue.value?.group_name].includes(p.value))?.value||'';await loadNetwork();if(tab.value==='history')await loadHistory()}catch(e){emit('notice',(e as Error).message,true)}finally{await nextTick();emit('ready')}})
-onUnmounted(()=>{clearTimeout(timer);emit('dirty',false)})
+onUnmounted(()=>{disposed=true;clearTimeout(timer);++sequence;previewPending=false;emit('dirty',false)})
 </script>
 
 <template>
-  <section class="native-editor">
+  <section class="native-editor" :inert="busy" :aria-busy="busy">
     <div class="native-editor-head"><div><h2>{{ current.title }} <span class="small-badge">v{{ current.revision }}</span><span v-if="dirty" class="draft-badge">{{ t("未保存草稿") }}</span></h2><p>{{ t("源订阅与编辑记录独立保存 · {0} 项自定义修改", [modifiedCount]) }}</p></div><div class="heading-buttons"><button class="desk-btn" :disabled="busy||!dirty" @click="discard"><RotateCcw :size="14"/>{{ t("撤销") }}</button><button class="desk-btn" :disabled="busy||dirty" @click="refresh()"><RefreshCw :size="14"/>{{ current.source_type==='file'?t("更新文件"):t("刷新源订阅") }}</button><button class="desk-btn primary" :disabled="busy||checking||!dirty||!!preview.errors.length" @click="publish"><Loader2 v-if="busy" class="rotate" :size="14"/><Save v-else :size="14"/>{{ t("保存并发布") }}</button></div></div>
     <input ref="fileInput" type="file" accept=".yaml,.yml" hidden @change="replaceFile"/>
     <div v-if="current.last_error||error" class="desk-alert error">{{ error||current.last_error }}</div>
@@ -96,7 +129,8 @@ onUnmounted(()=>{clearTimeout(timer);emit('dirty',false)})
 
     <template v-if="tab==='nodes'">
       <div class="section-toolbar"><span>{{ t("节点更名、排除和恢复会在订阅更新后重新应用。") }}</span><label class="desk-search"><Search :size="14"/><input v-model="search" :placeholder="t('搜索节点')" :aria-label="t('搜索节点')"/></label></div>
-      <div class="desk-card editor-node-table"><div class="editor-node-row table-head"><span>{{ t("启用") }}</span><span>{{ t("源节点 / 协议") }}</span><span>{{ t("显示名称") }}</span><span>{{ t("来源地址") }}</span></div><div v-for="node in nodes" :key="node.name" :class="['editor-node-row',{excluded:edits.excluded_proxies.includes(node.name)}]"><input type="checkbox" :aria-label="t('启用节点 {0}', [node.name])" :checked="!edits.excluded_proxies.includes(node.name)" @change="toggleNode(node.name)"/><span><strong>{{ node.name }}</strong><small>{{ node.type }}</small></span><input :value="edits.proxy_renames[node.name]||node.name" :aria-label="t('节点名称 {0}', [node.name])" @input="renameNode(node.name,($event.target as HTMLInputElement).value)"/><span>{{ node.server||'—' }}<small>{{ node.port }}</small></span></div><div v-if="!nodes.length" class="desk-empty">{{ t("没有匹配节点。provider 中的节点由内核展开。") }}</div></div>
+      <div class="desk-card editor-node-table"><div class="editor-node-row table-head"><span>{{ t("启用") }}</span><span>{{ t("源节点 / 协议") }}</span><span>{{ t("显示名称") }}</span><span>{{ t("来源地址") }}</span></div><div v-for="node in pagedNodes" :key="node.name" :class="['editor-node-row',{excluded:edits.excluded_proxies.includes(node.name)}]"><input type="checkbox" :aria-label="t('启用节点 {0}', [node.name])" :checked="!edits.excluded_proxies.includes(node.name)" @change="toggleNode(node.name)"/><span><strong>{{ node.name }}</strong><small>{{ node.type }}</small></span><input :value="edits.proxy_renames[node.name]||node.name" :aria-label="t('节点名称 {0}', [node.name])" @input="renameNode(node.name,($event.target as HTMLInputElement).value)"/><span>{{ node.server||'—' }}<small>{{ node.port }}</small></span></div><div v-if="!nodes.length" class="desk-empty">{{ t("没有匹配节点。provider 中的节点由内核展开。") }}</div></div>
+      <ListPagination v-model="nodePage" :pages="nodePages" :page-size="pageSize" :label="t('代理节点')"/>
     </template>
 
     <template v-if="tab==='groups'">
@@ -108,7 +142,8 @@ onUnmounted(()=>{clearTimeout(timer);emit('dirty',false)})
     <template v-if="tab==='rules'">
       <div v-if="props.desktopFeatures!==false" class="desk-card native-ai"><Sparkles :size="21"/><div><strong>{{ t("AI 服务分流预设") }}</strong><p>{{ t("{0} 组服务 · {1} 条规则，添加到草稿后统一发布。", [catalogue?.service_count||0, catalogue?.rule_count||0]) }}</p></div><select v-model="aiOutlet" :aria-label="t('AI 分流出口')"><option v-for="item in policies.filter(p=>!['DIRECT','REJECT',catalogue?.group_name].includes(p.value))" :key="item.value" :value="item.value">{{ item.label }}</option></select><button class="desk-btn" :disabled="busy||!aiOutlet" @click="applyAI">{{ t("加入草稿") }}</button><button v-if="aiActive" class="desk-text-btn" @click="edits.ai_routing!.enabled=false">{{ t("停用") }}</button></div>
       <form class="desk-card native-rule-form" @submit.prevent="addRule"><div class="rule-form-heading"><strong>{{ t("添加规则") }}</strong><button type="button" class="desk-text-btn" @click="advanced=!advanced">{{ advanced?t("使用可视化条件"):t("高级规则输入") }}</button></div><input v-if="advanced" v-model="advancedRule" :placeholder="t('DOMAIN-SUFFIX,example.com,策略组')" :aria-label="t('高级规则')"/><div v-else class="native-rule-fields"><select v-model="rule.kind" :aria-label="t('规则类型')"><option>DOMAIN-SUFFIX</option><option>DOMAIN</option><option>DOMAIN-KEYWORD</option><option>PROCESS-NAME</option><option>PROCESS-PATH</option><option>IP-CIDR</option><option>IP-CIDR6</option><option>GEOIP</option><option>MATCH</option></select><input v-if="rule.kind!=='MATCH'" v-model="rule.value" :placeholder="t('匹配内容')" :aria-label="t('匹配内容')"/><select v-model="rule.target" :aria-label="t('规则目标')"><option v-for="item in policies" :key="item.value" :value="item.value">{{ item.label }}</option></select></div><div class="rule-form-footer"><label v-if="!advanced&&rule.kind!=='MATCH'"><input type="checkbox" v-model="rule.noResolve"/>no-resolve</label><select v-model="rule.position" :aria-label="t('规则添加位置')"><option value="top">{{ t("最前方") }}</option><option value="bottom">{{ t("兜底规则之前") }}</option></select><button class="desk-btn primary"><Plus :size="14"/>{{ t("添加规则") }}</button></div></form>
-      <div class="section-toolbar"><span>{{ t("{0} 条规则 · 列表顺序即匹配优先级", [visibleRules.length]) }}</span><label class="desk-search"><Search :size="14"/><input v-model="search" :placeholder="t('搜索规则')"/></label></div><div class="desk-card native-rules"><div v-for="item in visibleRules" :key="item.raw" class="native-rule-row"><span>{{ item.index+1 }}</span><code>{{ item.raw }}</code><span v-if="aiActive&&managed(item.raw)" class="small-badge">{{ t("AI 预设") }}</span><div><button class="desk-icon-btn" :disabled="item.index<=aiRules.length" :aria-label="t('上移规则')" @click="moveRule(item.index,-1)"><ArrowUp :size="13"/></button><button class="desk-icon-btn" :disabled="item.index<aiRules.length||item.index===rules.length-1" :aria-label="t('下移规则')" @click="moveRule(item.index,1)"><ArrowDown :size="13"/></button><button class="desk-icon-btn danger" :disabled="aiActive&&managed(item.raw)" :aria-label="t('删除规则')" @click="removeRule(item.raw)"><Trash2 :size="13"/></button></div></div></div><details v-if="edits.removed_rules.length" class="desk-card removed-items"><summary>{{ t("已移除 {0} 条源规则", [edits.removed_rules.length]) }}</summary><div v-for="r in edits.removed_rules" :key="r"><code>{{ r }}</code><button class="desk-text-btn" @click="edits.removed_rules=edits.removed_rules.filter(item=>item!==r)">{{ t("恢复") }}</button></div></details>
+      <div class="section-toolbar"><span>{{ t("{0} 条规则 · 列表顺序即匹配优先级", [visibleRules.length]) }}</span><label class="desk-search"><Search :size="14"/><input v-model="search" :placeholder="t('搜索规则')"/></label></div><div class="desk-card native-rules"><div v-for="item in pagedRules" :key="item.raw" class="native-rule-row"><span>{{ item.index+1 }}</span><code>{{ item.raw }}</code><span v-if="aiActive&&managed(item.raw)" class="small-badge">{{ t("AI 预设") }}</span><div><button class="desk-icon-btn" :disabled="item.index<=aiRules.length" :aria-label="t('上移规则')" @click="moveRule(item.index,-1)"><ArrowUp :size="13"/></button><button class="desk-icon-btn" :disabled="item.index<aiRules.length||item.index===rules.length-1" :aria-label="t('下移规则')" @click="moveRule(item.index,1)"><ArrowDown :size="13"/></button><button class="desk-icon-btn danger" :disabled="aiActive&&managed(item.raw)" :aria-label="t('删除规则')" @click="removeRule(item.raw)"><Trash2 :size="13"/></button></div></div></div><details v-if="edits.removed_rules.length" class="desk-card removed-items"><summary>{{ t("已移除 {0} 条源规则", [edits.removed_rules.length]) }}</summary><div v-for="r in edits.removed_rules" :key="r"><code>{{ r }}</code><button class="desk-text-btn" @click="edits.removed_rules=edits.removed_rules.filter(item=>item!==r)">{{ t("恢复") }}</button></div></details>
+      <ListPagination v-model="rulePage" :pages="rulePages" :page-size="pageSize" :label="t('分流规则')"/>
     </template>
 
     <template v-if="tab==='preview'"><div class="section-toolbar"><div class="native-segment"><button :class="{active:!raw}" @click="raw=false">{{ t("当前草稿") }}</button><button :class="{active:raw}" @click="raw=true">{{ t("原始订阅") }}</button></div><div class="heading-buttons"><button class="desk-btn" @click="copy(raw?current.source_yaml:preview.yaml)"><Copy :size="14"/>{{ t("复制") }}</button><button class="desk-btn" :disabled="checking||!!preview.errors.length" @click="download"><Download :size="14"/>{{ t("下载 YAML") }}</button></div></div><pre class="native-code">{{ raw?current.source_yaml:preview.yaml }}</pre><p class="page-caption">{{ t("此处展示订阅编辑草稿；模块规则在方案合成阶段叠加。配置中的凭据仅在本机展示。") }}</p></template>

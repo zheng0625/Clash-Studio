@@ -12,7 +12,8 @@
 :root[data-tier-switch] .desk .mobile-nav-thumb{transition:none!important}
 
 :root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]){--mobile-top:env(safe-area-inset-top,0px);--mobile-left:env(safe-area-inset-left,0px);--mobile-right:env(safe-area-inset-right,0px);--mobile-nav-height:92px;--mobile-bottom:env(safe-area-inset-bottom,0px)}
-:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]):has(.android-inset-host){--mobile-top:0px;--mobile-bottom:var(--android-nav-inset,0px);--mobile-left:0px;--mobile-right:0px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]):has(.android-inset-host){--mobile-top:var(--android-status-inset,0px);--mobile-bottom:var(--android-nav-inset,0px);--mobile-left:0px;--mobile-right:0px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .android-inset-host .desk-main{padding-top:var(--mobile-top);box-sizing:border-box}
 :where([data-mobile-tier=compact],[data-mobile-tier=tablet]):is(html,body,#app){width:100%;height:100%;min-width:0}
 :root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk{height:100dvh;min-height:0;overflow:hidden}
 :root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .desk-main{height:100%;min-height:0;min-width:0;width:100%;margin:0;display:flex;flex-direction:column}

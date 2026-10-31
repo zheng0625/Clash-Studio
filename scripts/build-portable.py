@@ -6,8 +6,10 @@ Existing release directories are never overwritten.
 from __future__ import annotations
 
 import hashlib
+import argparse
 import importlib.metadata as metadata
 import json
+import re
 from pathlib import Path
 import shutil
 import sys
@@ -15,7 +17,7 @@ import zipfile
 from packaging.requirements import Requirement
 
 ROOT = Path(__file__).resolve().parents[1]
-NAME = 'ClashStudio-1.2-portable-windows-x64'
+NAME = 'ClashStudio-1.3-portable-windows-x64'
 RELEASES = ROOT / 'artifacts' / 'releases'
 OUT = RELEASES / NAME
 ZIP = RELEASES / (NAME + '.zip')
@@ -49,7 +51,17 @@ def distributions():
     return sorted(result, key=lambda dist: dist.metadata['Name'].lower())
 
 
-def main():
+def main(*, label='', output_dir=None, source_archive=None):
+    global NAME, RELEASES, OUT, ZIP
+    if label and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*', label):
+        raise SystemExit('Build label must contain only letters, digits, dots, underscores and hyphens.')
+    if label:
+        NAME = f'ClashStudio-1.3-{label}-portable-windows-x64'
+    if output_dir:
+        RELEASES = Path(output_dir).resolve()
+    OUT, ZIP = RELEASES / NAME, RELEASES / (NAME + '.zip')
+    if source_archive and not Path(source_archive).is_file():
+        raise SystemExit('Corresponding source archive does not exist.')
     if sys.platform != 'win32' or sys.version_info[:2] != (3, 12):
         raise SystemExit('Build using the existing Windows x64 Python 3.12 development venv.')
     if OUT.exists() or ZIP.exists():
@@ -107,10 +119,12 @@ def main():
         copy(ROOT / name, OUT / name)
     for name in ['README.md', 'README.en.md', 'BUILDING.md', 'CHANGELOG.md']:
         copy(ROOT / name, OUT / name)
-    (OUT / 'portable.json').write_text(json.dumps({'version': '1.2.0', 'architecture': 'windows-x64', 'python': '.'.join(map(str, sys.version_info[:3])), 'data': 'data', 'webview2': 'system runtime required'}, indent=2), encoding='utf-8')
+    (OUT / 'portable.json').write_text(json.dumps({'version': '1.3.0', 'architecture': 'windows-x64', 'python': '.'.join(map(str, sys.version_info[:3])), 'data': 'data', 'webview2': 'system runtime required', 'build_channel': 'test' if label else 'release', 'build_label': label}, indent=2), encoding='utf-8')
+    if label:
+        (OUT / 'TEST-BUILD.txt').write_text(f'Clash Studio 1.3.0 test build: {label}\nIncludes the current frontend and backend sources.\nUse a separate extracted folder for testing. Application data stays in this folder.\nSee the adjacent BUILD-REPORT.json for verification results.\n', encoding='utf-8')
     (OUT / '管理员启动.cmd').write_text('@echo off\r\npowershell.exe -NoProfile -Command "Start-Process -FilePath \'%~dp0ClashStudio.exe\' -WorkingDirectory \'%~dp0\' -Verb RunAs"\r\n', encoding='utf-8')
     (OUT / '恢复系统代理.cmd').write_text('@echo off\r\n"%~dp0runtime\\python\\python.exe" -I -B "%~dp0run.py" --restore-proxy\r\npause\r\n', encoding='utf-8')
-    (OUT / '使用说明.txt').write_text('''Clash Studio 1.2 Portable · Windows x64
+    (OUT / '使用说明.txt').write_text('''Clash Studio 1.3 Portable · Windows x64
 
 Quick start: extract the entire ZIP, then run ClashStudio.exe. Keep all folders together.
 Language: Settings and logs > Settings > Interface language (Follow system / 简体中文 / English).
@@ -140,13 +154,15 @@ WebView2官方说明：https://learn.microsoft.com/microsoft-edge/webview2/conce
     source_zip = OUT / 'source/ClashStudio-source.zip'
     source_zip.parent.mkdir()
     with zipfile.ZipFile(source_zip, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
-        for folder in ['server', 'vendor/app', 'vendor/examples', 'frontend/src', 'frontend/public', 'src-tauri/src', 'src-tauri/capabilities', 'src-tauri/icons', 'scripts', 'docs', 'tests']:
+        for folder in ['server', 'vendor/app', 'vendor/examples', 'frontend/src', 'frontend/public', 'frontend/tests', 'src-tauri/src', 'src-tauri/capabilities', 'src-tauri/icons', 'scripts', 'docs', 'tests']:
             for path in sorted((ROOT / folder).rglob('*')):
                 if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
                     archive.write(path, path.relative_to(ROOT).as_posix())
-        for name in ['run.py', 'LICENSE', 'README.md', 'README.en.md', 'BUILDING.md', 'CHANGELOG.md', 'THIRD_PARTY_NOTICES.md', 'AGENTS.md', 'dev-env.ps1', 'build-tauri.ps1', 'frontend/index.html', 'frontend/package.json', 'frontend/pnpm-lock.yaml', 'frontend/tsconfig.json', 'frontend/vite.config.ts', 'src-tauri/Cargo.toml', 'src-tauri/Cargo.lock', 'src-tauri/build.rs', 'src-tauri/tauri.conf.json']:
+        for name in ['run.py', 'requirements.txt', 'frontend/ui-components.html', 'frontend/ui-component-frame.html', 'frontend/ui-preview.html', 'frontend/ui-editor.html', 'frontend/ui-android.html', 'frontend/ui-proposal.html', 'frontend/ui-window-preview.html', 'LICENSE', 'README.md', 'README.en.md', 'BUILDING.md', 'CHANGELOG.md', 'THIRD_PARTY_NOTICES.md', 'AGENTS.md', 'dev-env.ps1', 'build-tauri.ps1', 'frontend/index.html', 'frontend/package.json', 'frontend/pnpm-lock.yaml', 'frontend/tsconfig.json', 'frontend/vite.config.ts', 'src-tauri/Cargo.toml', 'src-tauri/Cargo.lock', 'src-tauri/build.rs', 'src-tauri/tauri.conf.json', 'src-tauri/tauri.ui-test.conf.json']:
             archive.write(ROOT / name, name)
-    manifest = {'version': '1.2.0', 'typecheck': 'passed', 'frontend_build': 'passed', 'rust_build': 'passed', 'portable_launch': 'not tested', 'uac_and_tun': 'not tested', 'files': [{'path': path.relative_to(OUT).as_posix(), 'bytes': path.stat().st_size, 'sha256': digest(path)} for path in sorted(OUT.rglob('*')) if path.is_file()]}
+    if source_archive:
+        shutil.copy2(source_archive, source_zip)
+    manifest = {'version': '1.3.0', 'build_channel': 'test' if label else 'release', 'build_label': label, 'typecheck': 'passed', 'frontend_build': 'passed', 'rust_build': 'passed', 'portable_launch': 'not tested', 'uac_and_tun': 'not tested', 'files': [{'path': path.relative_to(OUT).as_posix(), 'bytes': path.stat().st_size, 'sha256': digest(path)} for path in sorted(OUT.rglob('*')) if path.is_file()]}
     (OUT / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
     with zipfile.ZipFile(ZIP, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
         for path in sorted(OUT.rglob('*')):
@@ -158,4 +174,9 @@ WebView2官方说明：https://learn.microsoft.com/microsoft-edge/webview2/conce
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--label', default='', help='Optional test-build label; preserves the release outputs.')
+    parser.add_argument('--output-dir', type=Path)
+    parser.add_argument('--source-archive', type=Path, help='Use an already verified corresponding source ZIP.')
+    args = parser.parse_args()
+    main(label=args.label, output_dir=args.output_dir, source_archive=args.source_archive)

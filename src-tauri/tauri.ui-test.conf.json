@@ -1,0 +1,11 @@
+{
+  "productName": "Clash Studio UI Test",
+  "identifier": "studio.clash.desktop.uitest",
+  "app": {
+    "windows": [{
+      "label": "main", "create": false, "title": "Clash Studio UI Test",
+      "width": 840, "height": 760, "minWidth": 720, "minHeight": 520,
+      "center": true, "backgroundColor": "#f5f5fa", "decorations": false
+    }]
+  }
+}

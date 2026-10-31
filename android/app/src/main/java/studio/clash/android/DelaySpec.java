@@ -26,6 +26,12 @@ final class DelaySpec {
     static boolean measurable(JSONObject node) {
         return node != null && !node.has("all") && !NON_PROXIES.contains(node.optString("type").toLowerCase(Locale.ROOT));
     }
+    static String configurationKey(JSONObject config) throws Exception {
+        StringBuilder key = new StringBuilder();
+        byte[] bytes = ConfigEngine.dump(config).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        for (byte value : java.security.MessageDigest.getInstance("SHA-256").digest(bytes)) key.append(String.format("%02x", value));
+        return key.toString();
+    }
     /** The bridge reports failure as a negative delay; zero never survives the bridge. */
     static JSONObject result(String name, String endpoint, int timeoutMs, int delay, Instant checkedAt) throws Exception {
         return new JSONObject().put("name", name).put("endpoint", endpoint).put("timeout_ms", timeoutMs)

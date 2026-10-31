@@ -50,7 +50,7 @@ def main():
         result['composition'].append(dict(nodes=nodes, rules=rules, yaml_bytes=len(yaml.encode()), baseline=baseline, cold=cold, warm=warm))
     with tempfile.TemporaryDirectory() as directory:
         runtime = Runtime(Path(directory))
-        runtime.process = SimpleNamespace(pid=123, poll=lambda:None)
+        runtime.process = SimpleNamespace(pid=123, poll=lambda:None, terminate=lambda:None, kill=lambda:None, wait=lambda **kwargs:0)
         payload = json.dumps(dict(connections=[dict(id=str(i), metadata=dict(host=f'example-{i}.invalid'), upload=i, download=i*2) for i in range(5000)], uploadTotal=10000, downloadTotal=20000))
         requests = [0]
         def sample(*args, **kwargs):
@@ -80,6 +80,22 @@ def main():
             assert not thread.is_alive(), 'status blocked on lifecycle lock'
         durations.sort()
         result['status_during_lifecycle_lock'] = dict(samples=len(durations), p50_ms=round(durations[99],3),p95_ms=round(durations[189],3))
+        # Entry+byte budget under distinct revision keys; oversized entries must not be retained.
+        budget = RevisionCache(capacity=8, max_bytes=8*1024*1024)
+        for index in range(16):
+            budget.get(('budget', index), lambda index=index: dict(compose(yaml, 'p', Workspace()), key=index))
+        stats = budget.stats()
+        result['composition_budget'] = dict(keys=16, entries=stats['entries'], bytes=stats['bytes'],
+                                           max_bytes=stats['max_bytes'], evictions=stats['evictions'],
+                                           oversized=stats['oversized'], method=stats['method'])
+        # Stopping must release cached connection objects/bytes/session while keeping totals.
+        runtime._stop_locked(final_sample=False, report=False)
+        result['connection_cleanup'] = dict(
+            sample_released=runtime._connection_sample is None,
+            wire_released=runtime._connection_wire is None,
+            session_released=runtime._connection_session is None,
+            final_download_retained=runtime.last_traffic['download'] == 20000,
+            final_running_flag=runtime.last_traffic['running'])
     target = ROOT/'artifacts'/'backend-benchmark.json'
     target.parent.mkdir(exist_ok=True)
     target.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')

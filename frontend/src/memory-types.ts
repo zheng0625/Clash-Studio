@@ -1,0 +1,2 @@
+export type Status='ok'|'partial'|'unavailable'
+export type MemorySample={status:Status;total_bytes:number|null;private_total_bytes?:number|null;private_method?:string;ram_method?:string;private_working_set_total_bytes?:number|null;private_working_set_status?:Status;processes:{kind:string;bytes:number|null;private_bytes?:number|null;private_working_set_bytes?:number|null;private_working_set_unreadable_count?:number;process_count:number;unreadable_count:number}[];sampled_at:number}

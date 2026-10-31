@@ -54,8 +54,13 @@ class GeoUpdater:
                 raise HTTPException(409, "请先停止主内核，再更新 GeoData")
             self.cancelled.clear()
             self.state.update(busy=True, phase="downloading", completed=0, file="", message="正在从上游 CDN 下载并校验")
-            self.thread = threading.Thread(target=self.run, daemon=True)
-            self.thread.start()
+            try:
+                self.thread = threading.Thread(target=self.run, daemon=True)
+                self.thread.start()
+            except Exception:
+                self.thread = None
+                self.state.update(busy=False, phase="error", message="更新任务未能启动，请稍后重试")
+                raise HTTPException(503, "更新任务未能启动，请稍后重试") from None
         return self.status()
 
     def cancel(self):
@@ -83,10 +88,14 @@ class GeoUpdater:
         return digest.hexdigest(), size
 
     def run(self):
-        stage = self.runtime.paths.data / "geodata-updates" / secrets.token_hex(8)
-        stage.mkdir(parents=True)
+        staging_root = stage = None
         installed = []
+        temporary_files = []
+        rollback_ok = True
         try:
+            staging_root = (self.runtime.paths.data / "geodata-updates").resolve()
+            stage = staging_root / secrets.token_hex(8)
+            stage.mkdir(parents=True)
             metadata = []
             with httpx.Client(trust_env=False, follow_redirects=True, timeout=httpx.Timeout(15, connect=8)) as client:
                 for index, (name, remote) in enumerate(FILES.items()):
@@ -130,6 +139,7 @@ class GeoUpdater:
                     if existed:
                         shutil.copy2(destination, backup)
                     temporary = destination.with_name(destination.name + ".update")
+                    temporary_files.append(temporary)
                     shutil.copyfile(source, temporary)
                     installed.append((destination, backup, existed))
                     os.replace(temporary, destination)
@@ -144,7 +154,17 @@ class GeoUpdater:
                     else:
                         destination.unlink(missing_ok=True)
                 except OSError:
-                    pass
+                    rollback_ok = False
             self.update_state(phase="error", message="更新失败（" + self.state.get("file", "数据库") + "），已尝试回退原文件；请检查 CDN 联网和目录权限")
         finally:
-            self.update_state(busy=False, file="")
+            try:
+                for temporary in temporary_files:
+                    try:
+                        temporary.unlink(missing_ok=True)
+                    except OSError:
+                        pass
+                # Failed rollback backups are recovery material, not disposable cache.
+                if rollback_ok and stage is not None and stage.resolve().parent == staging_root and not stage.is_symlink():
+                    shutil.rmtree(stage, ignore_errors=True)
+            finally:
+                self.update_state(busy=False, file="")

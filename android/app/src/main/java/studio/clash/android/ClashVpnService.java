@@ -12,6 +12,7 @@ import java.util.Locale;
 public class ClashVpnService extends VpnService {
     private static final String CHANNEL = "clash_vpn";
     private static final int NOTIFICATION = 27;
+    private android.graphics.Bitmap notificationIcon;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private long tickUp, tickDown, tickAt;
     private final Runnable ticker = new Runnable() { @Override public void run() {
@@ -35,6 +36,7 @@ public class ClashVpnService extends VpnService {
     }
     @Override public void onCreate() {
         super.onCreate(); CoreRuntime.INSTANCE.attach(this);
+        notificationIcon = android.graphics.BitmapFactory.decodeResource(getResources(), R.drawable.ic_brand);
         getSystemService(NotificationManager.class).createNotificationChannel(new NotificationChannel(CHANNEL, "VPN 连接", NotificationManager.IMPORTANCE_LOW));
     }
     @Override public int onStartCommand(Intent intent, int flags, int id) {
@@ -46,7 +48,7 @@ public class ClashVpnService extends VpnService {
     private Notification notification(String text) {
         PendingIntent open = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         PendingIntent stop = PendingIntent.getService(this, 1, new Intent(this, ClashVpnService.class).setAction("stop"), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        return new Notification.Builder(this, CHANNEL).setSmallIcon(studio.clash.android.R.drawable.ic_launcher).setContentTitle("Clash Studio VPN").setContentText(text)
+        return new Notification.Builder(this, CHANNEL).setSmallIcon(R.drawable.ic_launcher_foreground).setLargeIcon(notificationIcon).setContentTitle("Clash Studio VPN").setContentText(text)
             .setStyle(new Notification.BigTextStyle().bigText(text))
             .setContentIntent(open).setOngoing(true).setOnlyAlertOnce(true).setCategory(Notification.CATEGORY_SERVICE)
             .addAction(new Notification.Action.Builder(null, "停止", stop).build()).build();

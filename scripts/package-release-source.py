@@ -5,10 +5,10 @@ from pathlib import Path
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '1.2'
+VERSION = '1.3'
 OUTPUT = ROOT / 'artifacts/releases' / f'ClashStudio-{VERSION}-source.zip'
 DIRECTORIES = [
-    'server', 'vendor/app', 'vendor/examples', 'frontend/src', 'frontend/public',
+    'server', 'vendor/app', 'vendor/examples', 'frontend/src', 'frontend/public', 'frontend/tests',
     'src-tauri/src', 'src-tauri/capabilities', 'src-tauri/icons', 'scripts', 'tests',
     'docs', 'licenses', 'launcher', 'android/app/src', 'android/gradle',
     'android/vpn-probe/src', 'android/lifecycle-probe/src',
@@ -17,10 +17,10 @@ FILES = [
     'run.py', 'requirements.txt', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.md',
     'README.en.md', 'BUILDING.md', 'CHANGELOG.md', 'AGENTS.md', 'dev-env.ps1',
     'build-tauri.ps1', 'frontend/package.json', 'frontend/pnpm-lock.yaml',
-    'frontend/index.html', 'frontend/ui-preview.html', 'frontend/ui-editor.html',
-    'frontend/ui-android.html', 'frontend/tsconfig.json', 'frontend/vite.config.ts',
+    'frontend/index.html', 'frontend/ui-components.html', 'frontend/ui-android-components.html', 'frontend/ui-component-frame.html', 'frontend/ui-preview.html', 'frontend/ui-editor.html',
+    'frontend/ui-android.html', 'frontend/ui-proposal.html', 'frontend/ui-window-preview.html', 'frontend/tsconfig.json', 'frontend/vite.config.ts',
     'src-tauri/Cargo.toml', 'src-tauri/Cargo.lock', 'src-tauri/build.rs',
-    'src-tauri/tauri.conf.json', 'android/build.gradle.kts', 'android/settings.gradle.kts',
+    'src-tauri/tauri.conf.json', 'src-tauri/tauri.ui-test.conf.json', 'android/build.gradle.kts', 'android/settings.gradle.kts',
     'android/gradle.properties', 'android/gradlew', 'android/gradlew.bat',
     'android/app/build.gradle.kts', 'android/vpn-probe/build.gradle.kts',
     'android/lifecycle-probe/build.gradle.kts', 'android/README.md',
@@ -43,9 +43,9 @@ def main():
             if path.suffix in {'.pyc', '.jks', '.keystore', '.p12', '.key', '.exe', '.dll', '.aar'} or path.name.startswith('.env') or path.name == 'local.properties':
                 continue
             data = path.read_bytes()
-            archive.writestr('ClashStudio-1.2/' + relative.as_posix(), data)
+            archive.writestr('ClashStudio-1.3/' + relative.as_posix(), data)
             entries.append({'path': relative.as_posix(), 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()})
-        archive.writestr('ClashStudio-1.2/SOURCE-MANIFEST.json', json.dumps({'version': '1.2.0', 'files': entries}, ensure_ascii=False, indent=2))
+        archive.writestr('ClashStudio-1.3/SOURCE-MANIFEST.json', json.dumps({'version': '1.3.0', 'files': entries}, ensure_ascii=False, indent=2))
     with zipfile.ZipFile(OUTPUT) as archive:
         if archive.testzip() is not None:
             raise SystemExit('Source archive integrity check failed')

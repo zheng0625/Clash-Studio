@@ -1,4 +1,5 @@
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.file.FileSystemOperations
 import javax.inject.Inject
 import java.io.File
@@ -9,11 +10,13 @@ plugins { id("com.android.application") }
 
 abstract class PrepareUiAssets : DefaultTask() {
     @get:InputDirectory abstract val inputDirectory: DirectoryProperty
+    @get:InputFile abstract val changelog: RegularFileProperty
     @get:OutputDirectory abstract val outputDirectory: DirectoryProperty
     @get:Inject abstract val fileSystem: FileSystemOperations
     @TaskAction fun syncAssets() {
         fileSystem.sync {
             from(inputDirectory)
+            from(changelog)
             into(outputDirectory)
             exclude("ui-editor.html", "ui-preview.html", "ui-android.html")
         }
@@ -27,8 +30,8 @@ android {
         applicationId = "studio.clash.android.validation"
         minSdk = 26
         targetSdk = 37
-        versionCode = 7
-        versionName = "1.2.0"
+        versionCode = 8
+        versionName = "1.3.0"
         manifestPlaceholders["appLabel"] = "Clash Studio"
         ndk { abiFilters += "arm64-v8a" }
     }
@@ -81,6 +84,7 @@ val buildFrontend = tasks.register<Exec>("buildFrontend") {
 val syncFrontend = tasks.register<PrepareUiAssets>("syncFrontend") {
     dependsOn(buildFrontend)
     inputDirectory.set(frontendDir.dir("dist"))
+    changelog.set(rootProject.layout.projectDirectory.file("../CHANGELOG.md"))
     outputDirectory.set(layout.buildDirectory.dir("generated/ui-assets"))
 }
 androidComponents.onVariants { variant ->

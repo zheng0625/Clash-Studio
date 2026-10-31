@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { t, message, locale } from './i18n'
 
-import { computed, defineAsyncComponent, h, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, h, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { Activity, ArrowDownLeft, ArrowRight, ArrowUpRight, Box, Check, ChevronDown, ChevronRight, CircleHelp, Code2, Download, ExternalLink, FileCode2, FolderOpen, GitBranch, Globe2, LayoutDashboard, Layers3, Loader2, Network, Plus, Power, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, Trash2, Minus, Square, X } from 'lucide-vue-next'
 import type { Summary, Subscription } from './types'
 import NetworkDashboard from './NetworkDashboard.vue'
-import SubscriptionUsage from './SubscriptionUsage.vue'
+import KernelControl from './KernelControl.vue'
+import ResourceMemory from './ResourceMemory.vue'
+import OverviewSelection from './OverviewSelection.vue'
+import EnabledModulesCard from './EnabledModulesCard.vue'
+import CurrentConfigCard from './CurrentConfigCard.vue'
+import SubscriptionCard from './SubscriptionCard.vue'
 import GlassSelect from './GlassSelect.vue'
 import AppDialog from './AppDialog.vue'
 import LanguageSettings from './LanguageSettings.vue'
@@ -28,7 +33,6 @@ const RuntimeLogPanel=defineAsyncComponent({...deferred,loader:()=>import('./Run
 
 type Page = 'home'|'subscriptions'|'modules'|'proxies'|'connections'|'studio'|'routing'|'settings'
 type RoutingMode = 'rule'|'global'|'direct'
-const routingChoices: {id:RoutingMode;label:string}[]=[{id:'rule',label:'规则'},{id:'global',label:'全局'},{id:'direct',label:'直连'}]
 type Match = {kind:string;value:string}
 type Module = {id:string;name:string;target:string;strict:boolean;matches:Match[]}
 type Plan = {module_ids:string[];default_target:string}
@@ -91,7 +95,7 @@ watch(page,(next,previous)=>{
 })
 const editorDirty=ref(false), backendBase=ref(location.origin), tunDesired=ref(false), tunStack=ref('mixed')
 const proxyView=ref({search:'',availableOnly:false,sort:'original',view:'cards',benchmarkOpen:false,endpoint:'cloudflare'})
-const routingView=ref({query:'',kindFilter:'',stateFilter:''})
+const routingView=ref({query:'',kindFilter:'',stateFilter:'',page:0,pageSize:5})
 const settingsSearch=ref('')
 const editorView=ref({tab:'nodes',search:'',groupKey:'',memberSearch:'',raw:false,searches:{} as Record<string,string>})
 const logView=ref({query:'',level:'all',hidden:[] as string[]})
@@ -100,7 +104,7 @@ let pendingScroll:{key:string;top:number}|null=null
 const scrollKey=(value:Page)=>value==='settings'?'settings:'+settingsTab.value:['proxies','routing','studio','modules'].includes(value)?value+':'+selected.value:value
 function cancelScrollRestore(){pendingScroll=null}
 async function restoreScroll(){await nextTick();if(!pendingScroll||pendingScroll.key!==scrollKey(page.value))return;const container=document.querySelector<HTMLElement>('.desk-content');if(!container)return;container.scrollTop=pendingScroll.top;if(Math.abs(container.scrollTop-pendingScroll.top)<2)pendingScroll=null}
-watch(selected,()=>{proxyView.value={search:'',availableOnly:false,sort:'original',view:'cards',benchmarkOpen:false,endpoint:'cloudflare'};routingView.value={query:'',kindFilter:'',stateFilter:''};editorView.value={tab:'nodes',search:'',groupKey:'',memberSearch:'',raw:false,searches:{}};scrollPositions.delete(scrollKey('proxies'));scrollPositions.delete(scrollKey('routing'));if(['proxies','routing','studio','modules'].includes(page.value)){pendingScroll={key:scrollKey(page.value),top:0};void restoreScroll()}})
+watch(selected,()=>{proxyView.value={search:'',availableOnly:false,sort:'original',view:'cards',benchmarkOpen:false,endpoint:'cloudflare'};routingView.value={query:'',kindFilter:'',stateFilter:'',page:0,pageSize:5};editorView.value={tab:'nodes',search:'',groupKey:'',memberSearch:'',raw:false,searches:{}};scrollPositions.delete(scrollKey('proxies'));scrollPositions.delete(scrollKey('routing'));if(['proxies','routing','studio','modules'].includes(page.value)){pendingScroll={key:scrollKey(page.value),top:0};void restoreScroll()}})
 const routingPanel=ref<InstanceType<typeof AndroidRouting>|null>(null)
 const proxyMode=ref<'system'|'tun'>(localStorage.getItem('clash-desk-mode')==='tun'?'tun':'system')
 const networkSettingsDirty=ref(false),portSettingsDirty=ref(false)
@@ -112,14 +116,35 @@ const liveSpeed=ref<{upload:number|null;download:number|null;running:boolean}>({
 const detail=ref<Subscription|null>(null), workspace=ref<Workspace>({revision:1,modules:[],plans:{}}), preview=ref<Preview|null>(null)
 const runtimeReady=ref(false)
 const runtime=ref<Runtime>({running:false,installed:false,active:null,proxy:{supported:true,owned:false},events:[]})
-const liveProxies=ref<Record<string,LiveProxy>>({}), connections=ref<Connection[]>([]), totals=ref({upload:0,download:0}), connectionSampledAt=ref(0)
+// Wholesale-replaced, read-only list: shallow reactivity avoids proxying every
+// connection object when filters scan thousands of rows.
+const connections=shallowRef<Connection[]>([]), connectionSampledAt=ref(0)
 type ProxyCatalog={proxies:Record<string,LiveProxy>;key:string;live:boolean;has_providers:boolean;profile_revision:number;workspace_revision:number}
 const proxyCatalog=ref<ProxyCatalog>({proxies:{},key:'',live:false,has_providers:false,profile_revision:0,workspace_revision:0})
 let selectionEpoch=0
 const pendingSelections=ref<Record<string,string>>({})
 const selectionQueues=new Map<string,{desired:string;confirmed:string|undefined}>()
 watch(selected,id=>{pendingSelections.value=Object.fromEntries([...selectionQueues].filter(([key])=>key.startsWith(id+'\n')).map(([key,value])=>[key.slice(id.length+1),value.desired]))})
-async function loadCatalog(){const id=selected.value,epoch=selectionEpoch;if(!id)return;const value=await api<ProxyCatalog>(`/api/client/proxy-catalog?profile_id=${encodeURIComponent(id)}`);if(id===selected.value&&epoch===selectionEpoch){for(const [group,name] of Object.entries(pendingSelections.value)){if(value.proxies[group])value.proxies[group]!.now=name}proxyCatalog.value=value;void restoreScroll()}}
+const catalogLoads=new Map<string,Promise<void>>()
+const catalogError=ref(''),catalogLoading=ref(false)
+const CATALOG_TTL_MS=5000
+const egressVersion=()=>(runtime.value as {egress_version?:number}).egress_version
+let catalogAt=0,catalogEgress:number|undefined=-1
+async function loadCatalog(force=false){
+  const id=selected.value,epoch=selectionEpoch,generation=runtimeEpoch,profileGeneration=profileSeq;if(!id)return
+  if(!force&&proxyCatalog.value.key&&Date.now()-catalogAt<CATALOG_TTL_MS&&catalogEgress===egressVersion())return
+  const key=id+'\n'+epoch+'\n'+generation+'\n'+profileGeneration,existing=catalogLoads.get(key);if(existing)return existing
+  catalogLoading.value=true;catalogError.value=''
+  const task=(async()=>{
+    const value=await api<ProxyCatalog>(`/api/client/proxy-catalog?profile_id=${encodeURIComponent(id)}`)
+    if(id===selected.value&&profileGeneration===profileSeq&&epoch===selectionEpoch&&generation===runtimeEpoch){
+      for(const [group,name] of Object.entries(pendingSelections.value)){if(value.proxies[group])value.proxies[group]!.now=name}
+      proxyCatalog.value=value;catalogAt=Date.now();catalogEgress=egressVersion();void restoreScroll()
+    }
+  })()
+  catalogLoads.set(key,task)
+  try{await task}catch(error){if(id===selected.value&&profileGeneration===profileSeq)catalogError.value=message((error as Error).message)}finally{catalogLoads.delete(key);catalogLoading.value=catalogLoads.size>0}
+}
 const busy=ref(''), notice=ref(''), noticeError=ref(false), loadError=ref(''), runtimeError=ref(''), mixedPort=ref(Number(localStorage.getItem('clash-desk-port'))||17890)
 const importOpen=ref(false), importType=ref<'url'|'file'|'qr'>('url'), qrBusy=ref(false), importName=ref(''), importUrl=ref(''), importYaml=ref(''), importError=ref('')
 const moduleOpen=ref(false), moduleError=ref(''), moduleDraft=ref<Module>({id:'',name:'',target:'',strict:true,matches:[{kind:'DOMAIN-SUFFIX',value:''}]})
@@ -127,7 +152,8 @@ const moduleBaseline=ref('')
 const moduleDirty=computed(()=>JSON.stringify(moduleDraft.value)!==moduleBaseline.value)
 const importDirty=computed(()=>!!(importName.value.trim()||importUrl.value.trim()||importYaml.value.trim()))
 function resetImport(){importName.value='';importUrl.value='';importYaml.value='';importError.value='';importType.value='url'}
-let timer:ReturnType<typeof setInterval>|undefined, toastTimer:ReturnType<typeof setTimeout>|undefined, pollBusy=false, profileSeq=0
+let timer:ReturnType<typeof setInterval>|undefined, toastTimer:ReturnType<typeof setTimeout>|undefined, pollTask:Promise<void>|undefined, profileSeq=0, runtimeEpoch=0, disposed=false
+let pollView:Page=page.value,pollEpoch=0,pageEpoch=0
 let unlistenClose:(()=>void)|undefined
 let unlistenTray:(()=>void)|undefined
 let unlistenTrayUpdated:(()=>void)|undefined, unlistenTrayError:(()=>void)|undefined
@@ -170,13 +196,12 @@ const current=computed(()=>profiles.value.find(p=>p.id===selected.value))
 const plan=computed<Plan>(()=>workspace.value.plans[selected.value]||{module_ids:[],default_target:''})
 const activeModules=computed(()=>plan.value.module_ids.map(id=>workspace.value.modules.find(m=>m.id===id)).filter((m):m is Module=>!!m))
 const targets=computed(()=>['DIRECT','REJECT',...(detail.value?.preview.config['proxy-groups']||[]).map(g=>g.name),...(detail.value?.preview.config.proxies||[]).map(p=>p.name)])
-const liveGroups=computed(()=>Object.values(liveProxies.value).filter(p=>p.all&&p.name!=='GLOBAL'))
 
-const primaryStrategy=computed(()=>{
- const live=runtime.value.running&&runtime.value.active?.profile_id===selected.value
- if(live){const groups=Object.values(liveProxies.value).filter(proxy=>proxy.all&&proxy.name!=='GLOBAL');const group=runtime.value.routing_mode==='global'?liveProxies.value.GLOBAL:groups.find(group=>group.type==='Selector')||groups[0];return group?{name:group.name,now:group.now||'',live:true}:null}
- const groups=detail.value?.preview.config['proxy-groups']||[];const group=groups.find(group=>group.type==='select')||groups[0];return group?{name:group.name,now:'',live:false}:null
-})
+const modulePage=ref(0)
+const modulePageCount=computed(()=>Math.max(1,Math.ceil(activeModules.value.length/3)))
+const visibleModules=computed(()=>activeModules.value.slice(modulePage.value*3,modulePage.value*3+3))
+watch(selected,()=>modulePage.value=0)
+watch(modulePageCount,count=>modulePage.value=Math.min(modulePage.value,count-1))
 const needsApply=computed(()=>!!runtime.value.running&&!!runtime.value.active&&(runtime.value.active.profile_id!==selected.value||runtime.value.active.revision!==current.value?.revision||runtime.value.active.workspace_revision!==workspace.value.revision))
 const applyFailed=ref(false)
 watch(selected,()=>applyFailed.value=false)
@@ -195,7 +220,7 @@ async function selectRoutingMode(mode:RoutingMode){await perform('routing-mode',
 function bytes(n:number){if(!n)return '0 B';const i=Math.max(0,Math.min(Math.floor(Math.log(n)/Math.log(1024)),3));return `${(n/1024**i).toFixed(i?1:0)} ${['B','KB','MB','GB'][i]}`}
 function date(s:string){return new Date(s).toLocaleString(locale.value,{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
 function notify(message:string,error=false){notice.value=message;noticeError.value=error;clearTimeout(toastTimer);toastTimer=setTimeout(()=>notice.value='',6500)}
-async function perform(name:string,fn:()=>Promise<void>){if(busy.value&&!(name==='stop'&&busy.value==='apply'))return;busy.value=name;try{await fn()}catch(e){notify((e as Error).message,true)}finally{if(busy.value===name)busy.value=''}}
+async function perform(name:string,fn:()=>Promise<void>){if(busy.value&&!(name==='stop'&&busy.value==='apply'))return;++runtimeEpoch;busy.value=name;try{await fn()}catch(e){notify((e as Error).message,true)}finally{++runtimeEpoch;if(busy.value===name)busy.value=''}}
 async function refreshPreview(){if(selected.value)preview.value=await api<Preview>(`/api/client/preview/${selected.value}`)}
 async function choose(id:string){
   if(id===selected.value&&editorDirty.value&&['settings','routing'].includes(page.value))return
@@ -204,16 +229,47 @@ async function choose(id:string){
   if(selected.value!==id)proxyCatalog.value={proxies:{},key:'',live:false,has_providers:false,profile_revision:0,workspace_revision:0}
   const seq=++profileSeq;selected.value=id;detail.value=null;preview.value=null;localStorage.setItem('clash-desk-profile',id);localStorage.setItem('clash-studio-selected',id)
   if(!id){await syncTrayContext();return}
-  try{const [d,p]=await Promise.all([api<Subscription>(`/api/subscriptions/${id}`),api<Preview>(`/api/client/preview/${id}`)]);if(seq===profileSeq){detail.value=d;preview.value=p;loadError.value='';if(page.value==='proxies')await loadCatalog();await syncTrayContext()}}catch(e){if(seq===profileSeq)loadError.value=(e as Error).message}
+  try{const [d,p]=await Promise.all([api<Subscription>(`/api/subscriptions/${id}`),api<Preview>(`/api/client/preview/${id}`)]);if(seq===profileSeq){detail.value=d;preview.value=p;loadError.value='';if(page.value==='proxies'||page.value==='home')await loadCatalog();await syncTrayContext()}}catch(e){if(seq===profileSeq)loadError.value=(e as Error).message}
 }
 async function load(){
   const [subs,state]=await Promise.all([api<Summary[]>('/api/subscriptions'),api<Workspace>('/api/client/workspace')]);profiles.value=subs;workspace.value=state
   const id=subs.find(p=>p.id===selected.value)?.id||subs[0]?.id||'';await choose(id);void restoreScroll()
 }
 async function poll(){
-  if(pollBusy)return;pollBusy=true
-  try{runtime.value=await api<Runtime>('/api/client/runtime');runtimeReady.value=true;if(runtime.value.running){if(runtime.value.tun?.enabled||runtime.value.proxy.owned)rememberMode(runtime.value.tun?.enabled?'tun':'system',false);tunStack.value=runtime.value.tun?.stack||tunStack.value;const [p,c]=await Promise.all([api<{proxies:Record<string,LiveProxy>}>('/api/client/runtime/proxies'),api<{connections:Connection[];uploadTotal:number;downloadTotal:number;sampled_at?:number|string}>('/api/client/runtime/connections')]);liveProxies.value=p.proxies;connections.value=c.connections||[];connectionSampledAt.value=typeof c.sampled_at==='number'?c.sampled_at*1000:c.sampled_at?Date.parse(c.sampled_at):Date.now();totals.value={upload:c.uploadTotal||0,download:c.downloadTotal||0}}else{liveProxies.value={};connections.value=[];connectionSampledAt.value=Date.now();totals.value={upload:0,download:0};const tray=await api<{proxy_mode:'system'|'tun';tun_stack:string}>('/api/client/tray');rememberMode(tray.proxy_mode,false);tunStack.value=tray.tun_stack}if(page.value==='proxies'&&selected.value)await loadCatalog();runtimeError.value=''}catch(e){runtimeError.value=(e as Error).message}finally{pollBusy=false}
+  if(disposed)return
+  if(pollTask){await pollTask;if(pollView!==page.value||pollEpoch!==runtimeEpoch)return poll();return}
+  pollView=page.value;pollEpoch=runtimeEpoch
+  pollTask=pollOnce()
+  try{await pollTask}finally{pollTask=undefined}
 }
+async function pollOnce(){
+  const epoch=runtimeEpoch,view=page.value,visit=pageEpoch
+  const current=()=>!disposed&&epoch===runtimeEpoch
+  try{
+    const state=await api<Runtime>('/api/client/runtime');if(!current())return
+    runtime.value=state;runtimeReady.value=true
+    if(state.running){
+      if(state.tun?.enabled||state.proxy.owned)rememberMode(state.tun?.enabled?'tun':'system',false)
+      tunStack.value=state.tun?.stack||tunStack.value
+      const tasks:Promise<void>[]=[]
+      if(view==='connections')tasks.push((async()=>{
+        const value=await api<{connections:Connection[];sampled_at?:number|string}>('/api/client/runtime/connections')
+        if(current()&&page.value===view&&visit===pageEpoch){connections.value=value.connections||[];connectionSampledAt.value=typeof value.sampled_at==='number'?value.sampled_at*1000:value.sampled_at?Date.parse(value.sampled_at):Date.now()}
+      })())
+      if((view==='proxies'||view==='home')&&selected.value)tasks.push(loadCatalog())
+      await Promise.all(tasks)
+    }else{
+      connections.value=[];connectionSampledAt.value=Date.now()
+      const tray=await api<{proxy_mode:'system'|'tun';tun_stack:string}>('/api/client/tray')
+      if(!current())return
+      rememberMode(tray.proxy_mode,false);tunStack.value=tray.tun_stack
+      if((view==='proxies'||view==='home')&&selected.value)await loadCatalog()
+    }
+    if(current())runtimeError.value=''
+  }catch(e){if(current())runtimeError.value=(e as Error).message}
+}
+function resumePolling(){if(!document.hidden)void poll()}
+watch(page,(next,previous)=>{++pageEpoch;if(previous==='connections'&&next!=='connections'){connections.value=[];connectionSampledAt.value=0}void poll()})
 async function saveState(next:Workspace){workspace.value=await api<Workspace>('/api/client/workspace','PUT',next);await refreshPreview()}
 function openModule(module?:Module){moduleError.value='';moduleDraft.value=module?clone(module):{id:crypto.randomUUID().replaceAll('-',''),name:'',target:targets.value.find(t=>!['DIRECT','REJECT'].includes(t))||'REJECT',strict:true,matches:[{kind:'DOMAIN-SUFFIX',value:''}]};moduleBaseline.value=JSON.stringify(moduleDraft.value);moduleOpen.value=true}
 async function saveModule(){
@@ -230,7 +286,7 @@ async function importProfile(demo=false){
 async function readQr(source:'camera'|'photo'){qrBusy.value=true;importError.value='';try{const result=await api<{url?:string;cancelled:boolean}>('/api/android/qr','POST',{source});if(!result.cancelled&&result.url){importUrl.value=result.url;if(!importName.value)importName.value=t('扫码订阅')}}catch(e){importError.value=(e as Error).message}finally{qrBusy.value=false}}
 async function openAppPermissions(){try{await api('/api/android/app-settings','POST')}catch(e){importError.value=(e as Error).message}}
 async function readFile(event:Event){const f=(event.target as HTMLInputElement).files?.[0];if(!f)return;if(f.size>8*1024*1024){importError.value=t("文件不能超过 8 MB");return}importYaml.value=await f.text();if(!importName.value)importName.value=f.name.replace(/\.ya?ml$/i,'')}
-async function refreshProfile(profile:Summary){if(profile.source_type==='file'){if(isAndroid.value){notify(t('本地文件请重新导入更新。'));return}page.value='studio';notify(t("本地文件请在配置编辑器中重新上传"));return}await perform('refresh',async()=>{await api(`/api/subscriptions/${profile.id}/refresh`,'POST',{revision:profile.revision});await load();notify(t("源订阅已刷新；请检查冲突及预览，再应用到内核"))})}
+async function refreshProfile(profile:Summary){if(profile.source_type==='file'){if(isAndroid.value){notify(t('本地文件请重新导入更新。'));return}await choose(profile.id);if(selected.value!==profile.id||detail.value?.id!==profile.id)return;await go('studio');notify(t("本地文件请在配置编辑器中重新上传"));return}await perform('refresh',async()=>{await api(`/api/subscriptions/${profile.id}/refresh`,'POST',{revision:profile.revision});await load();notify(t("源订阅已刷新；请检查冲突及预览，再应用到内核"))})}
 async function deleteProfile(profile:Summary){if(runtime.value.active?.profile_id===profile.id){notify(t("请先停止正在使用此订阅的内核"),true);return}if(!await confirmDialog(t("删除「{0}」及其历史？", [profile.title])))return;await perform('delete-profile',async()=>{await api(`/api/subscriptions/${profile.id}?revision=${profile.revision}`,'DELETE');await load();notify(t("订阅已删除"))})}
 async function apply(){if(!runtimeReady.value){notify(t('请等待运行状态读取完成'),true);return}await perform('apply',async()=>{
   applyFailed.value=false
@@ -290,7 +346,7 @@ async function go(next:Page){
 }
 
 async function clientSettingsChanged(port:number){mixedPort.value=port;localStorage.setItem('clash-desk-port',String(port));await poll()}
-async function editorSaved(value:Subscription){detail.value=value;editorDirty.value=false;profiles.value=await api<Summary[]>('/api/subscriptions');await refreshPreview()}
+async function editorSaved(value:Subscription){detail.value=value;profiles.value=await api<Summary[]>('/api/subscriptions');await refreshPreview()}
 async function toggleTun(){await selectMode(proxyMode.value==='tun'?'system':'tun')}
 async function requestAdmin(){if(!supportsTun.value)return;runtime.value=await api<Runtime>('/api/client/runtime/elevate','POST',{})}
 async function elevate(){await perform('elevate',async()=>{await requestAdmin();notify(platform.value.os==='linux'?t("Linux 内核网络权限已就绪，无需重启窗口"):t("管理员助手已连接，可直接开启 TUN，无需重启窗口"))})}
@@ -337,19 +393,21 @@ onMounted(async()=>{
     if(prefs.settings.mixed_port){mixedPort.value=prefs.settings.mixed_port;localStorage.setItem('clash-desk-port',String(mixedPort.value))}
     if(runtime.value.running){rememberMode(runtime.value.tun?.enabled?'tun':'system');tunStack.value=runtime.value.tun?.stack||'mixed'}
   }catch(e){loadError.value=(e as Error).message}
-  timer=setInterval(poll,3000)
+  if(disposed)return
+  timer=setInterval(()=>{if(!document.hidden)void poll()},3000)
+  document.addEventListener('visibilitychange',resumePolling)
 })
-onUnmounted(()=>{unlistenClose?.();unlistenTray?.();unlistenTrayUpdated?.();unlistenTrayError?.();window.removeEventListener('beforeunload',beforeUnload);clearInterval(timer);clearTimeout(toastTimer)})
+onUnmounted(()=>{disposed=true;unlistenClose?.();unlistenTray?.();unlistenTrayUpdated?.();unlistenTrayError?.();window.removeEventListener('beforeunload',beforeUnload);document.removeEventListener('visibilitychange',resumePolling);clearInterval(timer);clearTimeout(toastTimer)})
 </script>
 
 <template>
-  <div class="desk" :class="{'android-inset-host':nativeInsets}" :data-ui-page="page">
+  <div class="desk" :class="{'android-inset-host':nativeInsets}" :data-ui-page="page" :data-client-platform="isAndroid?'android':'desktop'">
     <aside class="liquid-dock-shell">
       <nav class="liquid-dock" :aria-label="t('主导航')"><button v-for="item in nav" :key="item.id" :class="['dock-item',{chosen:page===item.id}]" :aria-label="item.label" :aria-current="page===item.id?'page':undefined" @click="go(item.id)"><span class="dock-label">{{ item.label }}</span><span class="dock-indicator" aria-hidden="true"></span></button></nav>
     </aside>
     <div class="desk-main">
       <button type="button" class="desk-brand shell-brand" :aria-label="t('Clash Studio · 返回概览')" @click="go('home')"><span class="desk-mark"><img :src="brandIcon" alt=""/></span><span class="brand-copy"><span class="brand-name">Clash <strong>Studio</strong></span><small>{{ t("配置自由 · 流量有序") }}</small></span></button>
-      <header class="desk-topbar" data-tauri-drag-region><div class="desk-crumb">{{ t("工作空间") }}<ChevronRight :size="13"/><strong>{{ title }}</strong></div><div class="desk-top-right"><div v-if="liveSpeed.running" class="topbar-speed" :title="t('本程序 Mihomo 接管流量的实时速率')"><span><ArrowDownLeft :size="13"/>{{ liveSpeed.download===null?'—':bytes(liveSpeed.download)+'/s' }}</span><span><ArrowUpRight :size="13"/>{{ liveSpeed.upload===null?'—':bytes(liveSpeed.upload)+'/s' }}</span></div><span class="local-tag"><span></span>{{ t("仅本机运行") }}</span><span class="version-tag">1.2</span><div v-if="isDesktop" class="window-controls"><button :aria-label="t('最小化')" @click="windowAction('minimize')"><Minus :size="16"/></button><button :aria-label="t('最大化或还原')" @click="windowAction('toggleMaximize')"><Square :size="14"/></button><button class="window-close" :aria-label="t('关闭窗口')" :disabled="closing" @click="windowAction('close')"><X :size="18"/></button></div></div></header>
+      <header v-if="!isAndroid" class="desk-topbar" data-tauri-drag-region><div class="desk-crumb">{{ t("工作空间") }}<ChevronRight :size="13"/><strong>{{ title }}</strong></div><div class="desk-top-right"><div v-if="liveSpeed.running" class="topbar-speed" :title="t('本程序 Mihomo 接管流量的实时速率')"><span><ArrowDownLeft :size="13"/>{{ liveSpeed.download===null?'—':bytes(liveSpeed.download)+'/s' }}</span><span><ArrowUpRight :size="13"/>{{ liveSpeed.upload===null?'—':bytes(liveSpeed.upload)+'/s' }}</span></div><span class="local-tag"><span></span>{{ t("仅本机运行") }}</span><span class="version-tag">1.2</span><div v-if="isDesktop" class="window-controls"><button :aria-label="t('最小化')" @click="windowAction('minimize')"><Minus :size="16"/></button><button :aria-label="t('最大化或还原')" @click="windowAction('toggleMaximize')"><Square :size="14"/></button><button class="window-close" :aria-label="t('关闭窗口')" :disabled="closing" @click="windowAction('close')"><X :size="18"/></button></div></div></header>
       <main :class="['desk-content',{'editor-content':page==='studio'}]" @wheel.passive="cancelScrollRestore" @touchstart.passive="cancelScrollRestore">
         <div class="page-stage" ref="pageStage">
         <div v-if="mobileTools.length&&['settings','modules','studio'].includes(page)" class="mobile-tools" :aria-label="t('配置工具')">
@@ -360,34 +418,28 @@ onUnmounted(()=>{unlistenClose?.();unlistenTray?.();unlistenTrayUpdated?.();unli
 
         <div v-if="loadError" class="desk-alert error">{{ message(loadError) }} <button @click="perform('retry',load)">{{ t("重试") }}</button></div>
         <div v-if="runtimeError" class="desk-alert error">{{ t("运行状态读取失败：{0}", [runtimeError]) }}</div>
-        <div v-if="selected" class="configuration-status" role="status"><span>{{ runtime.running?t('正在运行：{0}',[runtime.active?.title||'—']):t('内核已停止') }}</span><span>{{ editorDirty&&page!=='settings'?t('正在编辑：{0}',[current?.title||'—']):t('当前所选：{0}',[current?.title||'—']) }}</span><strong :class="{pending:needsApply||editorDirty||applyFailed}">{{ configStatus }}</strong></div>
 
 
-        <div v-show="page==='home'" class="home-primary">
-          <section class="overview-grid launch-overview">
-            <article class="desk-card kernel-launch-card">
-              <div class="section-head"><div><h2>{{ t("内核与接管") }}</h2></div><span :class="['status-chip',{'is-live':runtime.running}]"><i></i>{{ runtimeError?t('状态待确认'):!runtimeReady?t('读取中…'):busy==='apply'?t('正在应用…'):busy==='stop'?t('正在停止…'):runtime.running?t("运行中"):t("已停止") }}</span></div>
-              <div class="kernel-summary"><span :class="['power-mark',{running:runtime.running}]"><Power :size="22"/></span><div><strong>{{ runtime.running?runtime.active?.title:t("启动你的网络方案") }}</strong><small>{{ runtime.running?t("当前接管：{0} · 端口 {1}", [actualMode, runtime.active?.mixed_port]):(validationBuild||nativeCoreUnavailable)?t("代理内核尚未接入，暂不支持启动代理。"):isAndroid?t("选择订阅，启动 VPN 连接。"):t("选择模式，再启动内核。") }}</small></div></div>
-              <div :class="['home-plan-selection',{'has-strategy':primaryStrategy}]"><label class="desk-field launch-profile">{{ t('当前方案') }}<select :value="selected" :disabled="!!busy" @change="choose(($event.target as HTMLSelectElement).value)"><option v-if="!profiles.length" value="">{{ t('先导入订阅') }}</option><option v-for="p in profiles" :key="p.id" :value="p.id">{{ p.title }}</option></select></label><button v-if="primaryStrategy" class="primary-strategy" :title="primaryStrategy.name+' · '+primaryStrategy.now" :aria-label="t('查看主要策略组')" @click="go('proxies')"><small>{{ primaryStrategy.live?t('当前主要策略组'):t('所选方案策略组') }}</small><strong>{{ primaryStrategy.name }}</strong><span>{{ primaryStrategy.now||t('前往代理页选择节点') }}</span></button></div>
-              <p v-if="!isAndroid" class="mode-label">{{ t('接管方式') }}</p><div v-if="!isAndroid" class="mode-options" role="group" :aria-label="t('接管模式')"><button :class="{selected:proxyMode==='system'}" :disabled="!!busy" @click="selectMode('system')"><Globe2 :size="16"/><span>{{ t(runtime.proxy.supported?"系统代理":"仅代理端口") }}<small>{{ t("遵循代理设置的应用") }}</small></span><Check v-if="proxyMode==='system'" :size="14"/></button><button :class="{selected:proxyMode==='tun'}" :disabled="!!busy||!runtime.tun?.supported" @click="selectMode('tun')"><ShieldCheck :size="16"/><span>{{ t("TUN 模式") }}<small>{{ t("虚拟网卡与系统路由") }}</small></span><Check v-if="proxyMode==='tun'" :size="14"/></button></div>
-              <p v-if="!isAndroid&&proxyMode==='tun'&&!runtime.tun?.admin" class="mode-warning">{{ t("TUN 需要管理员权限。") }}<button class="desk-text-btn" :disabled="!!busy" @click="elevate">{{ t("申请权限") }}<ArrowUpRight :size="12"/></button></p>
-              <section class="routing-mode-card"><div><h2>{{ t("分流模式") }}</h2></div><div class="routing-segment" role="group" :aria-label="t('分流模式')"><button v-for="choice in routingChoices" :key="choice.id" :aria-pressed="runtime.routing_mode===choice.id" :disabled="!!busy||validationBuild||nativeCoreUnavailable||(isAndroid&&!runtime.running)" @click="selectRoutingMode(choice.id)">{{ t(choice.label) }}</button></div><p v-if="runtime.routing_mode==='global'">{{ t("全局模式使用 GLOBAL 出口，可在代理页选择") }} <button class="desk-text-btn" @click="go('proxies')">{{ t("选择出口") }}</button></p><p v-else-if="runtime.routing_mode==='direct'">{{ t("直连模式下不使用代理节点") }}</p></section>
-              <details v-if="isAndroid" class="android-network-help"><summary>{{ t('VPN 接管说明') }}</summary><p class="android-network-note">{{ nativeDevelopment?t("通过 Android VPN 接管流量；首次启动需要系统授权，局域网保持直连。"):validationBuild?t("代理内核与 VPN 尚不可用。"):t("安卓 VPN 服务尚未接入，当前仅提供本地代理端口。") }}</p></details><div class="kernel-actions"><button class="desk-btn" :class="{primary:!runtime.running||needsApply||applyFailed}" :disabled="!!busy||editorDirty||!selected||nativeCoreUnavailable||!runtimeReady" @click="apply"><Loader2 v-if="busy==='apply'" class="rotate" :size="15"/><Power v-else :size="15"/>{{ applyLabel }}</button><button v-if="runtime.running||busy==='apply'||busy==='stop'" class="desk-btn danger" :disabled="!!busy&&busy!=='apply'" @click="stop"><Power :size="14"/>{{ isAndroid?t('断开'):t('停止') }}</button><button class="desk-text-btn" @click="go('settings')">{{ t("更多设置") }}<ChevronRight :size="13"/></button></div>
-            </article>
-          </section>
-        <NetworkDashboard v-show="page==='home'" :running="runtime.running" :config-key="`${runtime.active?.hash||''}:${runtime.egress_version??0}`" @speed="liveSpeed=$event" @connections="go('connections')"/>
+
+        <div v-show="page==='home'" class="home-masonry">
+          <div class="home-column home-left">
+            <KernelControl :runtime="runtime" :proxy-mode="proxyMode" :busy="busy" :needs-apply="needsApply" :apply-failed="applyFailed" :editor-dirty="editorDirty" :selected="selected" :native-core-unavailable="nativeCoreUnavailable" :runtime-ready="runtimeReady" :is-android="isAndroid" :native-development="nativeDevelopment" :validation-build="validationBuild" :apply-label="applyLabel" @settings="go('settings')" @proxies="go('proxies')" @mode="selectMode" @routing="selectRoutingMode" @elevate="elevate" @apply="apply" @stop="stop"/>
+            <div id="home-traffic-target" class="home-card-target"></div>
+            <CurrentConfigCard :current="current" :bytes="bytes" :date="date" @edit="current?go(isAndroid?'routing':'studio'):(importOpen=true)"/>
+          </div>
+          <div class="home-column home-right">
+            <ResourceMemory v-if="page==='home'&&!isAndroid"/>
+            <OverviewSelection :profiles="profiles" :selected="selected" :proxies="proxyCatalog.proxies" :busy="!!busy" :loading="catalogLoading" :live="proxyCatalog.live" :running="runtime.running" :mode="runtime.routing_mode" :status="(needsApply||applyFailed||editorDirty||!runtimeReady)?configStatus:''" :error="catalogError" :has-providers="proxyCatalog.has_providers" @choose="choose" @select="selectProxy" @retry="loadCatalog(true)" @proxies="go('proxies')"/>
+            <div id="home-egress-target" class="home-card-target"></div>
+            <EnabledModulesCard v-if="hasModules" :active-modules="activeModules" :visible-modules="visibleModules" :selected="selected" :module-page="modulePage" :module-page-count="modulePageCount" @manage="go('modules')" @page="modulePage=$event"/>
+          </div>
         </div>
-        <template v-if="page==='home'">
-          <div class="home-shortcuts"><button class="desk-btn" @click="go('subscriptions')"><FolderOpen :size="16"/>{{ t('{0} 份订阅',[profiles.length]) }}</button><button v-if="hasModules" class="desk-btn" @click="go('modules')"><Layers3 :size="16"/>{{ t('{0} 个模块 · 启用 {1} 个',[workspace.modules.length,activeModules.length]) }}</button><button class="desk-btn" @click="go('connections')"><Activity :size="16"/>{{ t('{0} 个连接',[connections.length]) }}</button></div>
-          <div class="home-grid"><section class="desk-card config-card"><div class="section-head"><div><span class="desk-eyebrow">ACTIVE WORKSPACE</span><h2>{{ t("当前配置方案") }}</h2></div><FileCode2 :size="21"/></div><template v-if="current"><label class="desk-field">{{ t("选择源订阅") }}<select :value="selected" @change="choose(($event.target as HTMLSelectElement).value)"><option v-for="p in profiles" :key="p.id" :value="p.id">{{ p.title }}</option></select></label><SubscriptionUsage :usage="current.usage" :updated-at="current.refreshed_at"/><div class="config-meta"><span><Globe2 :size="15"/>{{ t("{0} 个节点", [current.proxy_count]) }}</span><span><GitBranch :size="15"/>{{ t("{0} 个策略组", [current.group_count]) }}</span><span><SlidersHorizontal :size="15"/>{{ t("{0} 条源规则", [current.rule_count]) }}</span></div><div class="source-note"><span>{{ t("最近更新 {0}", [date(current.refreshed_at)]) }}</span><span class="small-badge">v{{ current.revision }}</span></div><div v-if="current.source_type==='demo'" class="inline-note">{{ t("这是示例配置，节点不能提供实际代理服务。") }}</div><div v-if="current.last_error" class="inline-note error">{{ current.last_error }}</div><div class="config-actions"><button v-if="isAndroid" class="desk-btn" @click="go('routing')"><GitBranch :size="16"/>{{ t("精确分流") }}</button><button v-else class="desk-btn" @click="go('studio')"><Code2 :size="16"/>{{ t("可视化编辑") }}</button></div></template><div v-else class="desk-empty"><FolderOpen :size="36"/><h3>{{ t("从一份订阅开始") }}</h3><p>{{ t("导入服务商链接或本地 YAML 文件，所有修改在本机完成。") }}</p><button class="desk-btn primary" @click="importOpen=true">{{ t("导入第一份订阅") }}</button><button class="desk-text-btn" :disabled="!!busy" @click="importProfile(true)">{{ t("先载入示例配置 →") }}</button></div></section>
-          <section v-if="hasModules" class="desk-card flow-card"><div class="section-head"><div><span class="desk-eyebrow">YOUR ROUTING LOGIC</span><h2>{{ t("分流，按你的意图") }}</h2></div><button class="desk-icon-btn" :aria-label="t('管理模块')" @click="go('modules')"><ArrowUpRight :size="20"/></button></div><div v-if="activeModules.length" class="flow-list"><div v-for="(m,i) in activeModules.slice(0,4)" :key="m.id" class="flow-item"><span class="flow-order">{{ String(i+1).padStart(2,'0') }}</span><div><strong>{{ m.name }}</strong><small>{{ t("{0} 个条件 · {1}", [m.matches.length, m.strict?t("限定出口"):t("普通分流")]) }}</small></div><ArrowRight :size="15"/><span class="route-target">{{ m.target }}</span></div></div><div v-else class="route-placeholder"><span class="route-node"><Box :size="21"/>{{ t("匹配条件") }}</span><span class="route-dash"></span><span class="route-node green"><GitBranch :size="21"/>{{ t("指定策略组") }}</span><p>{{ t("将域名、进程或网段绑定到指定出口。") }}<br>{{ t("模块按顺序匹配，变更先预览、后应用。") }}</p></div><button class="wide-link" @click="go('modules')">{{ activeModules.length?t("管理当前方案的模块"):t("创建你的第一个分流模块") }} <ArrowRight :size="15"/></button></section></div>
-          <section class="traffic-strip"><div><Activity :size="18"/><strong>{{ t("实时连接") }}</strong><span>{{ runtime.running?t("每 3 秒更新内核数据"):t("启动内核后显示真实数据") }}</span></div><div><button @click="go('connections')">{{ t("{0} 个连接", [connections.length]) }}<ChevronRight :size="14"/></button></div></section>
-          <div v-if="!isAndroid" class="desk-footnote"><ShieldCheck :size="14"/>{{ t("TUN 需要管理员权限；系统级断网保护仍需单独实现。") }}<span>LOCAL FIRST. CONFIGURATION FIRST.</span></div>
-        </template>
+        <NetworkDashboard class="home-network-metrics" v-show="page==='home'" :active="page==='home'" traffic-target="#home-traffic-target" egress-target="#home-egress-target" :running="runtime.running" :config-key="`${runtime.active?.hash||''}:${runtime.egress_version??0}`" @speed="liveSpeed=$event" @connections="go('connections')"/>
+        <p v-if="page==='home'&&!isAndroid" class="desk-footnote">{{ t('TUN 需要管理员权限；系统级断网保护仍需单独实现。') }}</p>
 
         <template v-if="page==='subscriptions'">
           <div class="section-toolbar"><span>{{ t("{0} 份订阅 · 数据与原项目隔离", [profiles.length]) }}</span><button class="desk-text-btn" :disabled="!!busy" @click="importProfile(true)">{{ t("载入示例配置") }}</button></div>
-          <div v-if="profiles.length" class="profile-grid"><article v-for="p in profiles" :key="p.id" :class="['desk-card profile-card',{selected:p.id===selected}]"><div class="profile-top"><span class="profile-symbol"><FileCode2 :size="23"/></span><span class="small-badge">{{ p.source_type==='url'?t("远程订阅"):p.source_type==='demo'?t("演示"):t("本地文件") }}</span></div><h2>{{ p.title }}</h2><p>{{ p.source_host }}</p><div class="profile-numbers"><span><b>{{ p.proxy_count }}</b>{{ t("节点") }}</span><span><b>{{ p.group_count }}</b>{{ t("策略组") }}</span><span><b>{{ p.rule_count }}</b>{{ t("规则") }}</span></div><SubscriptionUsage :usage="p.usage" :updated-at="p.refreshed_at"/><small>{{ t("更新于 {0}", [date(p.refreshed_at)]) }}</small><div v-if="p.last_error" class="inline-note error">{{ message(p.last_error) }}</div><div class="profile-actions"><button class="desk-btn" :disabled="!!busy" @click="choose(p.id)"><Check v-if="p.id===selected" :size="14"/>{{ p.id===selected?t("当前方案"):t("选择配置") }}</button><button class="desk-icon-btn" :title="t('刷新订阅')" :disabled="!!busy" @click="refreshProfile(p)"><RefreshCw :size="16"/></button><button class="desk-icon-btn danger" :title="t('删除订阅')" :disabled="!!busy" @click="deleteProfile(p)"><Trash2 :size="16"/></button></div></article><button class="add-profile" @click="importOpen=true"><Plus :size="26"/><strong>{{ t("导入新的订阅") }}</strong><span>{{ t("URL 或 YAML 文件") }}</span></button></div><div v-else class="desk-card desk-empty"><FolderOpen :size="38"/><h3>{{ t("还没有订阅") }}</h3><button class="desk-btn primary" @click="importOpen=true">{{ t("导入订阅") }}</button></div>
+          <div class="profile-grid"><SubscriptionCard v-for="p in profiles" :key="p.id" :p="p" :compact="isAndroid" :selected="selected" :busy="busy" :date="date" @choose="choose" @refresh="refreshProfile" @delete="deleteProfile"/><button class="add-profile" @click="importOpen=true"><Plus :size="26"/><strong>{{ t(isAndroid?"添加订阅":"导入新的订阅") }}</strong><span>{{ t(isAndroid?"链接、文件或二维码":"URL 或 YAML 文件") }}</span></button></div>
         </template>
 
         <template v-if="page==='modules'">
@@ -398,9 +450,9 @@ onUnmounted(()=>{unlistenClose?.();unlistenTray?.();unlistenTrayUpdated?.();unli
         </template>
 
         <template v-if="page==='proxies'">
-          <div class="section-toolbar"><label class="inline-select">{{ t("查看订阅") }}<select :aria-label="t('查看订阅')" :value="selected" @change="choose(($event.target as HTMLSelectElement).value)"><option v-for="p in profiles" :key="p.id" :value="p.id">{{ p.title }}</option></select></label><button class="desk-text-btn" :aria-label="t('刷新节点列表')" :title="t('刷新节点列表')" :disabled="!!busy" @click="perform('catalog',loadCatalog)"><RefreshCw :size="13"/>{{ t("刷新节点列表") }}</button></div>
+          <div class="section-toolbar"><label class="inline-select">{{ t("查看订阅") }}<select :aria-label="t('查看订阅')" :value="selected" @change="choose(($event.target as HTMLSelectElement).value)"><option v-for="p in profiles" :key="p.id" :value="p.id">{{ p.title }}</option></select></label><button class="desk-text-btn" :aria-label="t('刷新节点列表')" :title="t('刷新节点列表')" :disabled="!!busy" @click="perform('catalog',()=>loadCatalog(true))"><RefreshCw :size="13"/>{{ t("刷新节点列表") }}</button></div>
           <div v-if="!selected" class="desk-card desk-empty"><Globe2 :size="38"/><h3>{{ t("导入订阅后即可查看节点和测速") }}</h3><button class="desk-btn primary" @click="go('subscriptions')">{{ t("前往订阅页") }}</button></div>
-          <ProxyPanel :benchmark-available="!nativeCoreUnavailable" v-else :view-state="proxyView" @view-state="proxyView=$event" @ready="restoreScroll" :proxies="proxyCatalog.proxies" :busy="!!busy" :pending="pendingSelections" :session-key="proxyCatalog.key" :profile-id="selected" :profile-revision="proxyCatalog.profile_revision" :workspace-revision="proxyCatalog.workspace_revision" :live="proxyCatalog.live" :has-providers="proxyCatalog.has_providers" @select="selectProxy" @notice="notify" @refresh="loadCatalog"/>
+          <ProxyPanel :benchmark-available="!nativeCoreUnavailable" v-else :view-state="proxyView" @view-state="proxyView=$event" @ready="restoreScroll" :proxies="proxyCatalog.proxies" :busy="!!busy" :pending="pendingSelections" :session-key="proxyCatalog.key" :profile-id="selected" :profile-revision="proxyCatalog.profile_revision" :workspace-revision="proxyCatalog.workspace_revision" :live="proxyCatalog.live" :has-providers="proxyCatalog.has_providers" @select="selectProxy" @notice="notify" @refresh="loadCatalog(true)"/>
         </template>
 
         <div v-if="isAndroid&&page==='connections'" class="diagnostic-back"><button class="desk-text-btn" @click="go('settings')">{{ t('返回设置与诊断') }}</button></div>
@@ -432,7 +484,7 @@ onUnmounted(()=>{unlistenClose?.();unlistenTray?.();unlistenTrayUpdated?.();unli
       <button v-for="item in mobileNav" :key="item.id" type="button" :class="{active:mobileSection===item.id}" :aria-current="mobileSection===item.id?'page':undefined" @click="go(item.id)"><span class="mobile-nav-icon"><component :is="item.icon" :size="22" :stroke-width="mobileSection===item.id?2.3:1.8"/></span><span>{{ item.id==='settings'?t('设置'):item.label }}</span></button>
     </nav>
 
-    <AppDialog v-model="importOpen" :title="t('导入订阅')" :description="t('订阅与修改记录保存在本机独立数据目录。')" :dirty="importDirty" :busy="!!busy||qrBusy" close-label="关闭导入" initial-focus="#import-profile-name" @closed="resetImport"><form id="import-profile-form" @submit.prevent="importProfile()"><div class="modal-tabs"><button type="button" :class="{active:importType==='url'}" @click="importType='url'">{{ t("订阅链接") }}</button><button type="button" :class="{active:importType==='file'}" @click="importType='file'">{{ t("YAML 文件") }}</button><button v-if="isAndroid" type="button" :class="{active:importType==='qr'}" @click="importType='qr'">{{ t("二维码订阅") }}</button></div><div v-if="importType==='qr'" class="qr-import-options"><p class="page-caption">{{ t("相机扫码需授权相机；从照片识别只读取你在系统选择器中授权的图片。识别后请确认链接再导入。") }}</p><div class="heading-buttons"><button type="button" class="desk-btn" :disabled="qrBusy" @click="readQr('camera')">{{ t("相机扫码") }}</button><button type="button" class="desk-btn" :disabled="qrBusy" @click="readQr('photo')">{{ t("从照片识别") }}</button><button type="button" class="desk-text-btn" :disabled="qrBusy" @click="openAppPermissions">{{ t("权限设置") }}</button></div><p v-if="qrBusy" role="status">{{ t("请在系统界面完成识别，或返回取消。") }}</p></div><label class="desk-field">{{ t("名称") }}<input id="import-profile-name" v-model="importName" required maxlength="100" :placeholder="t('例如：我的日常配置')"/></label><label v-if="importType!=='file'" class="desk-field">{{ t("订阅 URL") }}<input v-model="importUrl" type="url" required placeholder="https://…" autocomplete="off"/></label><template v-else><label class="file-import"><FileCode2 :size="22"/><span>{{ t("选择 YAML 文件") }}</span><input type="file" accept=".yaml,.yml,text/yaml" @change="readFile"/></label><label class="desk-field">{{ t("或粘贴 YAML") }}<textarea v-model="importYaml" required rows="6" placeholder="proxies: …"></textarea></label></template><div v-if="importError" class="desk-alert error">{{ message(importError) }}</div></form><template #footer><div class="modal-actions"><button type="button" class="desk-text-btn" :disabled="!!busy" @click="importProfile(true)">{{ t("载入示例") }}</button><button type="submit" form="import-profile-form" class="desk-btn primary" :disabled="!!busy||qrBusy"><Loader2 v-if="busy" class="rotate" :size="15"/>{{ t("导入配置") }}</button></div></template></AppDialog>
+    <AppDialog class="subscription-import-dialog" v-model="importOpen" :title="t('导入订阅')" :description="isAndroid?undefined:t('订阅与修改记录保存在本机独立数据目录。')" :dirty="importDirty" :busy="!!busy||qrBusy" close-label="关闭导入" initial-focus="#import-profile-name" @closed="resetImport"><form id="import-profile-form" @submit.prevent="importProfile()"><div class="modal-tabs import-method-tabs" role="group" :aria-label="t('订阅方式')"><button type="button" :class="{active:importType==='url'}" :aria-pressed="importType==='url'" @click="importType='url'">{{ t("订阅链接") }}</button><button type="button" :class="{active:importType==='file'}" :aria-pressed="importType==='file'" @click="importType='file'">{{ t("YAML 文件") }}</button><button v-if="isAndroid" type="button" :class="{active:importType==='qr'}" :aria-pressed="importType==='qr'" @click="importType='qr'">{{ t("二维码订阅") }}</button></div><div v-if="importType==='qr'" class="qr-import-options"><p class="page-caption">{{ t("扫码需相机授权；照片仅访问所选图片。识别后请确认链接。") }}</p><div class="heading-buttons"><button type="button" class="desk-btn" :disabled="qrBusy" @click="readQr('camera')">{{ t("相机扫码") }}</button><button type="button" class="desk-btn" :disabled="qrBusy" @click="readQr('photo')">{{ t("从照片识别") }}</button><button type="button" class="desk-text-btn" :disabled="qrBusy" @click="openAppPermissions">{{ t("权限设置") }}</button></div><p v-if="qrBusy" role="status">{{ t("请在系统界面完成识别，或返回取消。") }}</p></div><label class="desk-field">{{ t("名称") }}<input id="import-profile-name" v-model="importName" required maxlength="100" :placeholder="t('例如：我的日常配置')"/></label><label v-if="importType!=='file'" class="desk-field">{{ t("订阅 URL") }}<input v-model="importUrl" type="url" required placeholder="https://…" autocomplete="off"/></label><template v-else><label class="file-import"><FileCode2 :size="22"/><span>{{ t("选择 YAML 文件") }}</span><input type="file" accept=".yaml,.yml,text/yaml" @change="readFile"/></label><label class="desk-field">{{ t("或粘贴 YAML") }}<textarea v-model="importYaml" required rows="6" placeholder="proxies: …"></textarea></label></template><div v-if="importError" class="desk-alert error">{{ message(importError) }}</div></form><template #footer><div class="modal-actions"><button type="button" class="desk-text-btn" :disabled="!!busy" @click="importProfile(true)">{{ t("载入示例") }}</button><button type="submit" form="import-profile-form" class="desk-btn primary" :disabled="!!busy||qrBusy"><Loader2 v-if="busy" class="rotate" :size="15"/>{{ t("导入配置") }}</button></div></template></AppDialog>
 
     <AppDialog v-model="moduleOpen" class="wide" :title="t('编辑分流模块')" :description="t('多个条件按“任一匹配”生效；模块优先级由方案排序决定。')" :dirty="moduleDirty" :busy="!!busy" close-label="关闭模块编辑" initial-focus="#module-name"><form id="module-edit-form" @submit.prevent="saveModule"><div class="form-columns"><label class="desk-field">{{ t("模块名称") }}<input id="module-name" v-model="moduleDraft.name" required maxlength="100" :placeholder="t('例如：工作应用专线')"/></label><label class="desk-field">{{ t("目标出口") }}<select v-model="moduleDraft.target" :aria-label="t('目标出口')"><option v-for="target in targets" :key="target" :value="target">{{ target }}</option></select></label></div><div class="setting-row"><div><strong>{{ t("严格出口审查") }}</strong><small>{{ t("拒绝直连、动态成员及无法完整审查的出口链。") }}</small></div><button type="button" :class="['desk-switch',{on:moduleDraft.strict}]" role="switch" :aria-checked="moduleDraft.strict" @click="moduleDraft.strict=!moduleDraft.strict"><span></span></button></div><div class="match-heading"><strong>{{ t("匹配条件") }}</strong><button type="button" class="desk-text-btn" @click="moduleDraft.matches.push({kind:'DOMAIN-SUFFIX',value:''})"><Plus :size="14"/>{{ t("添加条件") }}</button></div><div class="match-editor"><div v-for="(match,i) in moduleDraft.matches" :key="i" class="match-row"><select v-model="match.kind" :aria-label="t('匹配类型')"><option v-for="kind in ['DOMAIN-SUFFIX','DOMAIN','PROCESS-NAME','PROCESS-PATH','IP-CIDR','IP-CIDR6']" :key="kind" :value="kind">{{ kind }}</option></select><input v-model="match.value" required :aria-label="t('匹配值')" :placeholder="match.kind==='PROCESS-NAME'?'example.exe':match.kind==='DOMAIN-SUFFIX'?'example.com':t('填写完整匹配值')"/><button type="button" class="desk-icon-btn danger" :aria-label="t('移除条件')" :disabled="moduleDraft.matches.length===1" @click="moduleDraft.matches.splice(i,1)"><X :size="16"/></button></div></div><div v-if="moduleError" class="desk-alert error">{{ message(moduleError) }}</div></form><template #footer><div class="modal-actions"><span class="small-explanation">{{ t("保存模块后，在方案中启用，再应用到内核。") }}</span><button type="submit" form="module-edit-form" class="desk-btn primary" :disabled="!!busy">{{ t("保存模块") }}</button></div></template></AppDialog>
     <Transition name="toast"><div v-if="notice" :class="['desk-toast',{failed:noticeError}]" role="status"><CircleHelp v-if="noticeError" :size="18"/><Check v-else :size="18"/><span>{{ message(notice) }}</span><button :aria-label="t('关闭提示')" @click="notice=''"><X :size="14"/></button></div></Transition>

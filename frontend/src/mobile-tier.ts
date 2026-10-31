@@ -26,6 +26,9 @@ function computeTier(): 'compact' | 'tablet' | null {
     if (width > height && width >= 960 && height >= 600) return 'tablet'
     return 'compact'
   }
+  // A small native desktop window still needs all seven Dock pages and
+  // window controls. Android identity above takes precedence on mobile hosts.
+  if ('__TAURI_INTERNALS__' in window) return null
   return legacy.matches ? 'compact' : null
 }
 function applyTier() {

@@ -1,0 +1,76 @@
+const basic = [
+  {id:'kernel',name:'内核与接管',source:'KernelControl.vue',states:['待启动','运行中','应用中','待应用','未导入','TUN 待授权','安卓 VPN'],hint:'接管方式、分流模式与启动操作。先打磨这一块。'},
+  {id:'memory',name:'内存占用',source:'ResourceMemoryView.vue',states:['正常','部分可读','读取失败'],hint:'只接收数据；进程采样由 ResourceMemory 容器负责。'},
+  {id:'selection',name:'方案选择',source:'OverviewSelection.vue',states:['正常','加载中','读取失败','未导入','直连','自动选择'],hint:'订阅、策略组和节点的三级选择。'},
+  {id:'traffic',name:'实时速率与累计流量',source:'NetworkDashboard.vue',states:['运行中','待启动'],hint:'直接定位概览左列的真实网络组件，曲线由本地示例采样驱动。'},
+  {id:'egress',name:'网络出口',source:'NetworkDashboard.vue',states:['正常'],hint:'保留正式网络出口卡片与查询入口；查询结果为示例地址。'},
+  {id:'modules',name:'已启用模块',source:'EnabledModulesCard.vue',states:['正常','未导入'],hint:'定位概览右列模块摘要，使用正式页面的独立模块卡片。'},
+  {id:'config',name:'当前配置 · 概览',source:'CurrentConfigCard.vue',states:['正常','即将用尽','已用尽','总量未知','无数据','未导入'],hint:'概览实际使用的紧凑配置卡片，包含用量、节点数及导入入口。'},
+  {id:'usage',name:'订阅卡片 · 订阅页',source:'SubscriptionCard.vue',states:['正常','即将用尽','已用尽','总量未知','无数据'],hint:'订阅页完整卡片，包含标题、用量、更新时间及操作；与概览卡片分别打磨。'},
+  {id:'select',name:'下拉选择',source:'GlassSelect.vue',states:['正常','长文本'],hint:'支持键盘选择，菜单挂载到当前文档。'},
+  {id:'pagination',name:'列表分页',source:'ListPagination.vue',states:['正常','单页'],hint:'检查首页、末页的禁用状态与窄屏换行。'},
+] as const
+
+
+export type PreviewStep={selector:string;text?:string;index?:number}
+export type CatalogueEntry={id:string;name:string;source:string;states:readonly string[];hint:string;page:string;selector:string;group:string;steps?:PreviewStep[]}
+const pages:Record<string,string>={home:'概览',subscriptions:'订阅',modules:'模块分流',proxies:'代理',connections:'连接',studio:'配置工作台',settings:'设置与日志'}
+const basics:Record<string,[string,string]>={kernel:['home','.kernel-launch-card'],memory:['home','.resource-memory-card'],selection:['home','.overview-selection'],traffic:['home','.bandwidth-card'],egress:['home','.ip-card'],modules:['home','.flow-card'],config:['home','.config-card'],usage:['subscriptions','.profile-card'],select:['settings','.glass-select'],pagination:['connections','.list-pagination']}
+function block(id:string,name:string,page:string,selector:string,source='Client.vue',steps:PreviewStep[]=[]):CatalogueEntry{return {id,name,page,selector,source,group:pages[page]||'公共框架',steps,states:['正常'],hint:'在正式页面中定位并编辑'+name+'，可选择内部任意元素和中心坐标。'}}
+const tab=(name:string):PreviewStep[]=>[{selector:'.editor-tabs button',text:name}]
+export const catalogue:CatalogueEntry[]=[
+ ...basic.map(item=>({...item,page:basics[item.id][0],selector:basics[item.id][1],group:['select','pagination'].includes(item.id)?'基础控件':pages[basics[item.id][0]]})),
+ block('shell-topbar','标题栏与窗口按钮','home','.desk-topbar'),
+ {...block('shell-dock','底部导航 Dock','home','.liquid-dock-shell'),group:'公共框架'},
+ {...block('shell-heading','页面标题与操作栏','subscriptions','.desk-page-heading'),group:'公共框架'},
+ block('subscription-toolbar','订阅管理工具栏','subscriptions','.section-toolbar'),
+ block('subscription-add','添加订阅入口','subscriptions','.add-profile'),
+ block('subscription-import','导入订阅弹窗','subscriptions','dialog[open][aria-label="导入订阅"]','Client.vue',[{selector:'.heading-buttons button',text:'导入订阅'}]),
+ block('module-toolbar','分流方案工具栏','modules','.section-toolbar'),
+ block('module-card','分流模块卡片','modules','.module-card'),
+ block('module-plan','方案合成面板','modules','.plan-panel'),
+ block('module-yaml','合成 YAML 预览','modules','.yaml-preview','Client.vue',[{selector:'.yaml-preview summary'}]),
+ block('module-dialog','编辑分流模块弹窗','modules','dialog[open][aria-label="编辑分流模块"]','Client.vue',[{selector:'.module-card .module-bottom button',text:'编辑'}]),
+ block('proxy-toolbar','代理搜索与筛选','proxies','.proxy-tools','ProxyPanel.vue'),
+ block('proxy-delay','延迟测速工具栏','proxies','.delay-toolbar','ProxyPanel.vue'),
+ block('proxy-groups','代理策略组','proxies','.proxy-group','ProxyPanel.vue'),
+ block('proxy-node','代理节点卡片','proxies','.proxy-node-card','ProxyPanel.vue'),
+ block('connection-controls','连接筛选与排序','connections','.connection-controls','ConnectionPanel.vue'),
+ block('connection-list','连接列表','connections','.connection-list','ConnectionPanel.vue'),
+ block('connection-detail','连接明细弹窗','connections','dialog[open]','ConnectionPanel.vue',[{selector:'.connection-inspect'}]),
+ block('connection-pages','连接列表分页','connections','.connection-pagination','ConnectionPanel.vue'),
+ block('studio-head','配置编辑器标题栏','studio','.native-editor-head','ConfigEditor.vue'),
+ block('studio-tabs','配置编辑分类标签','studio','.editor-tabs','ConfigEditor.vue'),
+ block('studio-nodes','订阅节点编辑表','studio','.editor-node-table','ConfigEditor.vue'),
+ block('studio-groups','策略组列表','studio','.editor-group-list','ConfigEditor.vue',tab('策略组')),
+ block('studio-group-details','策略组详情与成员','studio','.group-details','ConfigEditor.vue',tab('策略组')),
+ block('studio-create-group','新建策略组','studio','.create-group','ConfigEditor.vue',[...tab('策略组'),{selector:'.native-editor .section-toolbar button',text:'新建策略组'}]),
+ block('studio-ai','AI 服务分流预设','studio','.native-ai','ConfigEditor.vue',tab('分流规则')),
+ block('studio-rule-form','规则添加表单','studio','.native-rule-form','ConfigEditor.vue',tab('分流规则')),
+ block('studio-rules','分流规则编辑列表','studio','.native-rules','ConfigEditor.vue',tab('分流规则')),
+ block('studio-yaml','YAML 草稿与源订阅','studio','.native-code','ConfigEditor.vue',tab('YAML 预览')),
+ block('studio-history','订阅版本历史','studio','.native-history-row','ConfigEditor.vue',tab('版本历史')),
+ block('studio-meta','订阅参数设置','studio','.settings-grid .settings-card','ConfigEditor.vue',tab('订阅设置')),
+ block('studio-publish','本机订阅发布','studio','.settings-grid .settings-card:nth-child(2)','ConfigEditor.vue',tab('订阅设置')),
+ block('studio-share','局域网订阅共享','studio','.native-lan','ConfigEditor.vue',tab('订阅设置')),
+ block('studio-validation','配置校验与发布状态','studio','.editor-validation-footer','ConfigEditor.vue'),
+ block('settings-tabs','设置与日志标签','settings','.settings-tabs'),
+ block('settings-search','设置搜索与快速定位','settings','.settings-finder','ClientSettings.vue'),
+ block('settings-proxy','连接与代理设置','settings','.proxy-settings-card'),
+ block('settings-port','本地代理端口','settings','.proxy-port-settings','ProxyPortSettings.vue'),
+ block('settings-language','界面语言设置','settings','.language-settings','LanguageSettings.vue'),
+ block('settings-appearance','外观与配色入口','settings','.appearance-entry','AppearanceSettings.vue'),
+ block('settings-soft','柔和背景设置','settings','.soft-background-entry','AppearanceSettings.vue'),
+ block('settings-background','背景图片入口','settings','.appearance-entry:nth-of-type(4)','BackgroundSettings.vue'),
+ block('settings-network','DNS 与局域网设置','settings','#settings-network','ClientSettings.vue'),
+ block('settings-behavior','后台驻留与开机自启','settings','#settings-behavior','DesktopSettings.vue'),
+ block('settings-core','内核与 GeoData 诊断','settings','#settings-core','ClientSettings.vue'),
+ block('settings-logs','运行日志面板','settings','.runtime-log-panel','RuntimeLogPanel.vue',[{selector:'.settings-tabs button',text:'运行日志'}]),
+ block('dialog-appearance','自定义配色弹窗','settings','dialog[open][aria-label="自定义配色"]','AppearanceSettings.vue',[{selector:'.appearance-entry button',text:'自定义配色'}]),
+ block('dialog-background','照片背景与裁切弹窗','settings','dialog[open][aria-label="照片背景与裁切"]','BackgroundSettings.vue',[{selector:'.appearance-entry button',text:'设置背景'}]),
+ block('dialog-lan','局域网连接详情弹窗','settings','dialog[open][aria-label="局域网连接设置"]','ClientSettings.vue',[{selector:'button[aria-label="局域网详细设置"]'}]),
+ block('dialog-dns','DNS 覆写弹窗','settings','dialog[open][aria-label="DNS 覆写设置"]','ClientSettings.vue',[{selector:'button[aria-label="DNS 覆写设置"]'}]),
+ block('dialog-ipv6','IPv6 详情弹窗','settings','dialog[open][aria-label="IPv6 详细设置"]','ClientSettings.vue',[{selector:'button[aria-label="IPv6 详细设置"]'}]),
+]
+export const standaloneIds=['kernel','memory','selection','config','usage','select','pagination']
+export type ComponentId=string

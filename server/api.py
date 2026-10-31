@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import atexit
+import copy
 import hashlib
 import json
 import os
@@ -13,7 +14,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -23,13 +24,17 @@ from app.main import create_app
 from .modules import Strict, Workspace, WorkspaceStore, compose
 from .runtime import Runtime
 from .network import NetworkMonitor
+from .resources import ResourceMonitor
+from .dns_summary import summarize_dns
+from app.engine import parse_config
 from .delay import DelayMonitor
 from .probe import ProbeManager
 from .geo_update import GeoUpdater
 from .settings import ClientSettings, lan_addresses
 from .paths import AppPaths
-from .cache import RevisionCache
+from .cache import CacheBusy, RevisionCache
 from .operations import Operations, operation_id
+from .logs import FailureLog
 from .contracts import envelope
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -106,12 +111,14 @@ def build_app(home: Path, data_dir: Path | None = None):
     workspace = WorkspaceStore(paths.data / "workspace.json")
     runtime = Runtime(home, data_dir=paths.data)
     network = NetworkMonitor(runtime)
+    resources = ResourceMonitor(runtime)
     delay = DelayMonitor(runtime)
     probe, geodata = ProbeManager(runtime), GeoUpdater(runtime)
     app.state.runtime = runtime
     app.state.workspace = workspace
-    compositions = RevisionCache(16)
-    operations = Operations()
+    compositions = RevisionCache()
+    failures = FailureLog(paths.data / 'backend-errors.log')
+    operations = Operations(failures=failures)
     app.state.compositions = compositions
     app.state.operations = operations
     closing = threading.Event()
@@ -135,6 +142,7 @@ def build_app(home: Path, data_dir: Path | None = None):
                 runtime.elevation.close()
                 for worker in workers:
                     worker.join(timeout=2)
+                failures.close()
     atexit.register(cleanup)
     original = app.router.lifespan_context
 
@@ -163,6 +171,7 @@ def build_app(home: Path, data_dir: Path | None = None):
 
     @app.exception_handler(Exception)
     async def unexpected_failure(request, error):
+        failures.record(error, operation_id.get() or getattr(request.state, 'operation_id', None), 'request')
         return JSONResponse(envelope(500, '操作未完成，请查看运行诊断后重试', operation_id.get() or getattr(request.state, 'operation_id', None)), status_code=500)
 
     desktop_token = os.environ.get("CLASH_STUDIO_DESKTOP_TOKEN", "")
@@ -176,6 +185,9 @@ def build_app(home: Path, data_dir: Path | None = None):
                 return JSONResponse(envelope(403, "此配置服务由 Tauri 桌面程序独占管理", secrets.token_hex(12)), status_code=403)
         if closing.is_set() and request.method not in ('GET', 'HEAD') and request.url.path not in ('/api/shutdown', '/api/client/prepare-exit'):
             return JSONResponse(envelope(503, '软件正在退出', secrets.token_hex(12)), status_code=503)
+        if request.method == 'POST' and request.url.path in ('/api/client/runtime/stop', '/api/client/probe/stop', '/api/client/prepare-exit', '/api/shutdown'):
+            probe.cancel_pending()
+        request.state.probe_ticket = probe.ticket()
         started = time.perf_counter()
         request.state.operation_id = secrets.token_hex(12)
         token = operation_id.set(request.state.operation_id)
@@ -199,10 +211,17 @@ def build_app(home: Path, data_dir: Path | None = None):
             raise HTTPException(404, "订阅不存在")
         return value
 
+    def cached_composition(key, build):
+        try:
+            return compositions.get(key, build)
+        except CacheBusy as error:
+            raise HTTPException(503, '配置合成繁忙，请稍后重试') from error
+
     def profile_config(profile_id):
         profile = row(profile_id)
         state = workspace.load()
-        result = compositions.get((profile_id, profile["revision"], state.revision), lambda: compose(profile["published"], profile_id, state))
+        result = cached_composition((profile_id, profile["revision"], state.revision),
+                                    lambda: compose(profile["published"], profile_id, state))
         return profile, result
 
     def settings_payload():
@@ -278,9 +297,9 @@ def build_app(home: Path, data_dir: Path | None = None):
             return {'selected': True, 'live': live, 'group': body.group, 'name': body.name}
 
     @app.post("/api/client/probe/prepare")
-    def prepare_probe(body: ProbeRequest):
+    def prepare_probe(body: ProbeRequest, request: Request):
         _, composed = profile_config(body.profile_id)
-        probe.ensure(composed["config"])
+        probe.ensure(composed["config"], request.state.probe_ticket)
         return {"ready": True}
 
     @app.post("/api/client/probe/stop")
@@ -291,7 +310,7 @@ def build_app(home: Path, data_dir: Path | None = None):
     @app.get("/api/client/info")
     def info():
         identity = str(home.resolve()) if paths.data == home.resolve() / 'data' else str(home.resolve()) + '|' + str(paths.data)
-        return {"app": "clash-studio", "version": "1.2.0", "platform": runtime.platform.info['id'], "desktop": bool(desktop_token),
+        return {"app": "clash-studio", "version": "1.3.0", "platform": runtime.platform.info['id'], "desktop": bool(desktop_token),
                 "platform_info": runtime.platform.info, "paths": paths.describe(),
                 "instance": hashlib.sha256((identity.casefold() if os.name == 'nt' else identity).encode()).hexdigest()[:16]}
 
@@ -309,8 +328,7 @@ def build_app(home: Path, data_dir: Path | None = None):
 
     @app.get("/api/client/preview/{profile_id}")
     def preview(profile_id: str):
-        profile = row(profile_id)
-        _, result = profile_config(profile_id)
+        profile, result = profile_config(profile_id)
         result.update(profile_revision=profile["revision"], published_conflict=bool(profile["last_error"]))
         return result
 
@@ -325,6 +343,27 @@ def build_app(home: Path, data_dir: Path | None = None):
     @app.get("/api/client/network/traffic")
     def traffic():
         return network.counters()
+
+    @app.get('/api/client/resources/memory')
+    def resource_memory():
+        return resources.memory()
+
+    @app.get('/api/client/network/dns-summary')
+    def dns_summary(profile_id: str = '', tun: bool = False):
+        # Read the applied snapshot while running; never relabel a selected draft
+        # as active. The lifecycle lock keeps snapshot identity and YAML atomic.
+        with runtime.lifecycle_lock:
+            if runtime.alive() and runtime.active:
+                config = parse_config((runtime.directory / 'active.yaml').read_text(encoding='utf-8'))
+                identity = runtime.active
+                return {**summarize_dns(config), 'source': 'runtime',
+                        'profile_id': identity['profile_id'], 'config_hash': identity['hash']}
+            if not profile_id:
+                return {'status': 'unavailable', 'nameservers': [], 'source': 'selected', 'profile_id': '', 'config_hash': ''}
+            profile, composed = profile_config(profile_id)
+            payload = runtime.prepare(copy.deepcopy(composed), runtime.settings.load().mixed_port or 17890, tun=tun)
+            return {**summarize_dns(parse_config(payload)), 'source': 'selected',
+                    'profile_id': profile['id'], 'config_hash': hashlib.sha256(payload.encode()).hexdigest()[:12]}
 
     @app.post("/api/client/runtime/elevate")
     def elevate_runtime():
@@ -357,7 +396,7 @@ def build_app(home: Path, data_dir: Path | None = None):
                 raise HTTPException(409, 'GeoData 更新中，请等待完成或取消后再启动内核')
             if row(body.profile_id)['revision'] != body.profile_revision or workspace.load().revision != body.workspace_revision:
                 raise HTTPException(409, '应用准备期间配置发生变化，请重新预览')
-        composed = compositions.get((body.profile_id, profile['revision'], state.revision), lambda: compose(profile['published'], body.profile_id, state))
+        composed = cached_composition((body.profile_id, profile['revision'], state.revision), lambda: compose(profile['published'], body.profile_id, state))
         mode = body.proxy_mode
         if mode is None and not tun and runtime.platform.info['os'] == 'linux' and runtime.platform.info['capabilities']['system_proxy']:
             mode = 'system'
@@ -430,14 +469,15 @@ def build_app(home: Path, data_dir: Path | None = None):
             return tray_state()
 
     @app.post("/api/client/runtime/delay")
-    def probe_delay(body: DelayRequest):
+    def probe_delay(body: DelayRequest, request: Request):
+        probe.check_ticket(request.state.probe_ticket)
         if body.profile_id:
             profile, composed = profile_config(body.profile_id)
             if body.profile_revision != profile["revision"] or body.workspace_revision != composed["workspace_revision"]:
                 raise HTTPException(409, "节点配置已变化，请刷新节点列表后重新测速")
             active = runtime.active if runtime.alive() else None
             if not (active and active["profile_id"] == body.profile_id and active["revision"] == profile["revision"] and active["workspace_revision"] == composed["workspace_revision"]):
-                return probe.measure(composed["config"], body.name, body.endpoint, body.timeout_ms)
+                return probe.measure(composed["config"], body.name, body.endpoint, body.timeout_ms, request.state.probe_ticket)
         return delay.probe(body.name, body.endpoint, body.timeout_ms)
 
     @app.put("/api/client/runtime/tun")
@@ -496,7 +536,7 @@ def build_app(home: Path, data_dir: Path | None = None):
     @app.delete("/api/client/runtime/connections/{connection_id}")
     def close_connection(connection_id: str):
         runtime.request("DELETE", "/connections/" + quote(connection_id, safe=""))
-        runtime._connection_at = 0
+        runtime.invalidate_connections()
         return {"closed": True}
 
     @app.get('/api/client/operations/{key}')

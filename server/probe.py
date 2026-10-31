@@ -4,6 +4,7 @@ import hashlib
 import json
 import socket
 import threading
+from fastapi import HTTPException
 
 from .runtime import Runtime
 from .delay import DelayMonitor
@@ -30,17 +31,35 @@ class ProbeManager:
         self.main, self.lock = main, threading.RLock()
         self.core, self.key, self.timer = None, None, None
         self.active = 0
+        self.epoch_lock = threading.Lock()
+        self.epoch = 0
+
+    def ticket(self):
+        with self.epoch_lock:
+            return self.epoch
+
+    def cancel_pending(self):
+        # Independent of the startup lock: stop can invalidate work even while
+        # a slow core is validating or a request is waiting for self.lock.
+        with self.epoch_lock:
+            self.epoch += 1
+
+    def check_ticket(self, ticket):
+        if ticket != self.ticket():
+            raise HTTPException(409, {'code': 'OPERATION_CANCELLED', 'message': '测速已停止，请重新发起测速'})
 
     def fingerprint(self, config):
         return hashlib.sha256(json.dumps(config, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
 
-    def ensure(self, config):
+    def ensure(self, config, ticket=None):
+        ticket = self.ticket() if ticket is None else ticket
         with self.lock:
+            self.check_ticket(ticket)
             key = self.fingerprint(config)
             if self.core and self.core.alive() and self.key == key:
                 self.touch()
                 return self.core
-            self.stop()
+            self._stop_locked()
             core = Runtime(self.main.home, resource_home=self.main.resource_home, data_dir=self.main.paths.data / 'probe' / 'data')
             core.binary = self.main.binary
             preferences = self.main.settings.load()
@@ -63,9 +82,12 @@ class ProbeManager:
             try:
                 core.apply({"config": selected, "errors": [], "workspace_revision": 1},
                            {"id": "isolated-probe", "title": "独立节点测速", "enabled": True, "revision": 1}, port)
+                self.check_ticket(ticket)
             except BaseException:
-                core.stop()
-                core.job.close()
+                try:
+                    core.stop()
+                finally:
+                    core.job.close()
                 raise
             self.core, self.key = core, key
             self.touch()
@@ -86,15 +108,21 @@ class ProbeManager:
                 self.stop()
 
     def stop(self):
+        self.cancel_pending()
         with self.lock:
-            if self.timer:
-                self.timer.cancel()
-                self.timer = None
-            if self.core:
+            self._stop_locked()
+
+    def _stop_locked(self):
+        if self.timer:
+            self.timer.cancel()
+            self.timer = None
+        if self.core:
+            try:
                 self.core.stop(final_sample=False, report=False)
+            finally:
                 self.core.job.close()
                 self.core = None
-            self.key = None
+        self.key = None
 
     def read_catalog(self, config):
         with self.lock:
@@ -107,16 +135,21 @@ class ProbeManager:
                 return {"proxies": proxies, "has_providers": bool(config.get("proxy-providers"))}
         return catalog(config)
 
-    def measure(self, config, name, endpoint, timeout_ms):
+    def measure(self, config, name, endpoint, timeout_ms, ticket=None):
+        ticket = self.ticket() if ticket is None else ticket
         with self.lock:
-            core = self.ensure(config)
+            core = self.ensure(config, ticket)
             self.active += 1
             if not hasattr(core, "delay_monitor"):
                 core.delay_monitor = DelayMonitor(core)
             delay = core.delay_monitor
         try:
-            return delay.probe(name, endpoint, timeout_ms)
+            self.check_ticket(ticket)
+            result = delay.probe(name, endpoint, timeout_ms)
+            self.check_ticket(ticket)
+            return result
         finally:
             with self.lock:
                 self.active -= 1
-                self.touch()
+                if self.core is core and ticket == self.ticket():
+                    self.touch()

@@ -5,6 +5,22 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class CoreConfigTest {
+    @Test public void probeCacheTracksEffectiveDnsSettings() throws Exception {
+        JSONObject source = new JSONObject("{\"proxies\":[],\"proxy-groups\":[],\"dns\":{\"nameserver\":[\"system\"]}}");
+        JSONObject settings = ProfileStore.defaults();
+        JSONObject plain = CoreConfig.prepare(source, settings, 17890);
+        DelaySpec.sanitize(plain);
+        String before = DelaySpec.configurationKey(plain);
+        settings.put("dns_leak_prevention", true);
+        JSONObject protectedConfig = CoreConfig.prepare(source, settings, 17890);
+        DelaySpec.sanitize(protectedConfig);
+        assertNotEquals(before, DelaySpec.configurationKey(protectedConfig));
+        assertTrue(protectedConfig.getJSONObject("dns").getJSONArray("nameserver").getString(0).contains("#ClashStudio-DNS"));
+        settings.put("dns_leak_prevention", false);
+        JSONObject restored = CoreConfig.prepare(source, settings, 17890);
+        DelaySpec.sanitize(restored);
+        assertEquals(before, DelaySpec.configurationKey(restored));
+    }
     @Test public void protectedDnsReplacesPoliciesAndCannotFallBackToDirect() throws Exception {
         JSONObject dns = new JSONObject().put("nameserver-policy", new JSONObject().put("+.example", "udp://127.0.0.1:5353#DIRECT"))
             .put("fallback", new JSONArray().put("system")).put("fallback-filter", new JSONObject())

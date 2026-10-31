@@ -1,0 +1,62 @@
+const {chromium}=require('playwright')
+const assert=require('node:assert/strict')
+const fs=require('node:fs')
+;(async()=>{
+ const browser=await chromium.launch({channel:'msedge',headless:true}),errors=[]
+ try{
+  const page=await browser.newPage({viewport:{width:1500,height:1200}})
+  page.on('pageerror',e=>errors.push(e.message))
+  const adopted=JSON.parse(fs.readFileSync('frontend/src/component-lab/presets/android-spacing-layout.json','utf8'))
+  await page.addInitScript(rules=>{if(!localStorage.getItem('typography-seeded')){localStorage.setItem('clash-android-component-layout-v1',JSON.stringify(rules));localStorage.setItem('typography-seeded','1')}},adopted.rules)
+  async function visit(id,android=true){await page.goto('http://127.0.0.1:5181/'+(android?'ui-android-components.html':'ui-components.html')+'?component='+id);await page.waitForFunction(()=>!document.querySelector('[aria-label="中心 X"]').disabled);return page.frameLocator('iframe')}
+  let frame=await visit('usage')
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('clash-android-component-layout-v1')).length),0)
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('clash-android-component-layout-v1-before-spacing-v1')).length),16)
+  assert.equal(await frame.locator('.shell-brand').isVisible(),false)
+  assert.equal(await frame.locator('.desk-page-heading p').isVisible(),false)
+  assert.equal(await frame.locator('.profile-grid').evaluate(e=>getComputedStyle(e).top),'-44px')
+  for(const width of [360,393,430]){
+   await page.getByRole('spinbutton',{name:'自定义窗口宽度',exact:true}).fill(String(width))
+   assert.ok(await frame.locator('.desk-page-heading h1').evaluate(e=>Math.abs(e.getBoundingClientRect().left-16)<1))
+  }
+  await page.getByRole('spinbutton',{name:'自定义窗口宽度',exact:true}).fill('393')
+  const text=frame.locator('.profile-card h2')
+  const baselineFont=await text.evaluate(e=>getComputedStyle(e).fontSize)
+  await text.click()
+  await page.getByRole('spinbutton',{name:'X 位移',exact:true}).fill('8')
+  for(const [label,value] of [['字号','22'],['行高','30'],['字距','1.5'],['首行缩进','8']])await page.getByRole('spinbutton',{name:label,exact:true}).fill(value)
+  for(const [label,value] of [['字重','700'],['文字对齐','center'],['文字换行','pre-wrap'],['长词换行','break-all'],['字体','monospace'],['文字方向','vertical-rl']])await page.getByRole('combobox',{name:label,exact:true}).selectOption(value)
+  const styles=()=>text.evaluate(e=>{const s=getComputedStyle(e);return Object.fromEntries(['font-size','line-height','letter-spacing','font-weight','text-align','white-space','word-break','text-indent','font-family','writing-mode','left'].map(k=>[k,s.getPropertyValue(k)]))})
+  const expected={'font-size':'22px','line-height':'30px','letter-spacing':'1.5px','font-weight':'700','text-align':'center','white-space':'pre-wrap','word-break':'break-all','text-indent':'8px','font-family':'monospace','writing-mode':'vertical-rl',left:'8px'}
+  assert.deepEqual(await styles(),expected)
+  await page.getByRole('button',{name:'撤销',exact:true}).click();assert.equal((await styles())['writing-mode'],'horizontal-tb')
+  await page.getByRole('button',{name:'重做',exact:true}).click();assert.equal((await styles())['writing-mode'],'vertical-rl')
+  const jsonDownload=page.waitForEvent('download');await page.getByRole('button',{name:'导出布局 JSON',exact:true}).click();await (await jsonDownload).saveAs('test-output/typography-layout.json')
+  const cssDownload=page.waitForEvent('download');await page.getByRole('button',{name:'导出正式页面 CSS',exact:true}).click();await (await cssDownload).saveAs('test-output/typography-layout.css')
+  assert.ok(fs.readFileSync('test-output/typography-layout.css','utf8').includes('font-size: 22px !important'))
+  await page.reload();await text.waitFor();assert.deepEqual(await styles(),expected)
+  await text.click();await page.getByRole('button',{name:'重置文字样式',exact:true}).click()
+  assert.equal((await styles()).left,'8px');assert.equal((await styles())['font-size'],baselineFont)
+  await page.locator('input[type=file][accept=".json"]').setInputFiles('test-output/typography-layout.json');assert.deepEqual(await styles(),expected)
+  await page.getByRole('button',{name:'确认满意并锁定',exact:true}).click();assert.equal(await page.getByRole('spinbutton',{name:'字号',exact:true}).isDisabled(),true)
+  await page.getByRole('button',{name:'解锁，继续打磨',exact:true}).click()
+  // Check the adopted connection title remains compact while controls fit the viewport.
+  frame=await visit('connection-controls')
+  assert.deepEqual(await frame.locator('.desk-page-heading').evaluate(e=>[e.offsetWidth,e.offsetHeight]),[64,39])
+  await page.getByRole('spinbutton',{name:'自定义窗口宽度',exact:true}).fill('360')
+  assert.ok(await frame.locator('.heading-buttons').evaluate(e=>e.getBoundingClientRect().right<=innerWidth))
+  frame=await visit('proxy-toolbar')
+  assert.equal(await frame.locator('.proxy-tools').evaluate(e=>getComputedStyle(e).top),'-20px')
+  await page.locator('.lab-context-canvas').screenshot({path:'test-output/android-spacing-proxies.png'})
+  // The same controls work in desktop context and isolated component mode.
+  frame=await visit('usage',false);await frame.locator('.profile-card h2').click()
+  await page.getByRole('spinbutton',{name:'字号',exact:true}).fill('19')
+  assert.equal(await frame.locator('.profile-card h2').evaluate(e=>getComputedStyle(e).fontSize),'19px')
+  await page.getByRole('combobox',{name:'查看方式',exact:true}).selectOption('isolated')
+  await page.locator('.lab-preview .profile-card h2').click();await page.getByRole('spinbutton',{name:'字号',exact:true}).fill('21')
+  assert.equal(await page.locator('.lab-preview .profile-card h2').evaluate(e=>getComputedStyle(e).fontSize),'21px')
+  assert.deepEqual(errors,[])
+  const report={adoptedRules:16,migrationBackup:true,typography:expected,undoRedo:true,persistence:true,importExport:true,resetPreservesGeometry:true,lockProtection:true,desktop:true,isolated:true,errors}
+  fs.writeFileSync('test-output/typography-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report))
+ }finally{await browser.close()}
+})().catch(e=>{console.error(e);process.exitCode=1})

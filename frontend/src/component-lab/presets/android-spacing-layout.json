@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "surface": "context",
+      "page": "home",
+      "selector": "div > button",
+      "styles": {
+        "display": "none"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "subscriptions",
+      "selector": "div > button",
+      "styles": {
+        "display": "none"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "proxies",
+      "selector": "div > button",
+      "styles": {
+        "display": "none"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "connections",
+      "selector": "div > button",
+      "styles": {
+        "display": "none"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "settings",
+      "selector": "div > button",
+      "styles": {
+        "display": "none"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "proxies",
+      "selector": "div > main > div > div:nth-of-type(1) > div:nth-of-type(1) > h1",
+      "styles": {
+        "left": "0px",
+        "top": "0.1px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "connections",
+      "selector": "div > main > div > div:nth-of-type(1)",
+      "styles": {
+        "width": "64px",
+        "height": "39px",
+        "box-sizing": "border-box",
+        "min-width": "0",
+        "min-height": "0",
+        "max-width": "none",
+        "max-height": "none",
+        "flex-shrink": "0"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "subscriptions",
+      "selector": "div > main > div > div:nth-of-type(1) > div:nth-of-type(1) > p",
+      "styles": {
+        "display": "none"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "subscriptions",
+      "selector": "div > main > div > div:nth-of-type(1) > div:nth-of-type(1) > h1",
+      "styles": {
+        "left": "-147px",
+        "top": "0px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "subscriptions",
+      "selector": "div > main > div > div:nth-of-type(1) > div:nth-of-type(2)",
+      "styles": {
+        "left": "0px",
+        "top": "-12px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "subscriptions",
+      "selector": "div > main > div > div:nth-of-type(3)",
+      "styles": {
+        "left": "0px",
+        "top": "-15px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "subscriptions",
+      "selector": "div > main > div > div:nth-of-type(4)",
+      "styles": {
+        "left": "0px",
+        "top": "-44px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "proxies",
+      "selector": "div > main > div > div:nth-of-type(3)",
+      "styles": {
+        "left": "0px",
+        "top": "-17px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "proxies",
+      "selector": "div > main > div > div:nth-of-type(4)",
+      "styles": {
+        "left": "0px",
+        "top": "-20px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "proxies",
+      "selector": "div > main > div > div:nth-of-type(5)",
+      "styles": {
+        "left": "0px",
+        "top": "-30px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "proxies",
+      "selector": "div > main > div > section:nth-of-type(3)",
+      "styles": {
+        "left": "0px",
+        "top": "-43px",
+        "position": "relative"
+      }
+    }
+  ],
+  "viewport": {
+    "width": 393,
+    "height": 873
+  }
+}

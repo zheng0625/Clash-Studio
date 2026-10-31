@@ -6,6 +6,12 @@ export type ClientTheme={accent:string;background:string;surface:string;text:str
 export const darkTheme:ClientTheme={background:'#101318',sidebar:'#171B22',surface:'#1C222B',selected:'#262E39',border:'#343D49',text:'#F0F3F8',secondary:'#A2ACBA',sidebarText:'#F0F3F8',accent:'#60A5FA',success:'#4ADE80',warning:'#F59E0B',error:'#EF4444'}
 export const lightTheme:ClientTheme={background:'#F5F7FA',sidebar:'#EBEFF4',surface:'#FFFFFF',selected:'#E7EDF5',border:'#D7DFE9',text:'#182333',secondary:'#586679',sidebarText:'#182333',accent:'#2563EB',success:'#15803D',warning:'#A16207',error:'#DC2626'}
 export const defaultTheme=lightTheme
+export const softBackground=ref(true)
+export function setSoftBackground(enabled:boolean){
+  softBackground.value=enabled
+  document.documentElement.dataset.softBackground=enabled?'on':'off'
+  try{localStorage.setItem('clash-studio-soft-background-v1',String(enabled))}catch{/* Keep the setting for this session. */}
+}
 export const themeFields:{key:keyof ClientTheme;label:string}[]=[
   {key:'accent',label:'主色'},{key:'background',label:'页面背景'},{key:'surface',label:'卡片背景'},
   {key:'text',label:'正文文字'},{key:'secondary',label:'次要文字'},{key:'sidebar',label:'侧栏与标题栏'},{key:'sidebarText',label:'侧栏文字'},
@@ -72,6 +78,8 @@ export function setThemeMode(mode:Exclude<ThemeMode,'custom'>){
 export function setBackgroundPalette(dark:boolean|null){automatic=dark;refreshTheme()}
 export function resetTheme(){try{localStorage.removeItem(storageKey)}catch{};currentTheme.value={...defaultTheme};setThemeMode('system')}
 export function initializeTheme(){
+  try{softBackground.value=localStorage.getItem('clash-studio-soft-background-v1')!=='false'}catch{softBackground.value=true}
+  document.documentElement.dataset.softBackground=softBackground.value?'on':'off'
   themeMode.value=restoreMode()
   window.addEventListener('clash-android-system-theme',()=>{if(typeof window.__clashAndroidSystemDark==='boolean'){systemDark.value=window.__clashAndroidSystemDark;refreshTheme()}})
   if(typeof matchMedia==='function'){

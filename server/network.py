@@ -74,34 +74,31 @@ class NetworkMonitor:
     def _lookup(self, route, runtime, identity, active, session, proxy):
         started = time.monotonic()
         result = {"status": "unavailable", "ip": "", "country": "", "region": "", "city": "",
-                  "isp": "", "asn": "", "family": "", "provider": "", "route": route,
+                  "isp": "", "asn": "", "family": "", "provider": "ippure.com", "route": route,
+                  "country_code": "", "is_residential": None, "is_broadcast": None,
                   "route_label": "本程序代理 · 按当前规则分流" if proxy else "系统路由 · 不使用应用代理设置",
                   "profile": active.get("title", "") if proxy else "",
                   "checked_at": datetime.now(timezone.utc).isoformat(), "cached": False,
-                  "message": "检测服务暂不可达，无法据此判断整机是否断网"}
+                  "message": "IPPure 查询暂不可用，请稍后重试"}
         try:
-            with httpx.Client(proxy=proxy, trust_env=False, timeout=httpx.Timeout(6, connect=4),
-                              follow_redirects=False, headers={"User-Agent": "ClashStudio/0.5.0"}) as client:
-                try:
-                    value = self._json(client, "https://ipwho.is/?lang=zh-CN")
-                    if value.get("success") is not True:
-                        raise ValueError("Lookup rejected")
-                    ip = ipaddress.ip_address(value.get("ip", ""))
-                    connection = value.get("connection") or {}
-                    if not isinstance(connection, dict):
-                        connection = {}
-                    result.update(status="ok", ip=str(ip), family=f"IPv{ip.version}", provider="ipwho.is",
-                                  country=str(value.get("country") or "")[:100],
-                                  region=str(value.get("region") or "")[:100], city=str(value.get("city") or "")[:100],
-                                  isp=str(connection.get("isp") or connection.get("org") or "")[:160],
-                                  asn=str(connection.get("asn") or "")[:30], message="检测服务可达；位置为 IP 数据库近似归属地")
-                except (httpx.HTTPError, ValueError, TypeError):
-                    # A location-provider failure must not be reported as a general network outage.
-                    client.timeout = httpx.Timeout(4, connect=3)
-                    value = self._json(client, "https://api.ipify.org?format=json")
-                    ip = ipaddress.ip_address(value.get("ip", ""))
-                    result.update(status="partial", ip=str(ip), family=f"IPv{ip.version}", provider="ipify.org",
-                                  message="公网 IP 已取得；归属地服务暂不可用")
+            with httpx.Client(proxy=proxy, trust_env=False, timeout=httpx.Timeout(8, connect=4),
+                              follow_redirects=True, headers={"User-Agent": "ClashStudio/1.3.0", "Accept": "application/json"}) as client:
+                value = self._json(client, "https://my.ippure.com/v1/info")
+                ip = ipaddress.ip_address(value.get("ip", ""))
+                country, region, city = (str(value.get(key) or "")[:100] for key in ("country", "region", "city"))
+                # Missing values remain unknown. Never coerce null or strings into
+                # a residential/data-center or native/broadcast classification.
+                residential = value.get("isResidential")
+                broadcast = value.get("isBroadcast")
+                residential = residential if isinstance(residential, bool) else None
+                broadcast = broadcast if isinstance(broadcast, bool) else None
+                complete = bool(country or region or city) and residential is not None and broadcast is not None
+                result.update(status="ok" if complete else "partial", ip=str(ip), family=f"IPv{ip.version}",
+                              country=country, region=region, city=city,
+                              country_code=str(value.get("countryCode") or "")[:2],
+                              isp=str(value.get("asOrganization") or "")[:160], asn=str(value.get("asn") or "")[:30],
+                              is_residential=residential, is_broadcast=broadcast,
+                              message="" if complete else "IPPure 未返回部分地址或属性信息")
         except (httpx.HTTPError, ValueError, TypeError):
             pass
         result["elapsed_ms"] = round((time.monotonic() - started) * 1000)

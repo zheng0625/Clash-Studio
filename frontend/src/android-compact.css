@@ -1,0 +1,99 @@
+/* Sizes adopted from clashstudioandriod.json at 393 × 873 CSS px.
+   Use component selectors and reflow rather than exported DOM indices/offsets. */
+.desk[data-client-platform=android] .shell-brand{position:relative;top:auto;left:auto;flex-shrink:0;align-self:flex-start;min-height:40px;margin:8px 18px}
+.desk[data-client-platform=android] .profile-grid{justify-items:center}
+.desk[data-client-platform=android] :is(.profile-card,.add-profile){width:min(342px,100%);height:220px;min-width:0;min-height:0;box-sizing:border-box}
+.desk[data-client-platform=android] .profile-card{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:20px 16px 20px minmax(0,1fr) 32px;grid-template-areas:'title title' 'host type' 'meta meta' 'usage usage' 'updated actions';gap:6px 8px;padding:12px;overflow:auto}
+.desk[data-client-platform=android] .profile-top{display:contents}
+.desk[data-client-platform=android] .profile-symbol{display:none}
+.desk[data-client-platform=android] .profile-top .small-badge{grid-area:type;align-self:center;justify-self:end;width:max-content;font-size:10px;padding:2px 6px}
+.desk[data-client-platform=android] .profile-card h2{grid-area:title;margin:0;font-size:15px;line-height:20px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.desk[data-client-platform=android] .profile-card>p{grid-area:host;margin:0;font-size:11px;line-height:16px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.desk[data-client-platform=android] .profile-numbers{grid-area:meta;margin:0;gap:14px;font-size:11px;align-items:center}
+.desk[data-client-platform=android] .profile-numbers b{font-size:12px}
+.desk[data-client-platform=android] .profile-card .subscription-usage{grid-area:usage;padding:4px 0;margin:0;min-height:0;border-bottom:0;font-size:11px}
+.desk[data-client-platform=android] .profile-card :is(.usage-heading,.usage-numbers,.usage-caption){margin:0;line-height:17px;font-size:11px}
+.desk[data-client-platform=android] .profile-card :is(progress,.usage-track){display:block;width:100%;height:4px;margin:4px 0}
+.desk[data-client-platform=android] .profile-card .profile-updated{grid-area:updated;align-self:center;display:block;font-size:10px;line-height:14px;min-width:0}
+.desk[data-client-platform=android] .profile-actions{grid-area:actions;margin:0;padding:0;gap:4px;flex-wrap:nowrap;align-self:center}
+.desk[data-client-platform=android] .profile-actions :is(.desk-btn,.desk-icon-btn){min-height:32px;padding:6px;font-size:10px}
+.desk[data-client-platform=android] .profile-card:has(.inline-note.error){height:auto;min-height:220px;grid-template-rows:20px 16px 20px 76px 32px auto}
+.desk[data-client-platform=android] .profile-card .inline-note.error{grid-column:1/-1;grid-row:6;overflow-wrap:anywhere}
+.desk[data-client-platform=android] .add-profile{gap:10px;padding:16px}
+.desk[data-client-platform=android] .add-profile strong{font-size:15px}
+.desk[data-client-platform=android] .add-profile span{font-size:12px}
+
+.desk[data-client-platform=android] :is(.routing-editor,.subscription-import-dialog,.dns-settings-dialog,.ipv6-settings-dialog){position:fixed;inset:0;margin:auto;width:min(377px,calc(100vw - 16px));max-width:none;max-height:calc(100dvh - 16px);box-sizing:border-box;overflow:hidden}
+.desk[data-client-platform=android] :is(.dns-settings-dialog,.ipv6-settings-dialog){height:360px}
+.desk[data-client-platform=android] .routing-editor{height:441px}
+.desk[data-client-platform=android] .subscription-import-dialog{height:472px}
+.desk[data-client-platform=android] :is(.routing-editor,.subscription-import-dialog,.settings-dialog) .app-dialog-heading{padding:12px 16px;min-height:64px;box-sizing:border-box}
+.desk[data-client-platform=android] .app-dialog .app-dialog-heading h2{font-size:17px;margin:4px 0;line-height:24px}
+.desk[data-client-platform=android] .app-dialog .app-dialog-heading p{font-size:12px;line-height:18px}
+.desk[data-client-platform=android] .app-dialog .app-dialog-body{min-height:0;max-height:none;overflow:auto;padding:12px 16px}
+.desk[data-client-platform=android] .app-dialog .app-dialog-footer{padding:10px 16px;gap:8px}
+.desk[data-client-platform=android] .app-dialog .app-dialog-footer>small{font-size:11px;line-height:16px}
+.desk[data-client-platform=android] .routing-editor .routing-editor-fields{padding:0;gap:10px;overflow:visible}
+.desk[data-client-platform=android] .routing-editor-fields .desk-field{font-size:12px;gap:5px}
+.desk[data-client-platform=android] .routing-editor-fields :is(input:not([type=checkbox]),select){min-height:40px}
+.desk[data-client-platform=android] .routing-enabled{margin:0;font-size:12px}
+.desk[data-client-platform=android] .subscription-import-dialog .import-method-tabs{gap:16px;margin:0 0 12px}
+.desk[data-client-platform=android] .subscription-import-dialog .import-method-tabs>button{font-size:12px;padding-bottom:8px}
+.desk[data-client-platform=android] .subscription-import-dialog .desk-field{margin:0 0 12px;font-size:12px}
+.desk[data-client-platform=android] .subscription-import-dialog .qr-import-options .page-caption{font-size:12px;line-height:18px}
+
+/* Adopted spacing/deletions from clash-component-layout (1).json.
+   Keep selectors stable and the subscription title aligned on every width. */
+.desk[data-client-platform=android]:is([data-ui-page=home],[data-ui-page=subscriptions],[data-ui-page=proxies],[data-ui-page=connections],[data-ui-page=settings]) .shell-brand{display:none}
+.desk[data-client-platform=android][data-ui-page=subscriptions] .desk-page-heading p{display:none}
+.desk[data-client-platform=android][data-ui-page=subscriptions] .desk-page-heading>div:first-child{width:100%;align-self:stretch;justify-self:stretch;text-align:left}
+.desk[data-client-platform=android][data-ui-page=subscriptions] .desk-page-heading h1{text-align:left;position:relative;left:0;top:0}
+.desk[data-client-platform=android][data-ui-page=subscriptions] .heading-buttons{position:relative;top:-12px}
+.desk[data-client-platform=android][data-ui-page=subscriptions] .page-stage>.section-toolbar{position:relative;top:-15px}
+.desk[data-client-platform=android][data-ui-page=subscriptions] .profile-grid{position:relative;top:-44px}
+.desk[data-client-platform=android][data-ui-page=proxies] .desk-page-heading h1{position:relative;left:0;top:.1px}
+.desk[data-client-platform=android][data-ui-page=proxies] .page-stage>.section-toolbar{position:relative;top:-17px}
+.desk[data-client-platform=android][data-ui-page=proxies] .proxy-tools{position:relative;top:-20px}
+.desk[data-client-platform=android][data-ui-page=proxies] .group-fold-toolbar{position:relative;top:-30px}
+.desk[data-client-platform=android][data-ui-page=proxies] .proxy-group{position:relative;top:-43px}
+.desk[data-client-platform=android][data-ui-page=connections] .desk-page-heading{position:relative;width:64px;height:39px;min-height:0;box-sizing:border-box;flex-shrink:0}
+.desk[data-client-platform=android][data-ui-page=connections] .desk-page-heading h1{white-space:nowrap;margin:0}
+.desk[data-client-platform=android][data-ui-page=connections] .desk-page-heading p{display:none}
+.desk[data-client-platform=android][data-ui-page=connections] .heading-buttons{position:absolute;left:80px;top:0;width:min(280px,calc(100vw - 112px))}
+
+/* Apply the third export to semantic components, independent of active state. */
+:root .desk[data-ui-page][data-client-platform=android] .shell-brand{display:none}
+:root .desk[data-ui-page][data-client-platform=android] .kernel-launch-card{box-sizing:border-box;width:100%;height:auto;min-height:182px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;gap:8px}
+:root .desk[data-ui-page][data-client-platform=android] .kernel-launch-card .section-head{margin:0;min-height:24px}
+:root .desk[data-ui-page][data-client-platform=android] .kernel-launch-card .routing-mode-card{margin:0;padding:0;gap:8px;font-size:17.5px;align-items:center;flex-wrap:wrap}
+:root .desk[data-ui-page][data-client-platform=android] .kernel-launch-card .routing-mode-card>div:first-child{flex:0 0 59px}
+:root .desk[data-ui-page][data-client-platform=android] .kernel-launch-card .routing-segment{box-sizing:border-box;width:auto;max-width:100%;height:50px;min-width:0;flex:1 1 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;padding:4px;align-items:stretch}
+:root .desk[data-ui-page][data-client-platform=android] .kernel-launch-card .routing-segment>button{box-sizing:border-box;width:100%;max-width:none;height:100%;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 4px;font:inherit;line-height:1.2;text-indent:0;text-align:center;word-break:keep-all;white-space:nowrap;letter-spacing:0}
+:root .desk[data-ui-page][data-client-platform=android] .kernel-launch-card .kernel-actions{margin:0;gap:8px;align-items:center}
+:root .desk[data-ui-page][data-client-platform=android] .kernel-launch-card .kernel-actions>.desk-text-btn,:root .desk[data-ui-page][data-client-platform=android] .android-network-help{display:none}
+:root .desk[data-ui-page][data-client-platform=android] .kernel-launch-card .overview-running-context{font-size:12px;line-height:18px;margin:0;overflow-wrap:anywhere}
+:root .desk[data-ui-page][data-client-platform=android] .kernel-launch-card .routing-mode-card>p{margin:0;line-height:18px;overflow-wrap:anywhere}
+:root .desk[data-ui-page][data-client-platform=android]:lang(en) .kernel-launch-card .routing-segment>button{text-indent:0;letter-spacing:0}
+:root .desk[data-ui-page][data-client-platform=android] .language-settings{box-sizing:border-box;width:100%;height:auto;min-height:135px;padding:12px}
+:root .desk[data-ui-page][data-client-platform=android] .language-settings>div>div>p{box-sizing:border-box;width:72px;min-height:86px;height:auto;font-size:11px;line-height:14px;overflow-wrap:anywhere}
+:root .desk[data-ui-page][data-client-platform=android] .android-routing{position:relative;left:0;width:100%;min-width:0}
+:root .desk[data-ui-page][data-client-platform=android] .routing-summary-list{box-sizing:border-box;width:min(314px,100%);height:auto;margin-inline:auto;padding:0}
+:root .desk[data-ui-page][data-client-platform=android] .routing-summary-actions{box-sizing:border-box;width:min(313px,100%);min-height:38px;padding:0 6px;margin:0;gap:4px}
+:root .desk[data-ui-page][data-client-platform=android] .routing-summary-actions .desk-icon-btn{min-height:38px;height:38px}
+:root .desk[data-ui-page][data-client-platform=android] .routing-save-bar{width:min(315px,calc(100vw - 32px));min-height:66px;height:auto;left:50%;top:auto;right:auto;bottom:calc(var(--mobile-nav-height,92px) + var(--mobile-bottom,0px) + 14px);margin:0;transform:translateX(-50%);padding:10px 12px;gap:8px}
+:root .desk[data-ui-page][data-client-platform=android] .routing-save-bar strong{font-size:12px}
+:root .desk[data-ui-page][data-client-platform=android] .routing-save-bar small{font-size:11px}
+.desk .routing-page-size{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:12px 0;font-size:12px;color:var(--client-secondary)}
+.desk .routing-page-size label{display:flex;align-items:center;gap:8px}
+.desk .routing-page-size select{width:72px;min-height:36px;font-size:14px}
+.desk .routing-pagination{gap:8px;font-size:11px}
+
+/* Position adjustments from the 393 × 873 Android workshop export. */
+:root .desk[data-client-platform=android][data-ui-page=home] .page-stage>.desk-page-heading,
+:root .desk[data-client-platform=android][data-ui-page=home] .page-stage>.home-masonry{position:relative;left:6.9px;top:0}
+:root .desk[data-client-platform=android]:is([data-ui-page=subscriptions],[data-ui-page=proxies],[data-ui-page=connections],[data-ui-page=settings]) .page-stage{position:relative;left:6.9px;top:0}
+:root .desk[data-client-platform=android][data-ui-page=subscriptions] .page-stage>.desk-page-heading{position:relative;left:0;top:0}
+
+/* Latest 393 × 873 workshop adjustments, adopted for the device test build. */
+:root .desk[data-client-platform=android][data-ui-page=home] .kernel-launch-card{width:100%;min-height:182px}
+:root .desk[data-client-platform=android][data-ui-page=routing] .page-stage{position:relative;left:7px;top:0}

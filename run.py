@@ -54,7 +54,7 @@ def main():
         from server.elevation import run_helper
         run_helper(HOME, sys.argv[2:])
         return
-    parser = argparse.ArgumentParser(description="Clash Studio 1.2")
+    parser = argparse.ArgumentParser(description="Clash Studio 1.3")
     parser.add_argument("--port", type=int, default=8870)
     parser.add_argument("--no-window", action="store_true")
     parser.add_argument("--desktop", action="store_true", help="Backend owned by the Tauri desktop process")
@@ -99,7 +99,7 @@ def main():
     app = build_app(HOME, data_dir=DATA)
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=args.port, access_log=False, timeout_graceful_shutdown=2))
     app.state.shutdown_callback = lambda: setattr(server, "should_exit", True)
-    print(f"Clash Studio 1.2: {url}")
+    print(f"Clash Studio 1.3: {url}")
     server.run()
 
 

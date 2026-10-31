@@ -15,7 +15,7 @@
         </intent>
     </queries>
     <application android:allowBackup="false" android:label="${appLabel}"
-        android:icon="@drawable/ic_launcher" android:theme="@style/AppTheme"
+        android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:theme="@style/AppTheme"
         android:usesCleartextTraffic="false" android:supportsRtl="true">
         <!-- Prepared VPN apps qualify for systemExempted without exact-alarm permission.
              https://developer.android.com/develop/background-work/services/fgs/service-types#system-exempted -->

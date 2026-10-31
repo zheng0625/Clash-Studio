@@ -13,7 +13,8 @@ cancelled = contextvars.ContextVar('clash_operation_cancelled', default=None)
 
 
 class Operations:
-    def __init__(self, capacity=4):
+    def __init__(self, capacity=4, failures=None):
+        self.failures = failures
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='clash-lifecycle')
         self.slots = threading.BoundedSemaphore(capacity)
         self.lock = threading.RLock()
@@ -40,6 +41,8 @@ class Operations:
                 with self.lock:
                     job.update(phase='succeeded', result=result)
             except Exception as error:
+                if self.failures:
+                    self.failures.record(error, key, kind)
                 with self.lock:
                     failure = envelope(getattr(error, 'status_code', 500), getattr(error, 'detail', '操作未完成，请查看运行诊断'), key)['error']
                     if job['cancel_requested']:

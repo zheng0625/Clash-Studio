@@ -26,12 +26,37 @@ function members(group:Proxy){
   return names
 }
 const visibleGroups=computed(()=>groups.value.map(group=>({group,names:members(group)})).filter(item=>item.names.length))
+const RENDER_BUDGET=300,PAGE_SIZE=100
+const groupPages=ref<Record<string,number>>({})
+const expandedGroups=computed(()=>visibleGroups.value.filter(item=>!collapsed.value[item.group.name]))
+// Strict global allocation: expanded groups never render more than RENDER_BUDGET
+// cards in total. Groups beyond the budget receive 0 slots until others fold.
+const groupLimits=computed<Record<string,number>>(()=>{
+  const names=expandedGroups.value.map(item=>item.group.name),limits:Record<string,number>={}
+  if(!names.length)return limits
+  const total=Math.min(RENDER_BUDGET,names.length*PAGE_SIZE),base=Math.floor(total/names.length),extra=total%names.length
+  names.forEach((name,index)=>{limits[name]=Math.min(PAGE_SIZE,base+(index<extra?1:0))})
+  return limits
+})
+function groupLimit(name:string){return groupLimits.value[name]??0}
+function groupPageCount(names:string[],name:string){return Math.max(1,Math.ceil(names.length/Math.max(1,groupLimit(name))))}
+function groupPageIndex(names:string[],name:string){return Math.min(groupPages.value[name]||0,groupPageCount(names,name)-1)}
+function groupPage(names:string[],name:string){const limit=groupLimit(name);if(!limit)return[];const start=groupPageIndex(names,name)*limit;return names.slice(start,start+limit)}
+function moveGroupPage(names:string[],name:string,offset:number){groupPages.value[name]=Math.max(0,Math.min(groupPageCount(names,name)-1,groupPageIndex(names,name)+offset))}
+watch([search,availableOnly,sort],()=>{groupPages.value={}})
 function clearFilters(){search.value='';availableOnly.value=false}
 async function locateCurrent(){
   clearFilters()
   const group=groups.value.find(group=>group.now&&group.all?.includes(group.now))
   if(!group){emit('notice',t('暂无当前节点'));return}
   collapsed.value[group.name]=false
+  await nextTick()
+  if(!groupLimit(group.name)){
+    groups.value.forEach(item=>{if(item.name!==group.name)collapsed.value[item.name]=true})
+    await nextTick()
+  }
+  const names=members(group),index=names.indexOf(group.now!),limit=Math.max(1,groupLimit(group.name))
+  if(index>=0)groupPages.value[group.name]=Math.floor(index/limit)
   await nextTick()
   document.querySelector<HTMLElement>('.proxy-node-card.picked')?.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})
 }
@@ -116,10 +141,12 @@ onUnmounted(()=>{persistResults();clearTimeout(saveTimer);cancel()})
   <div class="group-fold-toolbar"><span>{{ t("{0} 个策略组", [groups.length]) }}</span><button class="desk-text-btn" @click="foldAll(false)">{{ t("全部展开") }}</button><button class="desk-text-btn" @click="foldAll(true)">{{ t("全部折叠") }}</button><button v-if="props.hasProviders&&!props.live" class="desk-btn" :disabled="props.benchmarkAvailable===false||testing||inFlight>0||props.busy" @click="loadProviders">{{ t("加载 / 刷新 Provider 节点") }}</button></div>
   <section v-for="{group,names} in visibleGroups" :key="group.name" :class="['desk-card proxy-group',{'compact-nodes':view==='compact'}]">
     <div class="section-head"><button class="group-fold-toggle" :aria-expanded="!collapsed[group.name]" @click="fold(group.name)"><ChevronDown :size="17" :class="{folded:collapsed[group.name]}"/><span><strong>{{ group.name }}</strong><small>{{ group.type }} · {{ props.live?t("当前 ")+(group.now||t("自动策略")):t("下次启动使用 ")+(group.now||t("自动策略")) }}</small></span></button><div class="group-actions"><span class="small-badge">{{ t("{0} 个成员", [group.all?.length]) }}</span><button class="desk-btn" :disabled="props.benchmarkAvailable===false||testing||inFlight>0||props.busy||!leaves(group.all||[]).length" @click="measure(leaves(group.all||[]))"><Activity :size="13"/>{{ t("整组测速") }}</button></div></div>
-    <div v-show="!collapsed[group.name]" class="node-grid"><article v-for="name in names" :key="name" v-memo="[group.now===name,props.pending[group.name]===name,group.type,props.proxies[name]?.type,!!props.proxies[name]?.all,results[name]?.status,results[name]?.delay_ms,results[name]?.checked_at,testing,inFlight>0,props.busy,locale]" :class="['proxy-node-card',{picked:group.now===name}]">
+    <div v-if="!collapsed[group.name]" class="node-grid"><article v-for="name in groupPage(names,group.name)" :key="name" v-memo="[group.now===name,props.pending[group.name]===name,group.type,props.proxies[name]?.type,!!props.proxies[name]?.all,results[name]?.status,results[name]?.delay_ms,results[name]?.checked_at,testing,inFlight>0,props.busy,locale]" :class="['proxy-node-card',{picked:group.now===name}]">
       <button class="node-choice" :title="name" :aria-pressed="group.now===name" :disabled="props.busy||group.type!=='Selector'" @click="emit('select',props.proxies[group.name]!,name)"><span class="node-dot"></span><span><strong>{{ name }}</strong><small>{{ props.proxies[name]?.type||t("未知类型") }}</small></span><Loader2 v-if="props.pending[group.name]===name" class="rotate" :size="15"/><Check v-else-if="group.now===name" :size="15"/></button>
       <div class="node-measure-row"><template v-if="isNode(props.proxies[name])"><span v-if="results[name]?.checked_at" class="delay-time">{{ new Date(results[name]!.checked_at!).toLocaleTimeString('zh-CN',{hour12:false}) }}</span><span v-else class="delay-time">{{ t("HTTP 延迟") }}</span><button :class="['node-delay',color(name)]" :disabled="props.benchmarkAvailable===false||testing||inFlight>0||props.busy" :aria-label="t('测速 {0}', [name])" @click="measure([name])"><Loader2 v-if="results[name]?.status==='testing'" class="rotate" :size="11"/><Gauge v-else :size="11"/>{{ label(name) }}</button></template><button v-else-if="props.proxies[name]?.all" class="desk-text-btn" :disabled="props.benchmarkAvailable===false||testing||inFlight>0||props.busy" @click="measure(leaves([name]))"><Gauge :size="11"/>{{ t("测速组内节点") }}</button><span v-else class="delay-time">{{ t("内置出口") }}</span></div>
     </article></div>
+    <p v-if="!collapsed[group.name]&&!groupLimit(group.name)" class="page-caption">{{ t('已达到同时显示上限；折叠其他策略组后可查看此组节点。') }}</p>
+    <nav v-if="!collapsed[group.name]&&groupPageCount(names,group.name)>1" class="group-pagination" :aria-label="t('策略组节点分页')"><button class="desk-btn" :disabled="groupPageIndex(names,group.name)===0" @click="moveGroupPage(names,group.name,-1)">{{ t('上一页节点') }}</button><span role="status">{{ t('第 {0} / {1} 页 · 每页最多 {2} 项',[groupPageIndex(names,group.name)+1,groupPageCount(names,group.name),groupLimit(group.name)]) }}</span><button class="desk-btn" :disabled="groupPageIndex(names,group.name)===groupPageCount(names,group.name)-1" @click="moveGroupPage(names,group.name,1)">{{ t('下一页节点') }}</button></nav>
   </section>
   <div v-if="groups.length&&!visibleGroups.length" class="desk-card desk-empty"><Search :size="24"/><p>{{ t('没有匹配的节点；仅看可用只包含已测速成功的节点。') }}</p><button class="desk-btn" @click="clearFilters">{{ t('清除筛选') }}</button></div>
   <div v-if="!groups.length" class="desk-card desk-empty"><Gauge :size="32"/><p>{{ t("当前运行配置没有代理组。") }}</p></div>

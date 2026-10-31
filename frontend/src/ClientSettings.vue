@@ -4,6 +4,7 @@ import { t, message, locale } from './i18n'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { Check, Copy, Download, Globe2, HardDrive, Loader2, Network, Save, Search, Square, Settings2 } from 'lucide-vue-next'
 import { api, isDesktop } from './api'
+import { saveClientSettings } from './client-settings'
 import AppearanceSettings from './AppearanceSettings.vue'
 import BackgroundSettings from './BackgroundSettings.vue'
 import SettingsDialog from './SettingsDialog.vue'
@@ -41,7 +42,7 @@ watch(dirty,value=>emit('dirty',value))
 let timer:ReturnType<typeof setInterval>|undefined, copyTimer:ReturnType<typeof setTimeout>|undefined, disposed=false, polling=false
 function adopt(value:Payload){form.value={...value.settings,mixed_port:value.settings.mixed_port??props.port};for(const field of dnsFields.value)dnsLines.value[field.key]=form.value.dns_override[field.key].join('\n');addresses.value=value.lan_addresses;version.value=value.core_version;geo.value=value.geodata;savedForm.value=signature.value}
 async function load(){loading.value=true;try{const value=await api<Payload>('/api/client/settings');if(!disposed){adopt(value);error.value=''}}catch(e){error.value=(e as Error).message}finally{loading.value=false}}
-async function save(){if(!form.value||saving.value)return;for(const field of dnsFields.value)form.value.dns_override[field.key]=dnsLines.value[field.key].split(/\r?\n/).map(v=>v.trim()).filter(Boolean);if(form.value.dns_override.enabled&&(!form.value.dns_override.nameserver.length||!form.value.dns_override.bootstrap.length)){emit('notice',t("开启 DNS 覆写时请填写主 DNS 和引导 DNS"),true);return}if(!Number.isInteger(form.value.mixed_port)||form.value.mixed_port!<1024||form.value.mixed_port!>65535){emit('notice',t("端口必须为 1024–65535 之间的整数"),true);return}if(form.value.lan_auth&&(!/^[A-Za-z0-9_-]{1,64}$/.test(form.value.lan_username)||form.value.lan_password.length<8)){emit('notice',t("请填写有效用户名及至少 8 位密码"),true);return}saving.value=true;try{adopt(await api<Payload>('/api/client/settings','PUT',form.value));emit('changed',form.value!.mixed_port??props.port);emit('notice',props.running&&!props.android?t("设置已保存并应用到运行内核"):t("设置已保存，下次启动内核时生效"))}catch(e){emit('notice',(e as Error).message,true)}finally{saving.value=false}}
+async function save(){if(!form.value||saving.value)return;for(const field of dnsFields.value)form.value.dns_override[field.key]=dnsLines.value[field.key].split(/\r?\n/).map(v=>v.trim()).filter(Boolean);if(form.value.dns_override.enabled&&(!form.value.dns_override.nameserver.length||!form.value.dns_override.bootstrap.length)){emit('notice',t("开启 DNS 覆写时请填写主 DNS 和引导 DNS"),true);return}if(form.value.lan_auth&&(!/^[A-Za-z0-9_-]{1,64}$/.test(form.value.lan_username)||form.value.lan_password.length<8)){emit('notice',t("请填写有效用户名及至少 8 位密码"),true);return}saving.value=true;try{const {mixed_port,...changes}=form.value;adopt(await saveClientSettings<Payload>(changes));emit('changed',form.value!.mixed_port??props.port);emit('notice',props.running&&!props.android?t("设置已保存并应用到运行内核"):t("设置已保存，下次启动内核时生效"))}catch(e){emit('notice',(e as Error).message,true)}finally{saving.value=false}}
 async function update(){if(updating.value)return;updating.value=true;try{geo.value=await api<Geo>('/api/client/geodata/update','POST',{});emit('notice',t("GeoData 更新已开始；请保持程序运行"))}catch(e){emit('notice',(e as Error).message,true)}finally{updating.value=false}}
 async function cancel(){try{geo.value=await api<Geo>('/api/client/geodata/cancel','POST',{})}catch(e){emit('notice',(e as Error).message,true)}}
 async function poll(){if(polling||!geo.value?.busy||disposed)return;polling=true;try{const value=await api<Geo>('/api/client/geodata');if(!disposed){geo.value=value;if(!value.busy)emit('notice',value.message,value.phase==='error')}}catch{}finally{polling=false}}
@@ -98,7 +99,7 @@ onUnmounted(()=>{disposed=true;clearInterval(timer);clearTimeout(copyTimer)})
 
     </template>
   <template #footer><div class="config-actions"><button type="button" class="desk-btn primary" :disabled="props.validation||saving||geo?.busy" @click="save"><Save :size="15"/>{{ saving?t("正在保存…"):props.running&&!props.android?t("保存并应用"):t("保存设置") }}</button></div></template></SettingsDialog>
-  <SettingsDialog :inert="saving" :busy="saving" ref="dnsDialog" :title="t('DNS 覆写设置')" :description="t('每行填写一个地址。保存并启用后替换订阅的 DNS 块，不修改源订阅或系统 DNS。')">
+  <SettingsDialog class="dns-settings-dialog" :inert="saving" :busy="saving" ref="dnsDialog" :title="t('DNS 覆写设置')" :description="t(props.android?'每行一个地址，保存后启用；不修改系统 DNS。':'每行填写一个地址。保存并启用后替换订阅的 DNS 块，不修改源订阅或系统 DNS。')">
     <template v-if="form">
       <div class="setting-row"><div><strong>{{ t("启用 DNS 覆写") }}</strong><small>{{ t("关闭时恢复订阅 DNS；TUN 仍按需补充必要配置。") }}</small></div><button type="button" :class="['desk-switch',{on:form.dns_override.enabled}]" role="switch" :aria-checked="form.dns_override.enabled" :aria-label="t('启用 DNS 覆写')" @click="form.dns_override.enabled=!form.dns_override.enabled"><span></span></button></div>
       <label class="desk-field">{{ t("解析模式") }}<select v-model="form.dns_override.mode"><option value="fake-ip">{{ t("Fake-IP · 虚拟地址") }}</option><option value="redir-host">{{ t("Redir-Host · 真实地址") }}</option></select></label>
@@ -107,7 +108,7 @@ onUnmounted(()=>{disposed=true;clearInterval(timer);clearTimeout(copyTimer)})
 
     </template>
   <template #footer><div class="config-actions"><button type="button" class="desk-btn primary" :disabled="props.validation||saving||geo?.busy" @click="save"><Save :size="15"/>{{ saving?t("正在保存…"):props.running&&!props.android?t("保存并应用"):t("保存设置") }}</button></div></template></SettingsDialog>
-  <SettingsDialog :inert="saving" :busy="saving" ref="ipv6Dialog" :title="t('IPv6 详细设置')" :description="t('仅控制本程序的 Mihomo 行为，不修改系统网卡设置。')">
+  <SettingsDialog class="ipv6-settings-dialog" :inert="saving" :busy="saving" ref="ipv6Dialog" :title="t('IPv6 详细设置')" :description="t(props.android?'仅影响本程序，不修改系统网络设置。':'仅控制本程序的 Mihomo 行为，不修改系统网卡设置。')">
     <template v-if="form">
       <div class="setting-row"><div><strong>{{ t("IPv6 出站与 DNS AAAA") }}</strong><small>{{ t("沿用当前联动开关，保存后应用到主内核。") }}</small></div><button type="button" :class="['desk-switch',{on:form.ipv6}]" role="switch" :aria-checked="form.ipv6" :aria-label="t('IPv6 出站与 DNS AAAA')" @click="form.ipv6=!form.ipv6"><span></span></button></div>
       <dl class="ipv6-detail-list"><div><dt>{{ t("出站连接") }}</dt><dd>{{ form.ipv6?t("允许内核使用 IPv6"):t("禁止内核使用 IPv6") }}</dd></div><div><dt>{{ t("DNS AAAA 解析") }}</dt><dd>{{ form.ipv6?t("允许返回 IPv6 地址"):t("关闭 IPv6 地址解析") }}</dd></div><div><dt>{{ t("系统网卡") }}</dt><dd>{{ t("不变更系统 IPv6 属性") }}</dd></div></dl>

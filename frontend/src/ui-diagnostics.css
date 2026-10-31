@@ -50,6 +50,8 @@
 .desk .connection-list-heading{padding:14px 68px 14px 16px;font-size:12px;color:var(--client-secondary);border-bottom:1px solid var(--client-border)}
 .desk .connection-item{display:flex;align-items:center;gap:8px;padding-right:8px;border-bottom:1px solid var(--client-border)}
 .desk .connection-item:last-child{border-bottom:0}
+.desk .connection-pagination{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;margin:16px 0;color:var(--client-secondary);font-size:13px}
+.desk .group-pagination{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;margin:4px 0 18px;color:var(--client-secondary);font-size:13px}
 .desk .connection-inspect{flex:1;min-width:0;width:100%;min-height:78px;padding:14px 16px;border:0;background:transparent;color:var(--client-text);text-align:left;font-size:13px}
 .desk .connection-inspect:hover{background:var(--client-selected)}
 .desk .connection-inspect>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -83,7 +85,7 @@
 :root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-navigation>button>span:last-child{max-width:100%;overflow-wrap:anywhere;line-height:1.2;text-align:center}
 :root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .mobile-nav-icon{height:22px}
 :root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .proxy-tools{grid-template-columns:minmax(0,1fr) minmax(128px,max-content)}
-:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=proxies]:has(.delay-fab) .desk-content{margin-bottom:calc(var(--mobile-nav-height) + var(--mobile-bottom) + 84px);padding-bottom:16px;scroll-padding-bottom:16px}
+:root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk[data-ui-page=proxies]:has(.delay-fab) .desk-content{margin-bottom:0;padding-bottom:calc(var(--mobile-nav-height) + var(--mobile-bottom) + 90px);scroll-padding-bottom:calc(var(--mobile-nav-height) + var(--mobile-bottom) + 90px);mask-image:linear-gradient(to bottom,#000 calc(100% - 48px),transparent);-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 48px),transparent)}
 @media(max-height:500px) and (min-aspect-ratio:1.4){
  :root:where([data-mobile-tier=compact]) .desk .desk-topbar{height:48px;min-height:48px;padding-right:104px}
  :root:where([data-mobile-tier=compact]) .desk .shell-brand{top:6px}

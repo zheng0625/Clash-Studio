@@ -2,7 +2,7 @@ import { androidRequest } from './android'
 export const isDesktop = '__TAURI_INTERNALS__' in window && !/Android/i.test(navigator.userAgent)
 export async function desktopInfo():Promise<{backend_base:string;version:string;desktop:boolean}> {
   if(isDesktop){const {invoke}=await import('@tauri-apps/api/core');return invoke('desktop_info')}
-  return {backend_base:location.origin,version:'1.2.0',desktop:false}
+  return {backend_base:location.origin,version:'1.3.0',desktop:false}
 }
 export async function restartElevated(){const {invoke}=await import('@tauri-apps/api/core');return invoke('restart_elevated')}
 export async function quitDesktop(){const {invoke}=await import('@tauri-apps/api/core');return invoke('quit_app')}
@@ -24,6 +24,14 @@ export async function lifecycle<T>(path:string,body:unknown):Promise<T>{
   throw new ApiError(job.error?.message||'操作已取消',409,job.error?.code||'OPERATION_CANCELLED',job.error?.retryable??true,job.operation_id)
 }
 export async function api<T>(path:string,method='GET',body?:unknown):Promise<T>{
+  try{return await request<T>(path,method,body)}catch(error){throw normalizeApiError(error)}
+}
+export function normalizeApiError(error:unknown):ApiError{
+  if(error instanceof ApiError)return error
+  const message=typeof error==='string'?error:error&&typeof error==='object'&&'message' in error&&typeof error.message==='string'?error.message:''
+  return new ApiError(message||'本机配置服务暂时无法连接',0,'TRANSPORT_ERROR',true)
+}
+async function request<T>(path:string,method:string,body?:unknown):Promise<T>{
   let status:number,data:any
   if(window.ClashAndroid){
     const result=await androidRequest(path,method,body)
@@ -36,6 +44,6 @@ export async function api<T>(path:string,method='GET',body?:unknown):Promise<T>{
     const response=await fetch(path,{method,headers:{'Content-Type':'application/json','X-Clash-Studio':'1'},body:body===undefined?undefined:JSON.stringify(body)})
     status=response.status;data=await response.json()
   }
-  if(status>=400){const detail=data.detail;throw new ApiError(data.error?.message||(typeof detail==='string'?detail:detail?.errors?.join('；')||detail?.message||'输入格式无效或操作未完成'),status,data.error?.code||'LEGACY_ERROR',data.error?.retryable??false,data.error?.operation_id)}
+  if(status>=400){const detail=data?.detail;throw new ApiError(data?.error?.message||(typeof detail==='string'?detail:detail?.errors?.join('；')||detail?.message||'输入格式无效或操作未完成'),status,data?.error?.code||'LEGACY_ERROR',data?.error?.retryable??false,data?.error?.operation_id)}
   return data
 }

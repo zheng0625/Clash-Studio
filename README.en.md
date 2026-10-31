@@ -1,7 +1,7 @@
 <p align="center"><img src="frontend/src/assets/brand.svg" width="84" alt="Clash Studio"></p>
 <h1 align="center">Clash Studio</h1>
 <p align="center">Precise routing. Thoughtful desktop design.</p>
-<p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/v1.2">Download for Windows / Linux / Android</a> · <a href="README.md">简体中文</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="LICENSE">GPL-3.0</a></p>
+<p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/v1.3">Download for Windows / Linux / Android</a> · <a href="README.md">简体中文</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="LICENSE">GPL-3.0</a></p>
 
 **Clash Studio is a Windows / Linux Mihomo desktop client focused on visual subscription editing, reusable routing modules and precise routing, with a customizable desktop interface.**
 
@@ -68,14 +68,14 @@ Windows supports system proxy and TUN with an on-demand administrator helper. Li
 
 ## Download 1.2
 
-Current release: **1.2** (application version `1.2.0`), with TUN strict mode and DNS leak prevention. See [build notes](docs/validation-1.2.md).
+Current version: **1.3** (application version `1.3.0`), integrating the latest desktop and Android UI, responsive subscription cards, rule pagination, shared branding and memory management fixes. TUN strict mode and DNS leak prevention remain available. See the [changelog](CHANGELOG.md) for validation boundaries.
 
 | Package | Download | Application data |
 | --- | --- | --- |
-| Windows x64 portable | [ZIP](https://github.com/zheng0625/Clash-Studio/releases/download/v1.2/ClashStudio-1.2-portable-windows-x64.zip) | Adjacent `data/` |
-| Windows x64 installer | [EXE](https://github.com/zheng0625/Clash-Studio/releases/download/v1.2/ClashStudio-1.2-setup-windows-x64.exe) | `%LOCALAPPDATA%\ClashStudio` |
-| Android arm64-v8a | [APK](https://github.com/zheng0625/Clash-Studio/releases/download/v1.2/ClashStudio-1.2-android-arm64-v8a.apk) | App private storage; export settings and uninstall the old debug build first |
-| Linux x64 | [tar.gz](https://github.com/zheng0625/Clash-Studio/releases/download/v1.2/ClashStudio-1.2-linux-x64.tar.gz) | Adjacent `data/`, or `--data-dir` |
+| Windows x64 portable | [ZIP](https://github.com/zheng0625/Clash-Studio/releases/download/v1.3/ClashStudio-1.3-portable-windows-x64.zip) | Adjacent `data/` |
+| Windows x64 installer | [EXE](https://github.com/zheng0625/Clash-Studio/releases/download/v1.3/ClashStudio-1.3-setup-windows-x64.exe) | `%LOCALAPPDATA%\ClashStudio` |
+| Android arm64-v8a | [APK](https://github.com/zheng0625/Clash-Studio/releases/download/v1.3/ClashStudio-1.3-android-arm64-v8a.apk) | App private storage; export settings and uninstall the old debug build first |
+| Linux x64 | [tar.gz](https://github.com/zheng0625/Clash-Studio/releases/download/v1.3/ClashStudio-1.3-linux-x64.tar.gz) | Adjacent `data/`, or `--data-dir` |
 
 Extract the entire Windows ZIP and run `ClashStudio.exe`, or use the installer. On Linux, extract and run `./Start.sh`. The Linux package uses an Ubuntu 22.04 x64 baseline . See the [Linux guide](docs/linux-preview.md).
 

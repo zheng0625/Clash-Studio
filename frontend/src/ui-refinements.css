@@ -98,3 +98,151 @@
 :root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-fab{display:flex;justify-content:center;gap:6px;width:auto;min-width:96px;height:48px;padding:0 14px;border-radius:24px;font-size:14px}
 :root:where([data-mobile-tier=compact],[data-mobile-tier=tablet]) .desk .delay-fab .delay-fab-count{font-size:12px}
 @media(min-width:1800px){.desk .home-primary .network-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* 2026-10 compact desktop UI, connected to the production client. */
+:root .desk[data-ui-page] .desk-btn.primary{color:var(--client-accent-ink)}
+:root .desk[data-ui-page] .desk-btn.primary svg{color:inherit}
+:root .desk[data-ui-page] .bandwidth-readings{margin:10px 0 4px}
+:root .desk[data-ui-page] .session-traffic>div{display:flex;align-items:center;gap:10px}
+:root .desk[data-ui-page] .session-traffic>span{font-size:12px}
+:root .desk[data-ui-page] .config-card .subscription-usage{margin:10px 0;padding:10px 0 0;border-bottom:0}
+:root .desk[data-ui-page] .config-card .subscription-usage .usage-heading,:root .desk[data-ui-page] .config-card .subscription-usage>small{display:none}
+:root .desk[data-ui-page] .config-card .usage-numbers{margin:0 0 7px;gap:15px;font-size:13px}
+:root .desk[data-ui-page] .config-card .usage-caption{font-size:12px;margin:6px 0 0}
+:root .desk[data-ui-page] .overview-profile-title{font-size:16px;font-weight:600;margin:0 0 8px;overflow-wrap:anywhere}
+:root[data-soft-background=on]:not([data-wallpaper]) .desk::before{background:radial-gradient(ellipse at 5% 10%,color-mix(in srgb,var(--client-accent) 10%,transparent),transparent 60%),radial-gradient(ellipse at 95% 60%,color-mix(in srgb,var(--client-accent) 13%,transparent),transparent 70%),var(--client-background)}
+:root[data-soft-background=on]:not([data-wallpaper]) .desk[data-ui-page] :is(.desk-card,.native-editor){background:color-mix(in srgb,var(--client-surface) 86%,transparent);backdrop-filter:blur(22px);box-shadow:0 3px 12px #142a4905}
+:root .desk[data-ui-page] .desk-content{max-width:1280px;padding:24px 30px 116px;margin:auto;width:100%;font-size:15px}
+:root .desk[data-ui-page] .desk-page-heading{margin:0 0 20px;align-items:center}
+:root .desk[data-ui-page] .desk-page-heading h1{font-size:26px!important;letter-spacing:-.5px;margin:0 0 5px;line-height:1.3}
+:root .desk[data-ui-page] .desk-page-heading p{font-size:14px;margin:0;color:var(--client-secondary)}
+:root .desk[data-ui-page] .desk-eyebrow{display:none}
+:root .desk[data-ui-page] .desk-card{padding:16px 18px;border-radius:14px;min-height:0;box-shadow:0 3px 12px #142a4905}
+:root .desk[data-ui-page] :is(.desk-card h2,.section-head h2,.network-card-heading h2){font-size:17px;font-weight:600;line-height:1.4;margin:0}
+:root .desk[data-ui-page] .section-head{margin:0 0 14px;align-items:center}
+:root .desk[data-ui-page] .desk-btn{min-height:36px;padding:7px 13px;border-radius:8px;font-size:14px;gap:7px}
+:root .desk[data-ui-page] .desk-text-btn{font-size:13px;gap:5px}
+:root .desk[data-ui-page] :is(input,textarea,select){font-size:15px;border-radius:8px}
+:root .desk[data-ui-page] :is(.desk-field,.inline-note,.small-explanation,.page-caption,.source-note,.setting-row small){font-size:13px}
+:root .desk[data-ui-page] .setting-row strong{font-size:15px}
+:root .desk[data-ui-page] .desk-brand small{display:none}
+:root .desk[data-ui-page] .desk-brand{top:10px}
+:root .desk[data-ui-page] .home-primary{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start;margin-bottom:14px}
+:root .desk[data-ui-page] .home-primary .launch-overview{display:contents}
+:root .desk[data-ui-page] .home-primary .network-dashboard{display:contents}
+:root .desk[data-ui-page] .home-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start;margin:0}
+:root .desk[data-ui-page] .home-grid>*{height:auto;min-height:0}
+:root .desk[data-ui-page] .kernel-launch-card .mode-options{margin:0;gap:8px;background:transparent;border:0;padding:0;display:flex}
+:root .desk[data-ui-page] .kernel-launch-card .mode-options>button{flex:1;min-height:44px;padding:9px 12px;border:1px solid var(--client-border);border-radius:9px;gap:8px;background:transparent}
+:root .desk[data-ui-page] .kernel-launch-card .mode-options>button.selected{background:var(--client-selected);border-color:var(--client-accent);outline:0;box-shadow:none}
+:root .desk[data-ui-page] .kernel-launch-card .mode-options>button>span{font-size:15px;font-weight:500}
+:root .desk[data-ui-page] .kernel-launch-card .mode-options>button>svg:last-child:not(:first-child){margin-left:auto}
+:root .desk[data-ui-page] .kernel-launch-card .routing-mode-card{display:flex;justify-content:space-between;align-items:center;margin:12px 0 14px;padding:0;border:0;gap:8px}
+:root .desk[data-ui-page] .kernel-launch-card .routing-mode-card h2{font-size:13px;font-weight:400;color:var(--client-secondary)}
+:root .desk[data-ui-page] .kernel-launch-card .routing-mode-card .routing-segment{margin-left:auto}
+:root .desk[data-ui-page] .kernel-launch-card .kernel-actions{margin:0;gap:8px;flex-wrap:wrap}
+:root .desk[data-ui-page] .kernel-launch-card .kernel-actions>.desk-text-btn{display:none}
+:root .desk[data-ui-page] .overview-running-context{font-size:13px;color:var(--client-secondary);margin:0 0 10px}
+:root .desk[data-ui-page] .overview-selection .section-head{margin-bottom:9px}
+:root .desk[data-ui-page] .selection-state{color:var(--client-secondary);font-size:12px;max-width:60%;text-align:right;overflow-wrap:anywhere}
+:root .desk[data-ui-page] .overview-select-row{display:grid;grid-template-columns:65px minmax(0,1fr);align-items:center;gap:15px;margin-top:8px;color:var(--client-secondary);font-size:14px}
+:root .desk[data-ui-page] .overview-select-row select{width:100%;min-width:0;min-height:38px;height:38px;padding:6px 11px;color:var(--client-text);font-size:15px}
+:root .desk[data-ui-page] .overview-select-note{font-size:13px;line-height:1.6;margin:9px 0 0;color:var(--client-secondary);overflow-wrap:anywhere}
+:root .desk[data-ui-page] .overview-select-note.error{color:var(--client-error)}
+:root .desk[data-ui-page] .overview-catalog-link{margin-top:7px}
+:root .desk[data-ui-page] .network-card-heading{margin-bottom:12px;gap:10px}
+:root .desk[data-ui-page] .network-card-heading .desk-eyebrow{display:none}
+:root .desk[data-ui-page] .bandwidth-readings{gap:20px;padding:0;align-items:start}
+:root .desk[data-ui-page] .bandwidth-readings>div>span{font-size:13px}
+:root .desk[data-ui-page] .bandwidth-readings strong{font-size:25px;font-weight:600;letter-spacing:-.5px}
+:root .desk[data-ui-page] .bandwidth-readings .connections-reading strong{font-size:22px}
+:root .desk[data-ui-page] .session-traffic{padding:10px 0 0;margin-top:10px;background:transparent;border:0;border-top:1px solid var(--client-border);border-radius:0;gap:12px;font-size:13px}
+:root .desk[data-ui-page] .session-traffic strong{font-size:17px}
+:root .desk[data-ui-page] .session-traffic small{display:none}
+:root .desk[data-ui-page] .network-expanded{margin-top:7px;font-size:12px}
+:root .desk[data-ui-page] .egress-row{display:grid;grid-template-columns:80px minmax(0,1fr);gap:8px;align-items:center;min-height:35px;font-size:14px}
+:root .desk[data-ui-page] .egress-row>span{font-size:13px;color:var(--client-secondary)}
+:root .desk[data-ui-page] .egress-row strong{font-size:14px;font-weight:500;overflow-wrap:anywhere;min-width:0}
+:root .desk[data-ui-page] .egress-ip{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+:root .desk[data-ui-page] .egress-ip strong{font-size:22px;font-weight:600;letter-spacing:.1px}
+:root .desk[data-ui-page] .egress-properties{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
+:root .desk[data-ui-page] .ip-property{font-size:13px;line-height:1.6;border:1px solid var(--client-border);border-radius:5px;padding:1px 7px;background:var(--client-selected);color:var(--client-text)}
+:root .desk[data-ui-page] .home-primary>.ip-card{align-self:start;height:auto;min-height:0;padding:14px 18px}
+:root .desk[data-ui-page] .ip-card .network-card-heading{margin-bottom:6px}
+:root .desk[data-ui-page] .ip-message{font-size:13px;margin:8px 0 0;overflow-wrap:anywhere}
+:root .desk[data-ui-page] .config-card .config-meta{gap:12px;margin:10px 0;font-size:13px;flex-wrap:wrap}
+:root .desk[data-ui-page] .config-card .source-note{margin:8px 0;font-size:13px}
+:root .desk[data-ui-page] .config-card .config-actions{margin:12px 0 0}
+:root .desk[data-ui-page] .flow-card{padding:16px 18px}
+:root .desk[data-ui-page] .flow-card h2{display:flex;align-items:center;gap:7px}
+:root .desk[data-ui-page] .compact-module-list{display:flex;flex-direction:column}
+:root .desk[data-ui-page] .compact-module-row{display:flex;align-items:center;justify-content:space-between;min-height:33px;gap:15px}
+:root .desk[data-ui-page] .compact-module-row strong{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:500;overflow-wrap:anywhere;min-width:0}
+:root .desk[data-ui-page] .compact-module-row>span{display:flex;gap:6px;align-items:center;color:var(--client-secondary);font-size:13px;max-width:50%;overflow-wrap:anywhere}
+:root .desk[data-ui-page] .compact-module-empty{font-size:13px;padding:12px 0;color:var(--client-secondary)}
+:root .desk[data-ui-page] .module-pagination{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--client-border);padding-top:5px;margin-top:7px;color:var(--client-secondary);font-size:12px}
+:root .desk[data-ui-page] .module-pagination>div{display:flex;align-items:center;gap:7px}
+:root .desk[data-ui-page] .module-pagination .desk-icon-btn{min-height:28px;min-width:28px;width:28px;height:28px}
+:root .desk[data-ui-page] .module-prev{transform:rotate(90deg)}
+:root .desk[data-ui-page] .desk-footnote{margin-top:15px;font-size:12px}
+:root .desk[data-ui-page] .desk-footnote>span{display:none}
+:root .app-dialog .import-method-tabs{background:transparent;display:flex;gap:8px;border:0;border-radius:0;padding:0;margin:0 0 20px}
+:root .app-dialog .import-method-tabs>button{background:transparent;border:1px solid var(--client-border);border-radius:9px;padding:7px 15px;min-height:37px;font-size:15px;color:var(--client-secondary);box-shadow:none}
+:root .app-dialog .import-method-tabs>button.active{color:var(--client-text);border-color:var(--client-text);font-weight:600;background:transparent;box-shadow:none;outline:0}
+:root .app-dialog .import-method-tabs>button::after{display:none}
+:root .desk[data-ui-page] .group-fold-toggle strong{font-size:18px;font-weight:600}
+:root .desk[data-ui-page] .group-fold-toggle small{font-size:13px;margin-top:3px}
+:root .desk[data-ui-page] .node-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:9px}
+:root .desk[data-ui-page] .proxy-node-card{border-radius:9px;min-height:0}
+:root .desk[data-ui-page] .node-choice{padding:11px 12px 6px;min-height:66px}
+:root .desk[data-ui-page] .node-choice strong{font-size:16px;font-weight:500;line-height:1.5;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+:root .desk[data-ui-page] .node-choice small{font-size:13px;margin-top:2px}
+:root .desk[data-ui-page] .node-measure-row{padding:4px 12px 9px;font-size:12px}
+:root .desk[data-ui-page] .node-delay{font-size:13px}
+:root .desk[data-ui-page] .compact-nodes .node-choice{min-height:44px;padding:8px 10px}
+:root .desk[data-ui-page] .compact-nodes .node-choice strong{font-size:15px}
+:root .desk[data-ui-page] .soft-background-entry{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 16px}
+:root .desk[data-ui-page] .soft-background-entry p{font-size:13px;color:var(--client-secondary);margin:5px 0 0;line-height:1.6}
+@media(max-width:900px){
+ :root .desk[data-ui-page] .desk-content{padding:20px 16px 120px}
+ :root .desk[data-ui-page] .home-primary,:root .desk[data-ui-page] .home-grid{grid-template-columns:minmax(0,1fr)}
+ :root .desk[data-ui-page] .overview-selection{grid-row:1}
+ :root .desk[data-ui-page] .overview-select-row select{min-height:44px;height:44px}
+ :root .desk[data-ui-page] .desk-btn,:root .app-dialog .import-method-tabs>button{min-height:44px}
+ :root .desk[data-ui-page] .node-grid{grid-template-columns:minmax(0,1fr)}
+ :root .desk[data-ui-page] .node-choice{min-height:70px;padding:10px}
+ :root .desk[data-ui-page] .node-measure-row{padding:5px 8px;max-width:120px}
+ :root .desk[data-ui-page] .desk-card{padding:16px;border-radius:14px}
+}
+
+/* Confirmed independent columns and compact, real-resource cards. */
+:root .desk[data-ui-page] .home-masonry{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start}
+:root .desk[data-ui-page] .home-column{display:flex;flex-direction:column;gap:14px;min-width:0}
+:root .desk[data-ui-page] .home-card-target,:root .desk[data-ui-page] .home-network-metrics{display:contents;margin:0}
+:root .desk[data-ui-page] .home-column>.desk-card{width:100%;height:auto;min-height:0;align-self:start}
+:root .desk[data-ui-page] .home-column .ip-card{padding:14px 18px}
+:root .desk[data-ui-page] .config-summary-main{display:flex;align-items:center;gap:11px;min-height:44px}
+:root .desk[data-ui-page] .config-summary-main>div{min-width:0;flex:1}
+:root .desk[data-ui-page] .config-summary-icon{display:flex;align-items:center;justify-content:center;width:37px;height:37px;border:1px solid var(--client-border);border-radius:9px;flex-shrink:0;color:var(--client-secondary);background:var(--client-selected)}
+:root .desk[data-ui-page] .config-summary-main h3{font-size:16px;font-weight:600;margin:0;overflow-wrap:anywhere}
+:root .desk[data-ui-page] .config-summary-main small{display:block;font-size:12px;line-height:1.6;color:var(--client-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root .desk[data-ui-page] .config-summary-main>strong{font-size:17px;font-weight:500;flex-shrink:0;white-space:nowrap}
+:root .desk[data-ui-page] .config-summary-main>strong small{display:inline;font-weight:400}
+:root .desk[data-ui-page] .config-usage-bar{height:5px;margin:13px 0 10px;border-radius:5px;background:var(--client-selected);overflow:hidden}
+:root .desk[data-ui-page] .config-usage-bar>span{display:block;height:100%;background:var(--client-accent);border-radius:5px}
+:root .desk[data-ui-page] .config-summary-footer{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--client-secondary)}
+:root .desk[data-ui-page] .resource-memory-card{padding:13px 18px}
+:root .desk[data-ui-page] .resource-memory-reading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+:root .desk[data-ui-page] .resource-memory-reading h2{display:flex;align-items:center;gap:8px;font-size:15px}
+:root .desk[data-ui-page] .resource-memory-reading h2>svg{color:var(--client-secondary)}
+:root .desk[data-ui-page] .resource-memory-reading>strong{font-size:24px;line-height:1.3;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+:root .desk[data-ui-page] .resource-memory-reading>strong small{font-size:12px;font-weight:400;color:var(--client-secondary);letter-spacing:0}
+:root .desk[data-ui-page] .resource-memory-details{margin-top:5px;color:var(--client-secondary)}
+:root .desk[data-ui-page] .resource-memory-details>summary{display:flex;align-items:center;gap:5px;width:max-content;cursor:pointer;list-style:none;font-size:12px;padding:2px 0}
+:root .desk[data-ui-page] .resource-memory-details>summary::-webkit-details-marker{display:none}
+:root .desk[data-ui-page] .resource-memory-details[open]>summary>svg{transform:rotate(180deg)}
+:root .desk[data-ui-page] .resource-memory-processes{margin-top:10px;padding-top:8px;border-top:1px solid var(--client-border)}
+:root .desk[data-ui-page] .resource-memory-processes>div{display:flex;justify-content:space-between;gap:12px;margin:6px 0;font-size:13px}
+:root .desk[data-ui-page] .resource-memory-processes b{font-size:13px;font-weight:500;color:var(--client-text);font-variant-numeric:tabular-nums}
+:root .desk[data-ui-page] .resource-memory-processes p{font-size:11px;margin:8px 0 0;line-height:1.7}
+@media(max-width:900px){:root .desk[data-ui-page] .home-masonry{grid-template-columns:minmax(0,1fr)}}

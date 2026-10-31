@@ -1,0 +1,9 @@
+<script setup lang="ts">
+import {FileCode2,Check,RefreshCw,Trash2} from 'lucide-vue-next'
+import {t,message} from './i18n'
+import type {Summary} from './types'
+import SubscriptionUsage from './SubscriptionUsage.vue'
+defineProps<{p:Summary;selected:string;busy:string;date:(value:string)=>string;compact?:boolean}>()
+const emit=defineEmits<{choose:[id:string];refresh:[p:Summary];delete:[p:Summary]}>()
+</script>
+<template><article :class="['desk-card profile-card',{selected:p.id===selected}]"><div class="profile-top"><span class="profile-symbol"><FileCode2 :size="23"/></span><span class="small-badge">{{ p.source_type==='url'?t("远程订阅"):p.source_type==='demo'?t("演示"):t("本地文件") }}</span></div><h2 :title="p.title">{{ p.title }}</h2><p>{{ p.source_host }}</p><div class="profile-numbers"><span><b>{{ p.proxy_count }}</b>{{ t("节点") }}</span><span><b>{{ p.group_count }}</b>{{ t("策略组") }}</span><span><b>{{ p.rule_count }}</b>{{ t("规则") }}</span></div><SubscriptionUsage :usage="p.usage" :updated-at="p.refreshed_at" :compact="compact"/><small class="profile-updated" :title="date(p.refreshed_at)">{{ t("更新于 {0}", [compact?new Date(p.refreshed_at).toLocaleString(undefined,{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):date(p.refreshed_at)]) }}</small><div v-if="p.last_error" class="inline-note error">{{ message(p.last_error) }}</div><div class="profile-actions"><button class="desk-btn" :disabled="!!busy" @click="emit('choose',p.id)"><Check v-if="p.id===selected" :size="14"/>{{ p.id===selected?t("当前方案"):t("选择配置") }}</button><button class="desk-icon-btn" :title="t('刷新订阅')" :disabled="!!busy" @click="emit('refresh',p)"><RefreshCw :size="16"/></button><button class="desk-icon-btn danger" :title="t('删除订阅')" :disabled="!!busy" @click="emit('delete',p)"><Trash2 :size="16"/></button></div></article></template>

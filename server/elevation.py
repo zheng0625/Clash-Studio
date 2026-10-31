@@ -155,6 +155,7 @@ class ElevatedProcess:
 
 
 def run_helper(home, args):
+    from .logs import ProcessLog
     from .platforms import core_binary
     import _winapi
     from multiprocessing.connection import PipeConnection
@@ -205,6 +206,8 @@ def run_helper(home, args):
                 except (OSError, subprocess.SubprocessError):
                     pass
             job.close()
+            if log:
+                log.close()
     def start_core(candidate, config):
         nonlocal process, log, control
         with state_lock:
@@ -212,8 +215,9 @@ def run_helper(home, args):
                 raise OSError('helper closing')
             if log:
                 log.close()
-            log = (directory / 'core.log').open('ab')
-            process = subprocess.Popen([str(core_binary(Path(home))), '-d', str(directory), '-f', str(candidate)], stdout=log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW)
+            log = ProcessLog(directory / 'core.log')
+            process = subprocess.Popen([str(core_binary(Path(home))), '-d', str(directory), '-f', str(candidate)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW)
+            log.attach(process.stdout)
             job.assign(process)
             control = {'address': config['external-controller'], 'secret': config['secret']}
             return process.pid

@@ -27,6 +27,7 @@ from .dns_protection import protect_dns
 from .selections import SelectionStore
 from .atomic import atomic_text
 from .operations import operation_id, cancelled
+from .logs import ProcessLog
 
 
 class Runtime:
@@ -242,20 +243,35 @@ class Runtime:
             if self.process is not process or not self.alive():
                 raise HTTPException(409, '连接采样所属会话已结束')
             value.update(session=str(process.pid), sampled_at=time.time(), stale=False)
-            self._connection_sample, self._connection_session, self._connection_at = copy.deepcopy(value), process, time.monotonic()
-            return self._sample_result(value, True) if summary else value
+            # The request result is owned by this cache; callers only ever
+            # receive copies, so the second full deepcopy is unnecessary.
+            self._connection_sample, self._connection_session, self._connection_at = value, process, time.monotonic()
+            return self._sample_result(value, summary)
 
     def connection_json(self):
         # The HTTP endpoint reuses immutable encoded bytes, avoiding repeated
         # deep copies and JSON encoding of a large connection list.
         with self.sample_lock:
             summary = self.connection_snapshot(summary=True)
-            if not self.alive():
+            if not self.alive() or self._connection_sample is None:
+                self._clear_connection_cache_locked()
                 return json.dumps(summary | {'connections': []}).encode()
             key = (self._connection_session, self._connection_at)
             if self._connection_wire is None or self._connection_wire[0] != key:
                 self._connection_wire = (key, json.dumps(self._connection_sample, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
             return self._connection_wire[1]
+
+    def invalidate_connections(self):
+        # Lifecycle paths hold lifecycle_lock; lifecycle_lock -> sample_lock is
+        # the only order used, matching stop/apply/traffic.
+        with self.sample_lock:
+            self._clear_connection_cache_locked()
+
+    def _clear_connection_cache_locked(self):
+        self._connection_sample = None
+        self._connection_session = None
+        self._connection_at = 0.0
+        self._connection_wire = None
 
     def change_routing_mode(self, mode):
         if mode not in ('rule', 'global', 'direct'):
@@ -546,13 +562,14 @@ class Runtime:
                     if tun and not is_admin() and not linux:
                         self.process = self.elevation.launch(candidate)
                     else:
-                        self.log_handle = (self.directory / "core.log").open("ab")
+                        self.log_handle = ProcessLog(self.directory / 'core.log', on_error=lambda: self.event('内核日志写入失败，已停止保存日志'))
                         command = [str(self.binary), "-d", str(self.directory), "-f", str(candidate)]
                         if linux:
                             command = [sys.executable, '-I', '-B', str(Path(__file__).with_name('linux_core.py')),
                                        str(os.getpid()), str(self.binary), str(self.directory), str(candidate)]
                         self.process = subprocess.Popen(command,
-                                                        stdout=self.log_handle, stderr=subprocess.STDOUT, creationflags=flags)
+                                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=flags)
+                        self.log_handle.attach(getattr(self.process, 'stdout', None))
                         self.job.assign(self.process)
                     self.last_traffic = {"running": True, "session": str(self.process.pid), "upload": 0, "download": 0, "connections": 0}
                     self.traffic_raw = {"upload": 0, "download": 0}
@@ -611,7 +628,7 @@ class Runtime:
                                "workspace_revision": composed["workspace_revision"], "mixed_port": port,
                                "hash": hashlib.sha256(payload.encode()).hexdigest()[:12], "tun": tun, "tun_stack": tun_stack}
                 self.invalidate_egress()
-                self._connection_at = 0
+                self.invalidate_connections()
                 self.last_composed = copy.deepcopy(composed)
                 self.active_row = dict(row)
                 self.refresh_proxy_status()
@@ -706,6 +723,7 @@ class Runtime:
         with self.lifecycle_lock:
             if self.process is process:
                 self._retire_client()
+                self.invalidate_connections()
                 self.invalidate_egress()
                 self.proxy.restore()
                 self.event("内核已退出；已尝试恢复由本程序设置的系统代理")
@@ -750,7 +768,7 @@ class Runtime:
                 self.event("内核已停止")
             self._retire_client()
             self.process = None
-            self._connection_at = 0
+            self.invalidate_connections()
             self.invalidate_egress()
             self.active = None
             self.last_traffic = {**self.last_traffic, "running": False, "connections": 0}

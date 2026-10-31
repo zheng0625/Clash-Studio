@@ -1,0 +1,255 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "surface": "context",
+      "page": "subscriptions",
+      "selector": "div > main > div > div:nth-of-type(4) > article",
+      "styles": {
+        "width": "342px",
+        "height": "220px",
+        "box-sizing": "border-box",
+        "min-width": "0",
+        "min-height": "0",
+        "max-width": "none",
+        "max-height": "none",
+        "flex-shrink": "0"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "subscriptions",
+      "selector": "div > main > div > div:nth-of-type(4) > button",
+      "styles": {
+        "width": "342px",
+        "height": "220px",
+        "box-sizing": "border-box",
+        "min-width": "0",
+        "min-height": "0",
+        "max-width": "none",
+        "max-height": "none",
+        "flex-shrink": "0"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "settings",
+      "selector": "div > main > div > div:nth-of-type(4) > dialog:nth-of-type(2)",
+      "styles": {
+        "left": "8px",
+        "top": "256px",
+        "right": "auto",
+        "bottom": "auto",
+        "margin-left": "0",
+        "margin-right": "0",
+        "margin-top": "0",
+        "margin-bottom": "0",
+        "width": "377px",
+        "height": "360px",
+        "box-sizing": "border-box",
+        "min-width": "0",
+        "min-height": "0",
+        "max-width": "none",
+        "max-height": "none",
+        "flex-shrink": "0"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "settings",
+      "selector": "div > main > div > div:nth-of-type(4) > dialog:nth-of-type(3)",
+      "styles": {
+        "left": "8px",
+        "top": "256.5px",
+        "right": "auto",
+        "bottom": "auto",
+        "margin-left": "0",
+        "margin-right": "0",
+        "margin-top": "0",
+        "margin-bottom": "0",
+        "width": "377px",
+        "height": "360px",
+        "box-sizing": "border-box",
+        "min-width": "0",
+        "min-height": "0",
+        "max-width": "none",
+        "max-height": "none",
+        "flex-shrink": "0"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "routing",
+      "selector": "div:nth-of-type(1) > main > div > dialog",
+      "styles": {
+        "left": "8px",
+        "top": "228px",
+        "right": "auto",
+        "bottom": "auto",
+        "margin-left": "0",
+        "margin-right": "0",
+        "margin-top": "0",
+        "margin-bottom": "0",
+        "width": "377px",
+        "height": "441px",
+        "box-sizing": "border-box",
+        "min-width": "0",
+        "min-height": "0",
+        "max-width": "none",
+        "max-height": "none",
+        "flex-shrink": "0"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "routing",
+      "selector": "div:nth-of-type(1) > main > div > dialog > div:nth-of-type(1) > form > div > label:nth-of-type(1)",
+      "styles": {
+        "left": "0px",
+        "top": "-14px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "routing",
+      "selector": "div:nth-of-type(1) > main > div > dialog > header",
+      "styles": {
+        "width": "375px",
+        "height": "64px",
+        "box-sizing": "border-box",
+        "min-width": "0",
+        "min-height": "0",
+        "max-width": "none",
+        "max-height": "none",
+        "flex-shrink": "0",
+        "left": "0px",
+        "top": "-5px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "routing",
+      "selector": "div:nth-of-type(1) > main > div > dialog > div:nth-of-type(1) > form > div > label:nth-of-type(2)",
+      "styles": {
+        "left": "0px",
+        "top": "-26px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "routing",
+      "selector": "div:nth-of-type(1) > main > div > dialog > div:nth-of-type(1) > form > div > label:nth-of-type(3)",
+      "styles": {
+        "left": "0px",
+        "top": "-40px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "routing",
+      "selector": "div:nth-of-type(1) > main > div > dialog > div:nth-of-type(1) > form > div > label:nth-of-type(4)",
+      "styles": {
+        "left": "0px",
+        "top": "-52px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "routing",
+      "selector": "div:nth-of-type(1) > main > div > dialog > div:nth-of-type(1) > form > div",
+      "styles": {
+        "width": "375px",
+        "height": "261px",
+        "box-sizing": "border-box",
+        "min-width": "0",
+        "min-height": "0",
+        "max-width": "none",
+        "max-height": "none",
+        "flex-shrink": "0"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "routing",
+      "selector": "div:nth-of-type(1) > main > div > dialog > div:nth-of-type(1)",
+      "styles": {
+        "width": "375px",
+        "height": "318px",
+        "box-sizing": "border-box",
+        "min-width": "0",
+        "min-height": "0",
+        "max-width": "none",
+        "max-height": "none",
+        "flex-shrink": "0",
+        "left": "0px",
+        "top": "11px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "routing",
+      "selector": "div:nth-of-type(1) > main > div > dialog > footer",
+      "styles": {
+        "width": "375px",
+        "height": "101px",
+        "box-sizing": "border-box",
+        "min-width": "0",
+        "min-height": "0",
+        "max-width": "none",
+        "max-height": "none",
+        "flex-shrink": "0",
+        "left": "0px",
+        "top": "0px",
+        "position": "relative"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "subscriptions",
+      "selector": "dialog:nth-of-type(1)",
+      "styles": {
+        "left": "8px",
+        "top": "200.5px",
+        "right": "auto",
+        "bottom": "auto",
+        "margin-left": "0",
+        "margin-right": "0",
+        "margin-top": "0",
+        "margin-bottom": "0",
+        "width": "377px",
+        "height": "472px",
+        "box-sizing": "border-box",
+        "min-width": "0",
+        "min-height": "0",
+        "max-width": "none",
+        "max-height": "none",
+        "flex-shrink": "0"
+      }
+    },
+    {
+      "surface": "context",
+      "page": "subscriptions",
+      "selector": "dialog:nth-of-type(1) > div:nth-of-type(1)",
+      "styles": {
+        "width": "375px",
+        "height": "205px",
+        "box-sizing": "border-box",
+        "min-width": "0",
+        "min-height": "0",
+        "max-width": "none",
+        "max-height": "none",
+        "flex-shrink": "0"
+      }
+    }
+  ],
+  "viewport": {
+    "width": 393,
+    "height": 873
+  }
+}

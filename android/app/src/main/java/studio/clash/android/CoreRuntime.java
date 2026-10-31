@@ -383,16 +383,17 @@ final class CoreRuntime {
     /** Starts or reuses a listener-only core with the published config; the VPN core owns this process, so probing waits for it. */
     private void ensureProbe(NativeApi api, JSONObject config) throws Exception {
         JSONObject settings = api.store.settings();
-        String identity = settings.optBoolean("ipv6", true) + "\n" + settings.optJSONObject("dns_override") + "\n" + config;
-        StringBuilder key = new StringBuilder();
-        for (byte value : java.security.MessageDigest.getInstance("SHA-256").digest(identity.getBytes(StandardCharsets.UTF_8))) key.append(String.format("%02x", value));
-        if (!probeKey.isEmpty() && probeKey.equals(key.toString())) { touchProbe(); return; }
+        // Fingerprint the effective probe configuration, including protected DNS.
+        // Use a stable placeholder; the actual ephemeral port is assigned below.
+        JSONObject probe = CoreConfig.prepare(config, settings, 17890);
+        DelaySpec.sanitize(probe);
+        String key = DelaySpec.configurationKey(probe);
+        if (!probeKey.isEmpty() && probeKey.equals(key)) { touchProbe(); return; }
         abandonProbe();
         load();
         int port;
         try (java.net.ServerSocket socket = new java.net.ServerSocket(0, 1, java.net.InetAddress.getByName("127.0.0.1"))) { port = socket.getLocalPort(); }
-        JSONObject probe = CoreConfig.prepare(config, settings, port);
-        DelaySpec.sanitize(probe);
+        probe.put("mixed-port", port);
         File home = new File(context.getNoBackupFilesDir(), "mihomo");
         if (!home.isDirectory() && !home.mkdirs()) throw new IOException("core directory");
         Files.write(new File(home, "config.yaml").toPath(), ConfigEngine.dump(probe).getBytes(StandardCharsets.UTF_8));
@@ -404,7 +405,7 @@ final class CoreRuntime {
             closeNativeListeners(); abandonProbe();
             throw new ProfileStore.Failure(422, "测速内核启动失败，请检查节点与 DNS 配置后重试");
         }
-        probeKey = key.toString();
+        probeKey = key;
         touchProbe();
     }
     private int probeDelay(String name, String url, int timeoutMs) throws Exception {

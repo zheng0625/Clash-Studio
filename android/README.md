@@ -1,4 +1,4 @@
-# Clash Studio Android · 0.5.18-dev.3
+# Clash Studio Android · 1.3
 
 Android Studio 打开本目录，使用 Gradle Wrapper 和内置 JDK。
 需要 SDK Platform 37.0、Build Tools 36.0.0、Node.js / pnpm。

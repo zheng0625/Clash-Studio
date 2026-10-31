@@ -1,7 +1,7 @@
 <p align="center"><img src="frontend/src/assets/brand.svg" width="84" alt="Clash Studio"></p>
 <h1 align="center">Clash Studio</h1>
 <p align="center">定义新时代 Clash 客户端，让流量分配更精准，让日常使用更舒适。</p>
-<p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/v1.2">下载 Windows / Linux / Android 版</a> · <a href="README.en.md">English</a> · <a href="docs/project-statement.md">项目声明</a> · <a href="CHANGELOG.md">更新日志</a> · <a href="LICENSE">GPL-3.0</a></p>
+<p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/v1.3">下载 Windows / Linux / Android 版</a> · <a href="README.en.md">English</a> · <a href="docs/project-statement.md">项目声明</a> · <a href="CHANGELOG.md">更新日志</a> · <a href="LICENSE">GPL-3.0</a></p>
 
 **Clash Studio 是一款以可视化订阅编辑、模块化管理和精准分流为核心，兼顾界面设计与日常操作体验的 Windows / Linux Mihomo 桌面客户端。**
 
@@ -78,14 +78,14 @@
 
 ## 下载与使用
 
-当前发布版本：**1.2**（程序版本 `1.2.0`），含 TUN 严格模式和 DNS 防泄漏开关。见 [更新日志](CHANGELOG.md) 与 [1.2 构建记录](docs/validation-1.2.md)。
+当前版本：**1.3**（程序版本 `1.3.0`），整合最新桌面与安卓 UI、订阅自适应、规则分页、品牌图标和内存管理修正，并保留 TUN 严格模式和 DNS 防泄漏。构建与验证范围见 [更新日志](CHANGELOG.md)。
 
 | 平台 / 形式 | 下载 | 数据目录 |
 | --- | --- | --- |
-| Windows x64 便携版 | [ZIP](https://github.com/zheng0625/Clash-Studio/releases/download/v1.2/ClashStudio-1.2-portable-windows-x64.zip) | 程序旁 `data/` |
-| Windows x64 安装版 | [EXE 安装包](https://github.com/zheng0625/Clash-Studio/releases/download/v1.2/ClashStudio-1.2-setup-windows-x64.exe) | `%LOCALAPPDATA%\ClashStudio` |
-| Android arm64-v8a | [APK](https://github.com/zheng0625/Clash-Studio/releases/download/v1.2/ClashStudio-1.2-android-arm64-v8a.apk) | 应用私有目录；旧调试版需先导出配置并卸载 |
-| Linux x64 | [tar.gz](https://github.com/zheng0625/Clash-Studio/releases/download/v1.2/ClashStudio-1.2-linux-x64.tar.gz) | 程序旁 `data/`，可用 `--data-dir` 指定 |
+| Windows x64 便携版 | [ZIP](https://github.com/zheng0625/Clash-Studio/releases/download/v1.3/ClashStudio-1.3-portable-windows-x64.zip) | 程序旁 `data/` |
+| Windows x64 安装版 | [EXE 安装包](https://github.com/zheng0625/Clash-Studio/releases/download/v1.3/ClashStudio-1.3-setup-windows-x64.exe) | `%LOCALAPPDATA%\ClashStudio` |
+| Android arm64-v8a | [APK](https://github.com/zheng0625/Clash-Studio/releases/download/v1.3/ClashStudio-1.3-android-arm64-v8a.apk) | 应用私有目录；旧调试版需先导出配置并卸载 |
+| Linux x64 | [tar.gz](https://github.com/zheng0625/Clash-Studio/releases/download/v1.3/ClashStudio-1.3-linux-x64.tar.gz) | 程序旁 `data/`，可用 `--data-dir` 指定 |
 
 Windows 便携版完整解压后运行 `ClashStudio.exe`；安装版运行 EXE 安装包。Linux 完整解压后执行 `./Start.sh`，依赖、TUN 授权与自启说明见 [Linux 使用指南](docs/linux-preview.md)。Linux 包采用 Ubuntu 22.04 x64 构建基线。
 
@@ -96,6 +96,8 @@ Windows 便携版完整解压后运行 `ClashStudio.exe`；安装版运行 EXE �
 升级前退出旧版并备份数据，避免同时运行多个版本。安装版与便携版使用不同的数据位置，跨形式迁移时需自行备份和迁移。Windows 安装包未签名；兼容性仍会随设备、发行版、桌面环境和节点而变化。
 
 ## 开发与项目结构
+
+组件独立调试：在 `frontend` 目录运行 `pnpm dev:components`，打开组件工坊，逐块切换状态、调整预览宽度并记录验收。详见 [组件工坊说明](docs/component-workshop.md)。
 
 技术栈：**Tauri 2 / Rust + Vue 3 / TypeScript / Vite + Python 本地配置服务 + Mihomo**。
 

@@ -1,0 +1,60 @@
+/* Workshop export, 2026-10-30: preserve card sizes, replace drag offsets with flow.
+   Heights are baselines so expanded details, errors and translated text can grow. */
+:root:not([data-mobile-tier]) .desk[data-ui-page] .desk-content{padding:16px 18px 94px}
+:root:not([data-mobile-tier]) .desk[data-ui-page=home] .desk-content{max-width:743px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .desk-page-heading{margin-bottom:12px;gap:12px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .home-masonry{grid-template-columns:minmax(0,380fr) minmax(0,300fr);gap:12px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .home-column{gap:12px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .home-column .desk-card{box-sizing:border-box;width:100%;height:auto;min-width:0}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .kernel-launch-card{min-height:213px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .kernel-launch-card .routing-mode-card{margin:10px 0}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .kernel-launch-card .routing-segment{padding:3px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .kernel-launch-card .routing-segment>button{min-height:32px;padding:5px 18px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .kernel-actions>.desk-btn{min-height:36px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .bandwidth-card{min-height:238px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .config-card{min-height:159px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .overview-selection{min-height:196px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .home-column .ip-card{min-height:164px;padding:12px 14px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .flow-card{min-height:110px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .resource-memory-card{order:1;min-height:84px;padding:12px 14px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .overview-select-row{grid-template-columns:44px minmax(0,1fr);gap:10px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .egress-row{grid-template-columns:44px minmax(0,1fr);gap:8px;min-height:30px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .egress-ip strong{font-size:19px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .ip-property{padding:1px 5px;font-size:12px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .config-summary-main{flex-wrap:wrap;gap:8px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .config-summary-main>div{flex-basis:140px}
+/* Recompute columns from the available content width while resizing. A lone
+   column fills the viewport instead of retaining a 380px strip on the left. */
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:12px;align-items:start;min-width:0}
+:root:not([data-mobile-tier]) .desk[data-ui-page=subscriptions] .desk-page-heading{flex-wrap:wrap;min-width:0}
+:root:not([data-mobile-tier]) .desk[data-ui-page=subscriptions] .desk-page-heading>div{min-width:0;max-width:100%}
+:root:not([data-mobile-tier]) .desk[data-ui-page=subscriptions] .heading-buttons{flex-wrap:wrap}
+:root:not([data-mobile-tier]) .desk[data-ui-page] :is(.profile-card,.add-profile){box-sizing:border-box;width:100%;min-height:260px;height:auto;min-width:0}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-card{padding:12px 18px;overflow-wrap:anywhere}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-top{height:24px;margin:0}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-symbol{width:24px;height:24px;border-radius:8px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-symbol svg{width:18px;height:18px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-card h2{font-size:16px;line-height:22px;margin:4px 0 0}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-card>p{font-size:12px;line-height:16px;margin:0 0 6px;overflow-wrap:anywhere}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-numbers{margin:0;gap:16px;font-size:12px;line-height:18px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-numbers b{font-size:14px;margin-right:4px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-card .subscription-usage{margin:2px 0;padding:2px 0;border-bottom:0}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-card :is(.usage-heading,.usage-numbers,.usage-caption){font-size:11px;line-height:16px;margin:0;gap:8px;flex-wrap:wrap}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-card .subscription-usage progress,:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-card .usage-track{height:4px;margin:5px 0}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-card .subscription-usage>small{font-size:10px;line-height:12px;margin-top:3px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-card>small{font-size:11px;line-height:16px}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-actions{margin-top:4px;padding-top:0;gap:8px;flex-wrap:wrap}
+:root:not([data-mobile-tier]) .desk[data-ui-page] .profile-actions .desk-btn{min-height:32px;padding:5px 10px;font-size:12px}
+:root:not([data-mobile-tier]) .app-dialog.subscription-import-dialog{width:min(440px,calc(100vw - 32px));height:430px;max-height:calc(100dvh - 32px)}
+@media(max-width:900px){
+ :root:not([data-mobile-tier]) .desk .desk-topbar{padding-left:185px;padding-right:8px}
+ :root:not([data-mobile-tier]) .desk .desk-crumb,:root:not([data-mobile-tier]) .desk .local-tag,:root:not([data-mobile-tier]) .desk .version-tag{display:none}
+ :root:not([data-mobile-tier]) .desk .desk-top-right{margin-left:auto;gap:8px}
+ :root:not([data-mobile-tier]) .desk .liquid-dock .dock-item{min-width:0;padding:9px 12px}
+ :root:not([data-mobile-tier]) .desk .liquid-dock-shell{bottom:12px}
+ :root:not([data-mobile-tier]) .desk[data-ui-page] .desk-content{padding-left:12px;padding-right:12px}
+ :root:not([data-mobile-tier]) .desk[data-ui-page] .modules-layout{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:719px){
+ :root:not([data-mobile-tier]) .desk[data-ui-page] .home-masonry{grid-template-columns:minmax(0,1fr)}
+}
