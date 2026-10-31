@@ -1,5 +1,6 @@
 <p align="center"><img src="frontend/src/assets/brand.svg" width="84" alt="Clash Studio"></p>
 <h1 align="center">Clash Studio</h1>
+<p align="center">Project maintenance and code contributions: <a href="https://github.com/zheng0625">zheng0625</a></p>
 <p align="center">Precise routing. Thoughtful desktop design.</p>
 <p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/v1.3">Download for Windows / Linux / Android</a> · <a href="README.md">简体中文</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="LICENSE">GPL-3.0</a></p>
 
@@ -82,10 +83,6 @@ Extract the entire Windows ZIP and run `ClashStudio.exe`, or use the installer. 
 Python, Mihomo v1.19.33 and four base databases are bundled; Windows also includes Wintun. Windows requires system WebView2; Linux requires desktop GTK / WebKit libraries. No development tools are required. Remote providers / rule sets referenced by subscriptions still need network access. No proxy service or usable subscription is provided.
 
 Version 1.2 includes Windows, Linux and Android packages. Automated checks and their scope are in [validation notes](docs/validation-1.2.md). Validation on these devices does not cover every system and network. Windows packages are unsigned. Exit the old version and back up data before upgrading; portable and installed data locations differ.
-
-## Contributors
-
-- [zheng0625](https://github.com/zheng0625) — Project maintenance and code contributions.
 
 ## Source and license
 

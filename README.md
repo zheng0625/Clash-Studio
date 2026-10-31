@@ -1,5 +1,6 @@
 <p align="center"><img src="frontend/src/assets/brand.svg" width="84" alt="Clash Studio"></p>
 <h1 align="center">Clash Studio</h1>
+<p align="center">项目维护与代码贡献：<a href="https://github.com/zheng0625">zheng0625</a></p>
 <p align="center">定义新时代 Clash 客户端，让流量分配更精准，让日常使用更舒适。</p>
 <p align="center"><a href="https://github.com/zheng0625/Clash-Studio/releases/tag/v1.3">下载 Windows / Linux / Android 版</a> · <a href="README.en.md">English</a> · <a href="docs/project-statement.md">项目声明</a> · <a href="CHANGELOG.md">更新日志</a> · <a href="LICENSE">GPL-3.0</a></p>
 
@@ -118,10 +119,6 @@ licenses/       第三方许可和来源记录
 项目代码采用 **GNU General Public License v3.0（SPDX: GPL-3.0-only）**，见 [LICENSE](LICENSE)。第三方组件、运行库和规则数据库保留各自许可，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。软件按原样提供，不附带担保。
 
 Clash Studio 是独立社区项目，与 Tauri、Clash、Mihomo 或 Clash Verge Rev 不存在官方隶属或背书关系。项目定位、设计原则与能力边界见 [项目声明](docs/project-statement.md)。
-
-## 贡献者
-
-- [zheng0625](https://github.com/zheng0625) — 项目维护与代码贡献。
 
 ## 致谢
 
