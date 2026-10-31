@@ -83,6 +83,10 @@ Python, Mihomo v1.19.33 and four base databases are bundled; Windows also includ
 
 Version 1.2 includes Windows, Linux and Android packages. Automated checks and their scope are in [validation notes](docs/validation-1.2.md). Validation on these devices does not cover every system and network. Windows packages are unsigned. Exit the old version and back up data before upgrading; portable and installed data locations differ.
 
+## Contributors
+
+- [zheng0625](https://github.com/zheng0625) — Project maintenance and code contributions.
+
 ## Source and license
 
 Tauri 2 / Rust + Vue 3 / TypeScript / Vite + Python local configuration service + Mihomo. See [BUILDING.md](BUILDING.md). Releases include corresponding application source, upstream Mihomo source and SHA-256 checksums. Personal data, subscriptions, binary cores and local toolchains are excluded from the repository.

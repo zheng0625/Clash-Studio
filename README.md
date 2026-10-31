@@ -119,6 +119,10 @@ licenses/       第三方许可和来源记录
 
 Clash Studio 是独立社区项目，与 Tauri、Clash、Mihomo 或 Clash Verge Rev 不存在官方隶属或背书关系。项目定位、设计原则与能力边界见 [项目声明](docs/project-statement.md)。
 
+## 贡献者
+
+- [zheng0625](https://github.com/zheng0625) — 项目维护与代码贡献。
+
 ## 致谢
 
 感谢 [Clash Subscription Studio](https://github.com/zheng0625/clash-subscription-studio)、[Tauri](https://github.com/tauri-apps/tauri)、Clash / Dreamacro 及其贡献者、[Mihomo / MetaCubeX](https://github.com/MetaCubeX/mihomo)、[Clash Verge Rev](https://github.com/clash-verge-rev/clash-verge-rev)，以及 Vue、Vite、Lucide、Python、FastAPI、WireGuard / Wintun、MetaCubeX/meta-rules-dat、Loyalsoldier、v2fly、MaxMind 等开源项目与数据贡献者。
